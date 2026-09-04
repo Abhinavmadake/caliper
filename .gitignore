@@ -1,0 +1,22 @@
+# Rust
+/engine/target/
+**/*.rs.bk
+
+# Go
+/control/bin/
+*.test
+*.out
+
+# Build artefacts
+/dist/
+/build/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local environment
+.env
+*.local.yaml
