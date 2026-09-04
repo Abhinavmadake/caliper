@@ -8,6 +8,12 @@ and netlink protocol numbers, io_uring opcode reach, mount filesystem types,
 clone and unshare flags, masked and read-only path coverage, device node
 access, capability effect.
 
+The socket-family and netlink families, and the AF_ALG bind used by the
+motivating case, can make the kernel autoload a module. That is a declared,
+non-reclaimable side effect (`spec/probe.md`); the engine reports it from a
+before/after module snapshot, and the alert-safe reduced corpus omits these
+probes or runs them only on request.
+
 **Deferred set**, specified in the same format so it is additive work rather
 than redesign, entered only if the committed set is complete and the schedule
 is intact: ioctl request codes, bpf commands and program types, keyctl

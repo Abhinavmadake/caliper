@@ -19,10 +19,13 @@ differs across environments and what minimal policy change closes the gap.
 ## Why this exists
 
 CVE-2026-31431 ("Copy Fail", CISA KEV, May 2026) is reached through the AF_ALG
-address family. The `RuntimeDefault` seccomp profile denies it on neither
-containerd nor Moby, and Pod Security Standards at the Restricted level does
-not address it. Workloads that passed every conventional hardening check were
-exploitable, and establishing that fact required hand-built test images.
+address family. When the published testing ran, the `RuntimeDefault` seccomp
+profile denied it on neither containerd nor Moby, and Pod Security Standards at
+the Restricted level did not address it. Workloads that passed every
+conventional hardening check were exploitable, and establishing that fact
+required hand-built test images. Moby has since added a deny in 29.4.2 — and
+whether a given node enforces it is a property of the runtime version, not of
+anything the manifest records, which is the point.
 
 Existing tooling does not close this gap. Configuration scanners report what
 was declared. Runtime monitors report what a workload did, a subset of what it
@@ -33,23 +36,34 @@ its environment permits. None measures enforced confinement.
 
 | Path | Contents | Owner |
 |------|----------|-------|
-| `spec/` | Fixed interfaces: probe specification and fingerprint format | agreed by all, frozen week 2 |
+| `spec/` | Fixed interfaces: probe specification and fingerprint format | agreed by all in week 2, frozen week 9 |
 | `engine/` | Probe engine — Rust. Fork isolation, verdict classification, safety | A |
 | `corpus/` | Probe definitions, argument-granular, with attribution metadata | A + B |
 | `posture/` | Reference posture — tier assertions with citations | B |
-| `control/` | Fingerprint, diff, classifier, evaluator, reporting — Go | C |
+| `control/` | Fingerprint, diff, classifier, evaluator, remediator, reporting — Go | C, remediation from D |
+| `deploy/` | Kubernetes Job and DaemonSet manifests, environment-matrix bring-up, CI | D |
+| `scripts/` | Repository tooling (backlog seeding) | — |
 | `docs/` | Proposal and design notes | — |
 
-Delivery, the environment harness, remediation and integration are owned by D
-and land across `control/` and repository tooling.
+D also acts as integrator, responsible for the components composing correctly.
+
+| Member | GitHub | Workstream |
+|--------|--------|------------|
+| A | `Abhinavmadake` | Probe engine and safety, half the corpus |
+| B | `sahilwaje23` | Corpus, attribution, reference posture |
+| C | `Yogesh-Palve` | Fingerprint, diff, evaluation, reporting |
+| D | `Ritesh-Saindane` | Delivery, environment harness, remediation, integration |
+
+Work is tracked as GitHub issues, one milestone per freeze gate; the workstream
+letter is in every issue title.
 
 ## The interface
 
 `spec/` is the contract the four workstreams develop against. The probe
 engine and corpus produce a fingerprint; the diff engine, evaluator and
-remediator consume one. Everything else can proceed in parallel once these are
-frozen — which is why they are frozen in week 2 and treated as fixed
-thereafter.
+remediator consume one. Everything else can proceed in parallel once a first
+version is agreed — which happens in week 2. The fingerprint format is frozen
+at the end of week 9; after that a change is a new format version.
 
 ## Scope
 
@@ -59,7 +73,12 @@ for the mechanisms whose effect it measures.
 Probes establish that a kernel entry point is **reachable** and stop there. The
 corpus contains no exploit code and no operation whose success confers
 privilege. Where an enumeration interface can answer the question without
-executing anything, it is preferred — `IORING_REGISTER_PROBE` over submitting
-queue entries, for example.
+executing the probed operation, it is preferred — `IORING_REGISTER_PROBE` over
+submitting queue entries, for example.
+
+One side effect cannot be rolled back and is declared instead: probing an
+unregistered socket family, netlink protocol or AF_ALG algorithm type asks the
+kernel to autoload the module for it. The engine records the loaded module set
+before and after a run and reports the difference.
 
 Intended for infrastructure you own or have written authorisation to test.

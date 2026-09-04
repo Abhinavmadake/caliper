@@ -10,10 +10,13 @@
 #   C  fingerprint, diff and evaluation
 #   D  delivery and evaluation harness, remediation, integration
 #
-# Issues are created UNASSIGNED. The letter in the title says who owns the work;
-# members claim their own with:
+# Issues are created unassigned; the letter in the title says who owns the work
+# and members claim their own with:
 #
 #   gh issue edit <n> --add-assignee <handle>
+#
+# The letter-to-handle mapping the team settled on is in README.md:
+#   A Abhinavmadake, B sahilwaje23, C Yogesh-Palve, D Ritesh-Saindane
 #
 # Usage:  ./scripts/seed-backlog.sh [--force]
 #
@@ -128,6 +131,9 @@ against the engine.
 - [ ] Side-effect and rollback fields defined; descriptor-shaped effects reclaimed
       by child exit, anything outliving a process declares its rollback
 - [ ] Risk class and timeout fields defined
+- [ ] Kernel dependency field defined — version, config option or module the
+      entry point needs, so kernel-version-explained divergence is excluded
+      probe by probe
 - [ ] Architecture applicability field defined, so the diff engine cannot report
       architecture as policy
 - [ ] Open question resolved: declarative data file, or Rust definitions compiled in
@@ -153,13 +159,15 @@ what allows the four workstreams to proceed without blocking one another.
       architecture, kernel version and distribution, relevant loaded modules,
       container runtime and version, active LSM, RuntimeClass
 - [ ] Per-probe verdict enumeration fixed: `permitted` / `denied` / `unimplemented`
-      / `killed`, plus the raw errno
+      / `killed` / `timed-out` / `not-applicable`, plus the raw errno
 - [ ] Attribution recorded with a confidence level, and an explicit flag for
       attribution that was undecidable from inside the container
 - [ ] Open question resolved: how a consumer handles a fingerprint from an older
       corpus revision
-- [ ] Open question resolved: the signing mechanism — the proposal calls
-      fingerprints signed, so decide what that means
+- [ ] Open question resolved: whether the fingerprint carries any integrity
+      protection at all — the proposal does not require one; decide, or drop it
+- [ ] Divergence classes fixed as the diff engine's output: architecture-,
+      kernel-version-, runtime-class- and policy-explained (proposal §5)
 - [ ] Serialisation format chosen and its stability guarantees stated
 - [ ] Marked frozen for week 2 purposes; final freeze is week 9 (see the W9 issue)
 
@@ -167,9 +175,11 @@ what allows the four workstreams to proceed without blocking one another.
 EOF
 
 mkissue "[C] Recorded fingerprint fixtures for downstream development" \
-        "spec,ws:control" "$M2" <<'EOF'
+        "spec,ws:control" "$M3" <<'EOF'
 **Workstream:** C — fingerprint, diff and evaluation
-**Phase:** Week 2, in parallel with the engine
+**Phase:** Weeks 2–3, in parallel with the engine
+
+Depends on #2 — the fixtures conform to the format it agrees.
 
 The proposal requires the reporting layers to be developed against recorded
 fingerprints long before the corpus is complete. Without fixtures, C and D are
@@ -203,6 +213,9 @@ library it carries is itself a source of syscalls that pollute the measurement.
 - [ ] `nix` and `libc` are the only syscall-facing dependencies
 - [ ] The binary issues no background syscalls of its own during a probe — verified
       by strace on a no-op run
+- [ ] The engine's own syscall set (Rust std start-up plus fork, waitpid, write,
+      exit) is enumerated and verified to survive `RuntimeDefault` and a
+      hand-hardened profile — the parent runs under the same filter as the probe
 - [ ] Container image builds from scratch, carrying the binary and nothing else
 
 **Proposal reference:** §5, §10
@@ -279,7 +292,8 @@ Each probe records the verdict, not an interpretation of it. Interpretation is t
 attributor's job, and conflating the two makes attribution unfalsifiable.
 
 **Done when**
-- [ ] The four verdicts are distinguished correctly and the raw errno preserved
+- [ ] The verdicts — permitted, denied, unimplemented, killed, timed-out,
+      not-applicable — are distinguished correctly and the raw errno preserved
       alongside every one
 - [ ] `unimplemented` is separated from `denied` — an address family the kernel does
       not implement is not a policy finding
@@ -305,6 +319,9 @@ probe destabilising a host.
 - [ ] The five tracked classes are accounted: mount table, session and user keyrings,
       cgroup entries, System V and POSIX IPC objects, network namespaces
 - [ ] A residual-state report is emitted after a full run
+- [ ] The loaded module set is snapshotted before the first probe and after the
+      last, and the difference reported separately — module autoload is a
+      declared, non-reclaimable side effect (§6.2), not counted as residual
 
 **Proposal reference:** §6.2, §11.2, §12
 EOF
@@ -348,7 +365,11 @@ call `socket(2)` and one that may reach the kernel crypto API.
 - [ ] Every probe carries an errno oracle — `EAFNOSUPPORT` for an unimplemented
       family is the natural one here
 - [ ] `unimplemented` is correctly separated from `denied`
-- [ ] Side effects are socket descriptors only, reclaimed at child exit
+- [ ] Side effects declared: socket descriptors, reclaimed at child exit, and
+      module autoload (`net-pf-N`, `algif-*`), which is not reclaimable and is
+      reported from the engine's before/after module snapshot (§6.2)
+- [ ] Each oracle records what it isolates — an `EAFNOSUPPORT` oracle on an
+      in-range family does not separate seccomp from an LSM (§6.1)
 
 **Proposal reference:** §2, §4 (objective 2), §9.1
 EOF
@@ -416,7 +437,9 @@ Mount masking is one of the mechanisms that can produce a denial indistinguishab
 from seccomp or a dropped capability, so this family feeds the attributor directly.
 
 **Done when**
-- [ ] The OCI runtime specification's default masked and read-only paths are probed
+- [ ] The masked and read-only paths that containerd applies by default (the OCI
+      spec defines the fields, not the lists) are probed, plus runc's for the
+      Podman cell
 - [ ] Unmasked procfs is detectable, since the reference posture asserts against it
 - [ ] Probes read only — nothing writes to a path that is unexpectedly writable
 - [ ] Errno oracle authored per probe
@@ -474,7 +497,8 @@ The proposal states the corpus is not considered complete until every probe carr
 one. This issue is the check on that.
 
 **Done when**
-- [ ] Every committed-set probe has an oracle with its guaranteed errno recorded
+- [ ] Every committed-set probe has an oracle with its guaranteed errno recorded,
+      and B has reviewed each oracle A authored with A's families (§8)
 - [ ] Each oracle's guarantee is justified in a comment against the relevant man page
 - [ ] No probe in the committed set is exempt
 - [ ] A CI check fails the build if a probe lacks an oracle
@@ -598,17 +622,24 @@ mkissue "[C] Environment cell detection — arch, kernel, runtime+version, LSM, 
 **Workstream:** C — fingerprint, diff and evaluation
 **Phase:** Weeks 4–9
 
-The fingerprint's identity is the environment cell, not the workload. Detection has
-to work from inside an unprivileged container.
+The fingerprint's identity is the environment cell, not the workload. Only part of
+it is observable from inside an unprivileged container; the rest comes from the
+Kubernetes Node object and pod spec, or from the operator, and records its source
+(proposal §5, `spec/fingerprint.md`).
 
 **Done when**
 - [ ] Processor architecture detected
 - [ ] Kernel version, distribution and relevant loaded modules detected — module
       presence matters, since AF_ALG exploitability depends on whether `algif_aead`
       is loaded, which the workload author neither controls nor can observe
-- [ ] Container runtime and runtime version detected
-- [ ] Active LSM detected: AppArmor, SELinux or none
-- [ ] RuntimeClass detected: runc, gVisor or Kata
+- [ ] Container runtime and runtime version taken from the Node object's node
+      info (or supplied by the operator outside Kubernetes) — not observable from
+      inside the container — with the source recorded
+- [ ] Active LSM detected from the process's own label: AppArmor, SELinux or none
+- [ ] RuntimeClass taken from the pod spec: runc, gVisor or Kata; a sandbox's
+      synthetic kernel version is recorded as its claim, not as the node's
+- [ ] The loaded module set is the engine's pre-probe snapshot, never a post-run
+      reading (§5, §6.2)
 - [ ] Fields that cannot be determined are recorded as unknown rather than guessed
 
 **Proposal reference:** §2, §5
@@ -625,7 +656,8 @@ mkissue "[C] Fingerprint serialisation and version negotiation across corpus rev
       silently misreporting it
 - [ ] Probes present in one fingerprint and absent from another are handled explicitly
       by the diff, not treated as a divergence
-- [ ] Signing implemented per the week-2 decision
+- [ ] Integrity protection implemented only if the week-2 decision in #2 called
+      for one
 - [ ] Round-trips the recorded fixtures
 
 **Proposal reference:** §5
@@ -645,7 +677,7 @@ mkissue "[C] Diff engine — divergence at probe granularity" \
 **Proposal reference:** §4 (objective 4), §5
 EOF
 
-mkissue "[C] Divergence classifier — architecture / kernel-version / policy-explained" \
+mkissue "[C] Divergence classifier — architecture / kernel-version / runtime-class / policy-explained" \
         "ws:control,critical-path" "$M9" <<'EOF'
 **Workstream:** C — fingerprint, diff and evaluation
 **Phase:** Weeks 4–9
@@ -657,10 +689,16 @@ finding when it is nothing of the kind.
 
 **Done when**
 - [ ] Every divergence is classified as architecture-explained,
-      kernel-version-explained or policy-explained
+      kernel-version-explained, runtime-class-explained or policy-explained
+- [ ] gVisor and Kata cells: an `unimplemented` verdict on the sandboxed side is
+      runtime-class-explained and never counted as policy (§5)
 - [ ] Architecture applicability declared on the probe is what drives the
       architecture class — the classifier does not infer it
-- [ ] The 32-bit ABI path, which has no arm64 equivalent, is correctly classified
+- [ ] The kernel-version class is driven by the probe's declared kernel dependency
+      and the cell's module set, not by the version string alone
+- [ ] A 32-bit compatibility ABI present on one kernel and absent on another is
+      classified from the probe's run-time applicability record, not from the
+      architecture field
 - [ ] Divergence counts are reported separately per class, never as a single number
 - [ ] Classification is testable against the recorded fixtures
 
@@ -671,6 +709,8 @@ mkissue "[C] Freeze the fingerprint format" \
         "ws:control,freeze-gate" "$M9" <<'EOF'
 **Workstream:** C — fingerprint, diff and evaluation
 **Phase:** End of week 9 — the format freeze
+
+Depends on #24–#27, and on cells 2 and 4 (#39) being up.
 
 The proposal states the system is independently defensible from the end of week 9:
 at this point it measures, classifies and diffs confinement across environments
@@ -730,7 +770,7 @@ fix differs in each case.
 **Proposal reference:** §6.1
 EOF
 
-mkissue "[B] Capability correlation from effective and bounding sets in /proc/self/status" \
+mkissue "[B] Capability and LSM correlation from the process's own status and label" \
         "ws:corpus" "$M12" <<'EOF'
 **Workstream:** B — attribution
 **Phase:** Weeks 9–11
@@ -744,6 +784,10 @@ process's own status, which is readable without privilege.
 - [ ] Where a capability is absent and the errno oracle indicates the call reached
       the kernel, the capability is reported as the cause
 - [ ] Capability-caused denials are distinguished from filter-caused ones
+- [ ] The process's own AppArmor or SELinux label and enforcing state are read
+      from its attr directory under /proc; an `EACCES` that the oracle places
+      after the security-module hook, under a confining label, is attributed to
+      the LSM at reduced confidence (§6.1)
 - [ ] Requires no privilege
 
 **Proposal reference:** §6.1
@@ -851,8 +895,11 @@ privileged installer. The SPO CR solves distribution.
 **Done when**
 - [ ] Security Profiles Operator custom resource emitted as the primary form
 - [ ] Localhost seccomp profile emitted as the secondary form
-- [ ] Policy is argument-level, not syscall-name-level — syscall-name granularity is
-      the granularity at which the AF_ALG case is invisible
+- [ ] Policy is argument-level wherever the discriminating argument is visible to
+      seccomp-BPF (register values: address family, flags, opcodes) — syscall-name
+      granularity is the granularity at which the AF_ALG case is invisible
+- [ ] Families whose datum sits behind a pointer (mount type, paths, device
+      nodes) are closed at syscall level or reported as not closable by seccomp
 - [ ] Minimal with respect to a stated posture revision
 - [ ] Divergences the instrument can identify but cannot close are reported as such
 
@@ -879,7 +926,9 @@ mkissue "[D] CI integration with the reduced corpus" \
 **Phase:** Weeks 10–12
 
 **Done when**
-- [ ] The instrument runs in CI and reports findings against a pull request
+- [ ] CI triggers the #29 Job on a named target cluster and posts that cell's
+      evaluation against the pull request — measuring the CI runner's own
+      container is a different cell and is not the deliverable
 - [ ] A reduced corpus exists for CI use
 - [ ] The reduced corpus completes in **under 5 seconds** (§11.2)
 - [ ] Uses the mature Go ecosystem libraries for reporting
@@ -888,32 +937,39 @@ mkissue "[D] CI integration with the reduced corpus" \
 EOF
 
 mkissue "[D] Environment matrix automation — the six required cells" \
-        "ws:delivery,evaluation" "$M12" <<'EOF'
+        "ws:delivery" "$M12" <<'EOF'
 **Workstream:** D — evaluation harness
 **Phase:** Weeks 4–12, feeding week 13–15 evaluation
 
-Six required cells, each chosen to move exactly one axis relative to another in the
-set, so that a divergence is attributable. All six run on developer hardware, so the
-evaluation depends on neither cloud budget nor account availability.
+Six required cells; cell 2 is the baseline, cells 4–6 move exactly one axis relative
+to it, and cells 1 and 3 move as few as their platforms allow (§11.1). All six run on
+developer hardware, which assumes one amd64 machine with hardware virtualisation.
 
 Cells are counted honestly: kind, minikube and k3s on the same host are **one** cell,
 not three, because all three are containerd on the same kernel. The same collapse
 applies to Docker Desktop and Colima on macOS, which share a Lima-class VM.
 
-**Required cells**
-- [ ] arm64, Lima-class kernel, containerd, no LSM
-- [ ] amd64, Ubuntu 24.04, containerd and runc, AppArmor
-- [ ] amd64, Fedora or Rocky, containerd, SELinux
-- [ ] amd64, Ubuntu 24.04, containerd predating the io_uring deny change
-- [ ] amd64, gVisor RuntimeClass
-- [ ] amd64, Kata Containers RuntimeClass
+**Required cells** (versions pinned — §11.1)
+- [ ] 1. arm64, Ubuntu 24.04 under Lima, containerd 2.2 and runc, AppArmor
+- [ ] 2. amd64, Ubuntu 24.04, containerd 2.2 and runc, AppArmor — the baseline
+- [ ] 3. amd64, Fedora or Rocky, containerd 2.2 and runc, SELinux
+- [ ] 4. amd64, Ubuntu 24.04, containerd 1.7.12 (release pocket, held) and runc,
+      AppArmor — predates the io_uring deny, which shipped in containerd 2.0
+- [ ] 5. amd64, Ubuntu 24.04, containerd 2.2, gVisor RuntimeClass
+- [ ] 6. amd64, Ubuntu 24.04, containerd 2.2, Kata Containers RuntimeClass
 
 **Optional additions, only if the schedule permits**
 - [ ] amd64 Podman and crun on the AppArmor host
+- [ ] amd64 Moby on the AppArmor host — moves the runtime axis of objective 8
 - [ ] EKS on Amazon Linux 2023
 - [ ] GKE on Container-Optimized OS
+- [ ] Talos, the platform of the published result
 
 **Also done when**
+- [ ] Runs on the amd64 host with hardware virtualisation confirmed in week 1
+      (#52) — the Kata cell cannot run on Apple Silicon
+- [ ] Cells 2 and 4 are up by the end of week 9, since #28 needs two real
+      environments; all six by the end of week 12
 - [ ] Bring-up is automated and repeatable
 - [ ] Development happens inside disposable VMs with snapshot rollback (§12)
 
@@ -933,6 +989,8 @@ This is the §12 mitigation.
       allowlist it deliberately
 - [ ] A reduced corpus omits the probes most likely to raise alerts
 - [ ] Which probes are omitted, and why, is documented
+- [ ] The AF_ALG probe is among them, and the documentation says so — the
+      published Copy Fail detection rules key on AF_ALG socket creation (§12)
 - [ ] Tested against at least one runtime monitor
 
 **Proposal reference:** §12
@@ -941,7 +999,7 @@ EOF
 # ----------------------------------------------------- W15 — evaluation -----
 
 mkissue "[D] Metric: divergence across cells, reported per divergence class" \
-        "evaluation" "$M15" <<'EOF'
+        "ws:delivery,evaluation" "$M15" <<'EOF'
 **Workstream:** D, with C
 **Phase:** Weeks 13–15
 
@@ -950,13 +1008,14 @@ each divergence class.
 
 **Success criterion (§11.2)**
 - [ ] Policy-explained divergence measured in **at least four cell pairs**
-- [ ] Architecture-explained divergence correctly separated from it in **every** pair
+- [ ] Architecture-explained and runtime-class-explained divergence correctly
+      separated from it in **every** pair
 
 **Proposal reference:** §11.2
 EOF
 
 mkissue "[C] Metric: expectation and claim violations by category and cell" \
-        "evaluation" "$M15" <<'EOF'
+        "ws:control,evaluation" "$M15" <<'EOF'
 **Workstream:** C
 **Phase:** Weeks 13–15
 
@@ -970,7 +1029,7 @@ mkissue "[C] Metric: expectation and claim violations by category and cell" \
 EOF
 
 mkissue "[A+B] Metric: reproduce the AF_ALG case unaided" \
-        "evaluation,critical-path" "$M15" <<'EOF'
+        "ws:engine,ws:corpus,evaluation,critical-path" "$M15" <<'EOF'
 **Workstream:** A and B
 **Phase:** Weeks 13–15
 
@@ -984,15 +1043,18 @@ is the demonstration that the instrument removes the need.
 - [ ] AF_ALG reachability detected on a `RuntimeDefault` + PSS Restricted workload
       with no hand-built image and no bespoke profile
 - [ ] Reported as an expectation violation, citing CVE-2026-31431 via the posture
-- [ ] Reproduced on containerd, matching the published Talos and EKS testing
-- [ ] `algif_aead` module presence recorded in the environment cell, since
-      exploitability depends on it
+- [ ] Reproduced on a containerd cell whose `RuntimeDefault` profile predates any
+      AF_ALG deny (cell 4, containerd 1.7.12), matching the published containerd
+      result
+- [ ] `algif_aead` module presence recorded in the environment cell from the
+      pre-probe snapshot, since exploitability depends on it and the probe itself
+      can load the module (§6.2)
 
 **Proposal reference:** §2, §11.2
 EOF
 
 mkissue "[B] Metric: attribution accuracy against constructed ground truth" \
-        "evaluation" "$M15" <<'EOF'
+        "ws:corpus,evaluation" "$M15" <<'EOF'
 **Workstream:** B
 **Phase:** Weeks 13–15
 
@@ -1001,14 +1063,17 @@ single known cause.
 
 **Success criteria (§11.2)**
 - [ ] Ground-truth environments constructed, one known denial cause each
-- [ ] Attribution **at least 90 per cent** correct
-- [ ] Undecidable fraction reported and **not exceeding 10 per cent**
+- [ ] **At least 90 per cent** of attributed denials attributed correctly
+- [ ] Undecidable fraction, measured over all denials, reported and **not
+      exceeding 10 per cent**
+- [ ] Ground truth includes an `ENOSYS`-returning filter and an LSM-only denial,
+      the two cases §6.1 marks as ambiguous for the oracle
 
 **Proposal reference:** §6.1, §11.2
 EOF
 
 mkissue "[D] Metric: remediation closure rate, verified by re-probing" \
-        "evaluation" "$M15" <<'EOF'
+        "ws:delivery,evaluation" "$M15" <<'EOF'
 **Workstream:** D
 **Phase:** Weeks 13–15
 
@@ -1023,7 +1088,7 @@ mkissue "[D] Metric: remediation closure rate, verified by re-probing" \
 EOF
 
 mkissue "[A] Metric: residual state across five object classes, and runtime cost" \
-        "evaluation" "$M15" <<'EOF'
+        "ws:engine,evaluation" "$M15" <<'EOF'
 **Workstream:** A
 **Phase:** Weeks 13–15
 
@@ -1031,6 +1096,8 @@ mkissue "[A] Metric: residual state across five object classes, and runtime cost
 - [ ] **Zero unreclaimed objects** after a full run, across all five tracked classes:
       mount table, session and user keyrings, cgroup entries, System V and POSIX IPC
       objects, network namespaces
+- [ ] Module autoload reported separately from the before/after snapshot and not
+      counted as residual (§6.2, §11.2)
 - [ ] Full corpus completes in **under 60 seconds**
 - [ ] Reduced CI corpus completes in **under 5 seconds**
 - [ ] Measured directly per class, not by whole-host comparison
@@ -1039,7 +1106,7 @@ mkissue "[A] Metric: residual state across five object classes, and runtime cost
 EOF
 
 mkissue "[C] Comparison against amicontained and seccomp-diff on identical targets" \
-        "evaluation" "$M15" <<'EOF'
+        "ws:control,evaluation" "$M15" <<'EOF'
 **Workstream:** C
 **Phase:** Weeks 13–15
 
@@ -1079,6 +1146,8 @@ mkissue "[ALL] Final report" \
 - [ ] Coordinated disclosure obligations discharged — any genuine defect found in a
       runtime, distribution or managed platform, rather than an operator
       misconfiguration, reported to the vendor before publication
+- [ ] Any vendor finding whose disclosure window has not closed is described
+      generically, with detail withheld until it has (§13)
 
 **Proposal reference:** §9.2, §11.2, §13
 EOF
@@ -1115,6 +1184,73 @@ mkissue "[D] Release — probe image, reference posture, documentation" \
       confers privilege
 
 **Proposal reference:** §7, §13, §14
+EOF
+
+# ------------------------------------ W3 — weeks 1-3 parallel work (§9.1) ----
+# Added after the first seeding; numbered #51 and #52 on the live repository.
+
+mkissue "[B] Errno oracle design for the first corpus families" \
+        "ws:corpus" "$M3" <<'EOF'
+**Workstream:** B — corpus and attribution
+**Phase:** Weeks 1–3, in parallel with the engine (§9.1: "errno oracle design
+for the first corpus families. No member is idle in this phase.")
+
+Against the specification format rather than the engine: for the socket address
+family, netlink protocol and io_uring families, decide per probe which argument
+set makes a specific errno structurally guaranteed, and record what the oracle
+can and cannot prove for that syscall (§6.1: an `EBADF` oracle isolates seccomp;
+an `EAFNOSUPPORT` oracle on an in-range family does not separate a filter from
+an LSM).
+
+**Done when**
+- [ ] Oracle argument sets drafted for every probe in the first three families
+- [ ] Each records whether its guaranteed errno is produced before or after the
+      security-module hook for that syscall
+- [ ] `ENOSYS` handling agreed with #1 — ambiguous wherever the cell's kernel
+      implements the syscall
+- [ ] Ready to be authored into #11 and #12 in week 4
+
+**Proposal reference:** §6.1, §9.1
+EOF
+
+mkissue "[D] Environment harness scaffolding — hardware check and first two cells" \
+        "ws:delivery" "$M3" <<'EOF'
+**Workstream:** D — delivery and evaluation harness
+**Phase:** Weeks 1–3, in parallel with the engine (§9.1: "environment harness
+scaffolding")
+
+**Done when**
+- [ ] Week 1: an amd64 host with hardware virtualisation is identified and
+      confirmed (`/dev/kvm` present, `kata-runtime check` passes) — the Kata
+      cell cannot run on an Apple Silicon laptop, and the other amd64 cells run
+      there only under emulation (§11.1)
+- [ ] Disposable-VM workflow with snapshot rollback in place (§12)
+- [ ] Cell 2 (Ubuntu 24.04, containerd 2.2, AppArmor) and cell 4 (Ubuntu 24.04,
+      containerd 1.7.12 held) bring up repeatably, with versions pinned
+- [ ] The ten-probe reference corpus (#10) runs in both
+
+**Proposal reference:** §9.1, §11.1, §12
+EOF
+
+mkissue "[D] Integration: composed pipeline end to end on cell 2 before evaluation" \
+        "ws:delivery,critical-path" "$M12" <<'EOF'
+**Workstream:** D, as integrator (§8: "responsible for the components composing
+correctly")
+**Phase:** Week 12 — before evaluation starts in week 13
+
+No other issue between the W9 handshake (#28) and the W17 demonstration (#49)
+has "the components compose" as its deliverable, and the buffer week takes no
+issues by design. This is that deliverable.
+
+**Done when**
+- [ ] measure → fingerprint → diff → classify → evaluate → remediate → verify
+      closure runs as one pipeline on cell 2, from the published image
+- [ ] Every interface crossing (engine → control plane, control plane → SPO
+      resource, remediation → re-probe) is exercised with real artefacts, not
+      fixtures
+- [ ] Evaluation (#41–#47) does not start until this passes
+
+**Proposal reference:** §8, §9.1, §12
 EOF
 
 echo

@@ -7,6 +7,8 @@ parsing, the evaluator, and reporting in JSON and human-readable form (SARIF
 is an extension). Go for the container ecosystem libraries.
 
 The diff engine classifies every divergence as architecture-explained,
-kernel-version-explained or policy-explained. That classification is the
-contribution, not a correction — without it the headline divergence metric is
-dominated by architecture rather than by policy.
+kernel-version-explained, runtime-class-explained or policy-explained (see
+`spec/fingerprint.md`). That classification is the contribution, not a
+correction — without it the headline divergence metric is dominated by
+architecture, or by what gVisor and Kata do not implement, rather than by
+policy.
