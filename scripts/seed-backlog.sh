@@ -461,9 +461,9 @@ mkissue "[B] Probe family: device node access" \
 **Proposal reference:** §4 (objective 2), §13
 EOF
 
-mkissue "[B] Probe family: capability effect" \
+mkissue "[A] Probe family: capability effect" \
         "ws:corpus" "$M8" <<'EOF'
-**Workstream:** B — the remaining corpus families
+**Workstream:** A — engine-adjacent corpus families
 **Phase:** Weeks 4–8
 
 Last in the committed order, and the family that most directly supports capability
@@ -529,10 +529,10 @@ rather than an instrument.
 **Proposal reference:** §9.1, §9.2, §12
 EOF
 
-mkissue "[B] Specify the deferred set in the committed format, unimplemented" \
-        "ws:corpus,deferred-set" "$M8" <<'EOF'
-**Workstream:** B
-**Phase:** Weeks 4–8
+mkissue "[A] Specify the deferred set in the committed format, unimplemented" \
+        "ws:corpus,deferred-set" "$M12" <<'EOF'
+**Workstream:** A
+**Phase:** Weeks 9–12, after the week 8 corpus freeze
 
 Specified in the same format as the committed set so that implementing it later is
 additive work rather than redesign. Specification only — no implementation under this
@@ -599,9 +599,9 @@ it is the most reusable artefact the project produces.
 EOF
 
 mkissue "[B] Reference posture versioning so findings are reproducible against a revision" \
-        "ws:posture" "$M8" <<'EOF'
+        "ws:posture" "$M9" <<'EOF'
 **Workstream:** B — reference posture
-**Phase:** Weeks 4–8
+**Phase:** Weeks 4–9
 
 The posture is a judgement, and the §12 mitigation is that findings are reproducible
 against a stated revision of it.
@@ -729,9 +729,9 @@ which the project should not be allowed to fall.**
 EOF
 
 mkissue "[D] Kubernetes Job and DaemonSet packaging" \
-        "ws:delivery" "$M9" <<'EOF'
+        "ws:delivery" "$M8" <<'EOF'
 **Workstream:** D — delivery and evaluation harness
-**Phase:** Weeks 4–9, needed before the environment matrix
+**Phase:** Weeks 4–8, needed before the environment matrix
 
 **Done when**
 - [ ] Job manifest for a single-node measurement
@@ -746,9 +746,9 @@ EOF
 
 # ------------------------------- W12 — attribution, evaluator, remediation ---
 
-mkissue "[B] Errno oracle attribution engine — prove interception before execution" \
-        "ws:corpus" "$M12" <<'EOF'
-**Workstream:** B — attribution
+mkissue "[A] Errno oracle attribution engine — prove interception before execution" \
+        "ws:engine" "$M12" <<'EOF'
+**Workstream:** A — attribution engine
 **Phase:** Weeks 9–11
 
 Consumes the oracles authored during corpus construction. A probe receives `EPERM`
@@ -921,9 +921,9 @@ mkissue "[D] Closure verification by re-probing" \
 EOF
 
 mkissue "[D] CI integration with the reduced corpus" \
-        "ws:delivery" "$M12" <<'EOF'
+        "ws:delivery" "$M9" <<'EOF'
 **Workstream:** D — delivery
-**Phase:** Weeks 10–12
+**Phase:** Weeks 6–9
 
 **Done when**
 - [ ] CI triggers the #29 Job on a named target cluster and posts that cell's
@@ -937,9 +937,9 @@ mkissue "[D] CI integration with the reduced corpus" \
 EOF
 
 mkissue "[D] Environment matrix automation — the six required cells" \
-        "ws:delivery" "$M12" <<'EOF'
+        "ws:delivery" "$M8" <<'EOF'
 **Workstream:** D — evaluation harness
-**Phase:** Weeks 4–12, feeding week 13–15 evaluation
+**Phase:** Weeks 4–8, feeding week 13–15 evaluation
 
 Six required cells; cell 2 is the baseline, cells 4–6 move exactly one axis relative
 to it, and cells 1 and 3 move as few as their platforms allow (§11.1). All six run on
@@ -977,9 +977,9 @@ applies to Docker Desktop and Colima on macOS, which share a Lima-class VM.
 EOF
 
 mkissue "[D] Documented probe image signature and alert-safe reduced corpus" \
-        "ws:delivery" "$M12" <<'EOF'
+        "ws:delivery" "$M8" <<'EOF'
 **Workstream:** D — delivery
-**Phase:** Weeks 10–12
+**Phase:** Weeks 4–8
 
 The instrument may be indistinguishable from an attack to runtime security tooling.
 This is the §12 mitigation.
