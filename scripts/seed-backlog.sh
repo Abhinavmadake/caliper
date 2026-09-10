@@ -496,6 +496,13 @@ a filter and not a capability produced the denial.
 The proposal states the corpus is not considered complete until every probe carries
 one. This issue is the check on that.
 
+**Boundary with the attribution engine.** Attribution is split, not owned (§8).
+This issue owns the oracles themselves: what errno each probe guarantees, and why
+that guarantee holds. The attribution engine that acts on them at run time is A's
+and lives in `engine/`. B decides what a given errno proves; A builds the
+machinery that proves it. An oracle whose guarantee is wrong is a defect here; an
+oracle correctly declared but misclassified at run time is a defect there.
+
 **Done when**
 - [ ] Every committed-set probe has an oracle with its guaranteed errno recorded,
       and B has reviewed each oracle A authored with A's families (§8)
@@ -503,7 +510,7 @@ one. This issue is the check on that.
 - [ ] No probe in the committed set is exempt
 - [ ] A CI check fails the build if a probe lacks an oracle
 
-**Proposal reference:** §6.1
+**Proposal reference:** §6.1, §8
 EOF
 
 mkissue "[A+B] Corpus index and committed/deferred split; freeze end of week 8" \
@@ -758,6 +765,13 @@ a read-only or masked mount. From inside the container these are indistinguishab
 and a report that cannot tell them apart cannot produce a remediation, because the
 fix differs in each case.
 
+**Boundary with the corpus.** Attribution is split, not owned (§8). The oracles
+themselves — what errno each probe guarantees, and why — are B's and are gated by
+the completeness check that freezes the corpus in week 8. This issue owns the
+engine that acts on them at run time. An oracle whose guarantee is wrong is a
+defect there; an oracle correctly declared but misclassified at run time is a
+defect here.
+
 **Done when**
 - [ ] Receiving `EPERM` where the oracle guaranteed something else is reported as
       proof of interception before execution, and therefore of a filter
@@ -767,7 +781,7 @@ fix differs in each case.
       privilege
 - [ ] Works from inside an unprivileged container
 
-**Proposal reference:** §6.1
+**Proposal reference:** §6.1, §8
 EOF
 
 mkissue "[B] Capability and LSM correlation from the process's own status and label" \
