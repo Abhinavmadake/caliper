@@ -21,11 +21,11 @@ Four-member team
 
 1. OVERVIEW
 
-A container&#x27;s security posture is declared in a manifest and enforced by the
+A container's security posture is declared in a manifest and enforced by the
 kernel. These are not the same thing. The manifest names a seccomp profile,
 a capability set and a Pod Security Standard; what the kernel actually
 permits depends additionally on the container runtime, its version, the
-node&#x27;s distribution and loaded modules, the kernel build, the processor
+node's distribution and loaded modules, the kernel build, the processor
 architecture, the active Linux Security Module and the RuntimeClass. Two
 clusters running an identical manifest can expose materially different
 kernel attack surface, and nothing in the deployment pipeline reports the
@@ -72,7 +72,7 @@ exploitable, and establishing this required hand-built test images and a
 hand-authored profile.
 
 Third, exploitability depends on whether algif_aead is loaded on the node,
-which is a property of the distribution&#x27;s module policy and not of anything
+which is a property of the distribution's module policy and not of anything
 the workload author controls or can observe. The same manifest is exposed on
 one node and not on another.
 
@@ -212,7 +212,7 @@ remediator consume it. This allows the four workstreams to proceed without
 blocking one another, and allows the reporting layers to be developed
 against recorded fingerprints long before the corpus is complete.
 
-The fingerprint&#x27;s identity is the environment cell, not the workload.
+The fingerprint's identity is the environment cell, not the workload.
 Architecture, kernel version, distribution and loaded modules, runtime and
 runtime version, LSM and RuntimeClass are recorded as first-class fields,
 because a divergence between an arm64 and an amd64 measurement is not a
@@ -221,15 +221,15 @@ recorded before any probe executes, for the reason given in 6.2.
 
 The cell is assembled by the control plane, not by the probe. The probe
 records what is observable from inside an unprivileged container: the
-architecture, the kernel&#x27;s own version string, the loaded module set, its
+architecture, the kernel's own version string, the loaded module set, its
 capability sets and security-module label, and the seccomp mode. Runtime,
 runtime version, distribution and RuntimeClass are not observable from
-inside, and are taken from the Kubernetes Node object and the pod&#x27;s
+inside, and are taken from the Kubernetes Node object and the pod's
 RuntimeClass, or supplied by the operator for a run outside Kubernetes,
 and each is recorded together with its source. Attribution is computed by
-the control plane from the raw verdicts and the probe&#x27;s declared metadata;
+the control plane from the raw verdicts and the probe's declared metadata;
 the engine stores no interpretation. A kernel version reported by a
-sandbox, as gVisor reports a synthetic one, is recorded as the sandbox&#x27;s
+sandbox, as gVisor reports a synthetic one, is recorded as the sandbox's
 claim and the RuntimeClass field, not the version, drives classification.
 
 RuntimeClass is handled in the same spirit. gVisor implements a subset of
@@ -270,7 +270,7 @@ argument set chosen so that, if the syscall reaches the kernel at all, the
 kernel is structurally guaranteed to return a specific and distinctive
 error: EBADF for an operation on a deliberately invalid descriptor, EINVAL
 for a malformed request, EAFNOSUPPORT for an address family outside the
-kernel&#x27;s range. Receiving EPERM where EBADF was guaranteed proves the call
+kernel's range. Receiving EPERM where EBADF was guaranteed proves the call
 was intercepted before the point at which the kernel would have produced
 that error, and therefore that a filter and not a capability produced the
 denial. The technique requires no privilege, works from inside any
@@ -282,17 +282,17 @@ oracle on an in-range family separates a filter from a capability but not
 from AppArmor or SELinux, which the label interfaces then decide. A filter
 may also return ENOSYS rather than EPERM, as runc does for the syscalls it
 stubs, and ENOSYS is treated as ambiguous rather than as unimplemented
-whenever the cell&#x27;s kernel is known to implement the syscall. Authoring
+whenever the cell's kernel is known to implement the syscall. Authoring
 the oracle is part of authoring the probe, and the corpus is not
 considered complete until every probe carries one.
 
-Capability attribution is by correlation. The operation&#x27;s documented
+Capability attribution is by correlation. The operation's documented
 capability requirement is recorded with the probe and checked against the
-effective and bounding sets read from the process&#x27;s own status, which is
+effective and bounding sets read from the process's own status, which is
 readable without privilege. Where a capability is absent and the errno
 oracle indicates the call reached the kernel, the capability is the cause.
 
-Security-module correlation is the third technique. The process&#x27;s own
+Security-module correlation is the third technique. The process's own
 AppArmor or SELinux label is readable without privilege from its attr
 directory under /proc, as is whether the module is enforcing. A denial
 that the oracle places after the security-module hook, arriving as EACCES
@@ -334,7 +334,7 @@ stalling the run.
 Fork isolation is the rollback for most of the corpus. Every side effect
 that is descriptor-shaped, which includes io_uring rings, BPF program and
 map descriptors, sockets, userfaultfd and perf events, is reclaimed by the
-kernel when the probe&#x27;s child exits. Residual state is therefore measured
+kernel when the probe's child exits. Residual state is therefore measured
 only for the classes that outlive a process, and is measured directly rather
 than by whole-host comparison, which normal system churn would swamp: the
 mount table, the session and user keyrings, cgroup entries, System V and
@@ -369,7 +369,7 @@ subsequent probe family depends on it.
 7. THE REFERENCE POSTURE
 
 The motivating example is not a claim violation. Pod Security Standards at
-the Restricted level assert nothing about AF_ALG, and RuntimeDefault&#x27;s
+the Restricted level assert nothing about AF_ALG, and RuntimeDefault's
 entire contract is that it contains whatever the runtime ships. Measured
 against the manifest alone, the AF_ALG case produces no finding: the
 declaration and the measurement agree, and both are weaker than
@@ -413,21 +413,31 @@ most reusable artefact the project produces.
 Four workstreams, cut along the fingerprint interface so that members are
 not blocked on one another.
 
-    Member A    Probe engine and safety. Fork isolation, timeout handling,
-                side effect declaration and accounting, verdict
-                classification, the probe specification format. Delivers
-                the engine in the first phase, then owns probe safety for
-                the life of the project and takes half the corpus families.
+    Member A    Probe engine, safety and the attribution engine. Fork
+                isolation, timeout handling, side effect declaration and
+                accounting, verdict classification, and the probe
+                specification format, including the specification of the
+                deferred set. Delivers the engine in the first phase, then
+                owns probe safety for the life of the project and takes
+                half the corpus families. Also builds the errno oracle
+                attribution engine: establishing that a call was
+                intercepted before the kernel reached the point at which
+                the oracle guaranteed its error is a property of the
+                fork-and-verdict path, and belongs with the code that
+                implements it rather than with the corpus that declares
+                the oracles.
 
-    Member B    Corpus, attribution and reference posture. The remaining
-                corpus families; the errno oracle discipline across the
-                whole corpus, meaning the design of the first families&#x27;
-                oracles, review of every oracle A authors with A&#x27;s
-                families, and the completeness check that gates the
+    Member B    Corpus, oracle discipline and reference posture. The
+                remaining corpus families; the errno oracle discipline
+                across the whole corpus, meaning the design of the first
+                families' oracles, review of every oracle A authors with
+                A's families, and the completeness check that gates the
                 freeze; capability and security-module correlation; the
-                confidence model; and the reference posture, whose
-                assertions and citations follow the same entry families
-                as the probes.
+                confidence model and the measurement of the undecidable
+                fraction; and the reference posture, whose assertions and
+                citations follow the same entry families as the probes.
+                Attribution is split rather than owned: B decides what a
+                given errno proves, A builds the machinery that proves it.
 
     Member C    Fingerprint, diff and evaluation. Environment-keyed
                 serialisation and versioning, the diff engine and its
@@ -530,7 +540,7 @@ contribution.
 
 The privileged helper is outlined but neither specified nor built.
 Attribution therefore rests on errno oracles, capability correlation and the
-process&#x27;s own security-module label, none of which needs privilege, and the
+process's own security-module label, none of which needs privilege, and the
 undecidable fraction is reported rather than reduced.
 
 The environment matrix is reduced to six required cells, with managed
@@ -605,7 +615,7 @@ the LSM and the distribution together, since SELinux is not a supported
 configuration of Ubuntu. Divergence in those two pairs is attributed to
 architecture or to policy only after the kernel-version class has been
 excluded probe by probe. The containerd versions are pinned rather than
-left to the host&#x27;s patch state: Ubuntu 24.04 ships 1.7.12 in its release
+left to the host's patch state: Ubuntu 24.04 ships 1.7.12 in its release
 pocket and 2.2 in its updates pocket, and the io_uring deny entered the
 default profile in 2.0, so an unpatched and a patched host of the same
 release sit on either side of the change. Cell 4 also serves the AF_ALG
@@ -669,7 +679,7 @@ availability, and managed clusters cannot delay the critical path.
     that a reader can weigh them differently.
 
     Remediation may be undeliverable on managed clusters. A Localhost
-    seccomp profile requires the file to exist at the kubelet&#x27;s seccomp root
+    seccomp profile requires the file to exist at the kubelet's seccomp root
     on every node, which is not achievable on EKS or GKE without custom node
     images or a privileged installer. Mitigated by emitting a Security
     Profiles Operator custom resource as the primary output form, which
@@ -710,7 +720,7 @@ availability, and managed clusters cannot delay the critical path.
     for a foundational slip. The first three weeks are the exposure: every
     probe family depends on fork isolation and SIGSYS survival, and a
     defect there is discovered late and cascades. Mitigated by holding the
-    engine&#x27;s scope fixed and small, by having the other three workstreams
+    engine's scope fixed and small, by having the other three workstreams
     develop against the specification format rather than against the
     engine itself, and by keeping week 16 empty as declared slack. If the
     engine slips, the deferred corpus set is abandoned before any
@@ -730,14 +740,14 @@ probed operation, it is used in preference.
 
 The instrument is intended for infrastructure the operator owns or has
 written authorisation to test. This is stated in the documentation and in
-the tool&#x27;s own output.
+the tool's own output.
 
 Where the instrument identifies a genuine defect in a runtime, distribution
 or managed platform rather than a misconfiguration by its operator, the
 finding is reported to the responsible vendor under coordinated disclosure
 before publication. Publication means the public release of the instrument
 and the report; the examined report is submitted regardless, and where a
-vendor&#x27;s window has not closed by then it describes the finding generically
+vendor's window has not closed by then it describes the finding generically
 and withholds the detail until it has.
 
 
@@ -745,7 +755,7 @@ and withholds the detail until it has.
 
 Out of scope: continuous runtime monitoring and intrusion detection, which
 is the province of existing tooling; generation of seccomp profiles from
-application workload traces, which is well served and is not this project&#x27;s
+application workload traces, which is well served and is not this project's
 question; exploitation of the entry points the instrument measures;
 userspace package vulnerability scanning; and non-Linux platforms.
 

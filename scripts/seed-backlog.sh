@@ -5,8 +5,8 @@
 #
 # Every issue's workstream letter follows the work allocation in proposal §8:
 #
-#   A  probe engine and safety, half the corpus
-#   B  corpus, attribution and reference posture
+#   A  probe engine, safety, attribution engine, half the corpus
+#   B  corpus, oracle discipline and reference posture
 #   C  fingerprint, diff and evaluation
 #   D  delivery and evaluation harness, remediation, integration
 #

@@ -37,7 +37,7 @@ its environment permits. None measures enforced confinement.
 | Path | Contents | Owner |
 |------|----------|-------|
 | `spec/` | Fixed interfaces: probe specification and fingerprint format | agreed by all in week 2, frozen week 9 |
-| `engine/` | Probe engine — Rust. Fork isolation, verdict classification, safety | A |
+| `engine/` | Probe engine — Rust. Fork isolation, verdict classification, safety, attribution engine | A |
 | `corpus/` | Probe definitions, argument-granular, with attribution metadata | A + B |
 | `posture/` | Reference posture — tier assertions with citations | B |
 | `control/` | Fingerprint, diff, classifier, evaluator, remediator, reporting — Go | C, remediation from D |
@@ -49,8 +49,8 @@ D also acts as integrator, responsible for the components composing correctly.
 
 | Member | GitHub | Workstream |
 |--------|--------|------------|
-| A | `Abhinavmadake` | Probe engine and safety, half the corpus |
-| B | `sahilwaje23` | Corpus, attribution, reference posture |
+| A | `Abhinavmadake` | Probe engine, safety, attribution engine, half the corpus |
+| B | `sahilwaje23` | Corpus, oracle discipline, reference posture |
 | C | `Yogesh-Palve` | Fingerprint, diff, evaluation, reporting |
 | D | `Ritesh-Saindane` | Delivery, environment harness, remediation, integration |
 

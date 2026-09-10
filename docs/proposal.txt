@@ -400,21 +400,31 @@ most reusable artefact the project produces.
 Four workstreams, cut along the fingerprint interface so that members are
 not blocked on one another.
 
-    Member A    Probe engine and safety. Fork isolation, timeout handling,
-                side effect declaration and accounting, verdict
-                classification, the probe specification format. Delivers
-                the engine in the first phase, then owns probe safety for
-                the life of the project and takes half the corpus families.
+    Member A    Probe engine, safety and the attribution engine. Fork
+                isolation, timeout handling, side effect declaration and
+                accounting, verdict classification, and the probe
+                specification format, including the specification of the
+                deferred set. Delivers the engine in the first phase, then
+                owns probe safety for the life of the project and takes
+                half the corpus families. Also builds the errno oracle
+                attribution engine: establishing that a call was
+                intercepted before the kernel reached the point at which
+                the oracle guaranteed its error is a property of the
+                fork-and-verdict path, and belongs with the code that
+                implements it rather than with the corpus that declares
+                the oracles.
 
-    Member B    Corpus, attribution and reference posture. The remaining
-                corpus families; the errno oracle discipline across the
-                whole corpus, meaning the design of the first families'
-                oracles, review of every oracle A authors with A's
-                families, and the completeness check that gates the
+    Member B    Corpus, oracle discipline and reference posture. The
+                remaining corpus families; the errno oracle discipline
+                across the whole corpus, meaning the design of the first
+                families' oracles, review of every oracle A authors with
+                A's families, and the completeness check that gates the
                 freeze; capability and security-module correlation; the
-                confidence model; and the reference posture, whose
-                assertions and citations follow the same entry families
-                as the probes.
+                confidence model and the measurement of the undecidable
+                fraction; and the reference posture, whose assertions and
+                citations follow the same entry families as the probes.
+                Attribution is split rather than owned: B decides what a
+                given errno proves, A builds the machinery that proves it.
 
     Member C    Fingerprint, diff and evaluation. Environment-keyed
                 serialisation and versioning, the diff engine and its

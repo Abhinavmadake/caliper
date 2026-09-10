@@ -1,7 +1,10 @@
 # Probe corpus
 
 Owners: A + B. Split between two members because it is the largest single body
-of work and because attribution metadata is authored with each probe.
+of work and because attribution metadata is authored with each probe. A takes
+four of the seven committed families; B takes the remaining three and owns the
+errno oracle discipline across the whole corpus. The attribution engine that
+consumes the oracles is A's and lives in `engine/`.
 
 **Committed set** (weeks 4-8, frozen end of week 8): socket address families
 and netlink protocol numbers, io_uring opcode reach, mount filesystem types,
