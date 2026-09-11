@@ -82,3 +82,16 @@ kernel to autoload the module for it. The engine records the loaded module set
 before and after a run and reports the difference.
 
 Intended for infrastructure you own or have written authorisation to test.
+
+## Licence
+
+Apache License 2.0 — see [`LICENSE`](LICENSE).
+
+Copyright 2026 The CALIPER Authors.
+
+Apache-2.0 rather than MIT for two reasons that matter to this project. It
+carries an express patent grant, which is what an operator's legal review looks
+for before running an instrument like this against their own nodes; and it is
+the licence of the ecosystem CALIPER measures and integrates with — Kubernetes,
+containerd, runc, gVisor, Kata and the Security Profiles Operator whose custom
+resources the remediator emits are all Apache-2.0.
