@@ -84,6 +84,30 @@ handler, which is both a side effect on the node and a stall of a second or
 more per crash. `RLIMIT_CORE = 0` does not prevent piped cores; the dumpable
 flag does.
 
+## SIGSYS survival and verdicts
+
+A probe that trips a filter whose action is `SECCOMP_RET_KILL_PROCESS`
+terminates the child with SIGSYS. The parent sees that in the wait status,
+records it, and goes on to the next probe: `tests/sigsys.rs` installs a
+real `KILL_PROCESS` filter with `seccompiler` in the test thread — inherited
+by the child, so the parent runs under the same filter as the probe, as in
+deployment — trips it, checks the verdict, then runs two more probes under
+the same filter, one of which trips it again. `KILL_THREAD` is the same
+death for a single-threaded child. A filter that answers with an errno
+instead, which is `RuntimeDefault`'s shape, is a child that returned: a
+different outcome and a different verdict.
+
+`verdict.rs` turns an `Outcome` into the fingerprint's per-probe result:
+`permitted` / `denied` / `unimplemented` / `killed` / `timed-out` /
+`not-applicable`, plus the raw errno. Two rules are fixed here. **`killed`
+is SIGSYS and nothing else** — a child that died of SIGABRT or SIGSEGV is
+the probe crashing, which `classify` returns as an error rather than a
+verdict, because a buggy probe on a permissive node must not read as a
+hardened one. And the engine interprets nothing: separating `unimplemented`
+from `denied` needs the probe's kernel-dependency field and the cell's
+kernel, and `not-applicable` needs its applicability field; both arrive
+with #8 as inputs to `classify`.
+
 ## The engine's own syscalls
 
 A probe measures what the kernel permits; the engine must not add syscalls of

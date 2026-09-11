@@ -7,14 +7,18 @@
 //! - [`harness`] — fork isolation: one child per probe, its exit status the
 //!   measurement (#5), including termination by SIGSYS (#6) and the timeout
 //!   from the probe's risk class (#7)
+//! - [`verdict`] — how the child ended, as the fingerprint records it:
+//!   `killed` is SIGSYS and nothing else (#6); the rest is #8
 //!
-//! Verdict classification (#8) and side-effect accounting (#9) follow.
+//! Side-effect accounting (#9) follows.
 
 pub mod harness;
 pub mod probe;
+pub mod verdict;
 
 pub use harness::{run_isolated, Outcome};
 pub use probe::{Probe, ProbeFn, RawResult, RiskClass};
+pub use verdict::{classify, Measured, Verdict};
 
 /// One-time engine set-up, before any probe runs.
 ///
