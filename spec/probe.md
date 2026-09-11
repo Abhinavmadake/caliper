@@ -1,6 +1,10 @@
 # Probe specification format
 
-> Stub. To be agreed in week 2 and frozen.
+> Proposed for the week 2 freeze (issue #1). The three questions this file left
+> open are resolved below, each decided against the proposal rather than by
+> preference. §8 makes this file's freeze a decision of all four members, so
+> these stand until the week 2 gate ratifies or changes them; after that gate a
+> change needs team agreement.
 
 A probe attempts one kernel operation at argument granularity and records what
 the kernel returned. Every probe is authored complete with its attribution
@@ -39,8 +43,62 @@ metadata — the proposal is explicit that this is not deferred to a later phase
   property — the 32-bit compatibility ABI is built into some arm64 kernels and
   not others — it is detected at run time and recorded, not declared
 
-## Open questions
+## Decisions
 
-- Declarative data file, or Rust definitions compiled in?
-- How is a probe that hangs distinguished from one that is slow?
-- Does the committed/deferred split live in this file or in the corpus index?
+### Probes are Rust definitions compiled into the engine
+
+Not a declarative data file read at run time.
+
+Three things in the proposal decide this together. The engine "must not issue
+syscalls of its own that pollute the measurement" (§5, §6.2) — opening and
+reading a corpus file is exactly such a syscall, and it happens before the
+module snapshot that the environment cell depends on. The probe image is a
+static musl binary with no runtime dependencies, so a data file alongside it is
+a second artefact that can drift from the binary that interprets it. And §5
+fixes where the two halves of the system meet: "the two halves meet at the
+fingerprint format and nowhere else" — a declarative corpus would be a second
+interface across that boundary, with its own parser, its own version skew and
+its own failure mode inside a container.
+
+The cost is that B authors probes in Rust rather than in data. That cost is
+accepted: the errno oracle is a per-syscall argument about where the kernel
+produces which error, which is reasoning about code, and §8 already pairs every
+oracle B designs with review against the family A implements.
+
+To keep a data view without a second input path, the engine emits the corpus as
+JSON on demand (`--dump-corpus`). It is an output, never an input. The corpus
+index, the freeze-gate completeness check (#18) and the control plane all read
+that, so nothing downstream needs to parse Rust.
+
+### A probe that exceeds its timeout is recorded `timed-out`; hung and slow are not distinguished
+
+The proposal does not ask for the distinction. It asks that a hang be recorded
+"rather than stalling the run" (§6.2), and `timed-out` is a verdict in the
+fingerprint's own enumeration, not an error.
+
+The distinction is not made because it cannot be made soundly from outside the
+child: a probe blocked forever and a probe that would have returned just after
+the deadline are the same observation. Pretending otherwise would put a guess
+in the measurement, which is the failure this instrument exists to avoid.
+
+The mechanism is the fork isolation that is already there for SIGSYS (§6.2):
+the parent waits on the child with the deadline from the probe's risk class,
+sends `SIGKILL` on expiry, reaps it, and records `timed-out`. The deadline is a
+declared field, so it travels in the fingerprint — a `timed-out` verdict is
+readable against the timeout that produced it, and a timeout that was simply
+too tight is visible as such rather than hidden in the engine.
+
+### The committed/deferred split lives in the corpus index, not here
+
+This file defines what a probe *is*. Membership of a set is a property of the
+corpus, not of any probe's specification, and no field here changes when a
+probe moves between sets.
+
+That is what makes the deferred set "additive work rather than redesign"
+(§9.2, objective 2): promoting a probe from deferred to committed is an index
+entry plus an implementation, never a respecification. Were the split a field
+in this file, every promotion would edit a frozen format.
+
+A deferred probe is therefore a complete, valid probe definition that the index
+marks as unimplemented (#20), and the index is the artefact frozen at the end
+of week 8 (#19).
