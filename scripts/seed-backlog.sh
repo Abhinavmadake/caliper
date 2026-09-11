@@ -287,15 +287,17 @@ profiles this instrument is most useful against.
 **Proposal reference:** §6.2, §12
 EOF
 
-mkissue "[A] Timeout handling — distinguish a hung probe from a slow one" \
+mkissue "[A] Timeout handling — a probe past its deadline is recorded \`timed-out\`" \
         "ws:engine" "$M3" <<'EOF'
 **Workstream:** A — probe engine and safety
 **Phase:** Weeks 1–3
 
 Probes with unbounded duration execute under a timeout, and a probe that hangs is
-recorded as such rather than stalling the run. `spec/probe.md` lists the distinction
-between hung and slow as an open question — resolve it here in line with whatever
-that issue decides.
+recorded as such rather than stalling the run. `spec/probe.md` decision 2 settled
+the hung/slow question by **not** distinguishing them: from outside the child, a
+probe blocked forever and one that would have returned just after the deadline are
+the same observation, so both are recorded `timed-out` against the deadline that
+produced them.
 
 **Done when**
 - [ ] Per-probe timeout read from the probe's risk class
