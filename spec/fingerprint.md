@@ -1,9 +1,16 @@
 # Confinement fingerprint
 
-> First version proposed for the week 2 gate (issue #2), where §8 makes it a
-> decision of all four members. Frozen at the end of week 9 (issue #28), after
-> which a change is a new format version (§5). The three questions this file
-> left open are resolved below, against the proposal.
+> **Fixed for week 2 purposes** at the gate on 2026-09-11 (issue #2). The final
+> freeze is the end of week 9 (issue #28), after which a change is a new format
+> version (§5). Until then this is the version the four workstreams develop
+> against, and a change is cheap by design.
+>
+> §8 makes this a decision of all four members; the team delegated it to A, who
+> took it. Recorded because the authority matters to anyone reading a later
+> change.
+>
+> The three questions this file left open are resolved below, against the
+> proposal.
 
 A fingerprint is one measurement run. It is the unit the diff engine,
 evaluator and remediator all consume.

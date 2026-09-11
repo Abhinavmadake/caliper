@@ -1,10 +1,15 @@
 # Probe specification format
 
-> Proposed for the week 2 freeze (issue #1). The three questions this file left
-> open are resolved below, each decided against the proposal rather than by
-> preference. §8 makes this file's freeze a decision of all four members, so
-> these stand until the week 2 gate ratifies or changes them; after that gate a
-> change needs team agreement.
+> **Frozen** at the week 2 gate, 2026-09-11 (issue #1). A change from here needs
+> team agreement.
+>
+> §8 makes this freeze a decision of all four members; the team delegated it to
+> A, who took it. Recorded because the authority matters to anyone reading a
+> later change: these are A's decisions under a delegation, not four members'
+> consensus, and reopening one costs correspondingly less.
+>
+> The three questions this file left open are resolved below, each decided
+> against the proposal rather than by preference.
 
 A probe attempts one kernel operation at argument granularity and records what
 the kernel returned. Every probe is authored complete with its attribution
