@@ -29,9 +29,18 @@ Use GitHub's private vulnerability reporting on this repository
 (**Security → Report a vulnerability**). Do not open a public issue for
 anything in the list above.
 
-You will get an acknowledgement within 72 hours and a fix or a written
-assessment within 14 days. We will credit you in the release notes unless you
-ask us not to.
+We aim to acknowledge a report within a week, and to follow it with a fix or a
+written assessment of why it is not one. CALIPER is a final-year project
+maintained alongside coursework: those are intentions, not guarantees, and
+they will be slower around university deadlines. We would rather say so than
+publish a service level we cannot hold to.
+
+If a report goes unacknowledged for two weeks, please escalate by opening a
+public issue saying only that you are waiting on a security report — no
+details, no reproducer. That tells us to look without putting the finding in
+the open.
+
+We will credit you in the release notes unless you ask us not to.
 
 ## Scope of use
 

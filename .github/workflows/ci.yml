@@ -20,6 +20,12 @@ on:
     branches: [main]
   pull_request:
 
+# Every job here checks out, builds and tests. None writes to the repository,
+# so the token is read-only regardless of the repository default, which is a
+# setting that can change without this file changing with it.
+permissions:
+  contents: read
+
 jobs:
   scripts:
     runs-on: ubuntu-24.04
