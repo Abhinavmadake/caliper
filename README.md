@@ -14,7 +14,12 @@ CALIPER runs as an ordinary container, probes kernel entry points at argument
 granularity, records what the kernel actually permits, and reports how that
 differs across environments and what minimal policy change closes the gap.
 
-**Status:** pre-implementation. The proposal is in `docs/`.
+**Status:** interfaces frozen (`spec/`); probe engine under construction —
+fork isolation, SIGSYS survival and timeout handling are in and tested on a
+static musl build with a syscall-baseline check in CI. Verdict classification,
+the reference corpus and the Go control plane are not started. Progress is
+tracked in the issues, one milestone per freeze gate. The proposal is in
+`docs/`.
 
 ## Why this exists
 
