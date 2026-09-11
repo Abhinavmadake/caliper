@@ -11,6 +11,7 @@ mmap
 mprotect
 munmap
 poll
+prctl
 rt_sigaction
 rt_sigprocmask
 set_tid_address

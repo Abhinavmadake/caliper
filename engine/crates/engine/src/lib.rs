@@ -3,5 +3,40 @@
 //! one crate's worth of code to audit (issue #4) rather than a property of
 //! the whole workspace.
 //!
-//! Fork isolation (#5), SIGSYS survival (#6), timeouts (#7), verdicts (#8)
-//! and side-effect accounting (#9) land in this crate.
+//! - [`probe`] — what a probe is (`spec/probe.md`)
+//! - [`harness`] — fork isolation: one child per probe, its exit status the
+//!   measurement (#5), including termination by SIGSYS (#6) and the timeout
+//!   from the probe's risk class (#7)
+//!
+//! Verdict classification (#8) and side-effect accounting (#9) follow.
+
+pub mod harness;
+pub mod probe;
+
+pub use harness::{run_isolated, Outcome};
+pub use probe::{Probe, ProbeFn, RawResult, RiskClass};
+
+/// One-time engine set-up, before any probe runs.
+///
+/// Marks the process non-dumpable, which every child inherits. A child
+/// killed by SIGSYS or SIGSEGV would otherwise dump core, and inside a
+/// container `core_pattern` — not namespaced — commonly pipes that to the
+/// host's crash handler: a side effect on the node this instrument must not
+/// have, and a stall of a second or more per crash while the handler runs.
+/// `RLIMIT_CORE = 0` does not do this job: the kernel consults the limit
+/// only for cores written to a file, not for piped ones (Ubuntu's apport,
+/// systemd-coredump). `PR_SET_DUMPABLE = 0` is the gate for both. One
+/// `prctl` at start-up, recorded in `baseline/`.
+///
+/// Side effect to know about: a non-dumpable process cannot be attached to
+/// by a same-uid tracer after the fact (`strace -p`). A tracer present from
+/// exec — `strace ./caliper-probe` — is unaffected.
+pub fn init() -> nix::Result<()> {
+    // SAFETY: prctl with a constant option and a scalar argument.
+    let r = unsafe { libc::prctl(libc::PR_SET_DUMPABLE, 0, 0, 0, 0) };
+    if r == 0 {
+        Ok(())
+    } else {
+        Err(nix::errno::Errno::last())
+    }
+}

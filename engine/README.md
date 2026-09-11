@@ -50,6 +50,40 @@ stages, Alpine to build and `scratch` to ship:
 
     docker build -t caliper-probe engine/
 
+## Fork isolation
+
+`caliper_engine::run_isolated` runs one probe in one child and returns how
+the child ended (`harness.rs`). The child is made with musl's `fork()`, and
+the parent then opens a pidfd on it so its wait is a bounded `ppoll` — the
+timeout from the probe's risk class, with no signals. Not a raw `clone`:
+musl caches the thread id and delivers `abort()`/`raise()` to it with
+`tkill`, so a raw-cloned child that aborted killed the parent. `fork()`
+fixes the id up in the child, at the cost of `set_tid_address` and
+`rt_sigprocmask` there before the probe, both already in the engine's
+start-up set.
+
+The child's exit status is the measurement. `_exit(0)` means the operation
+succeeded; `_exit(errno)` carries the errno (Linux errnos on x86_64 and
+aarch64 stop at 133; 253 and 254 are reserved for a probe that panicked or
+an errno that does not fit). A child the kernel terminates — SIGSYS from a
+`KILL_PROCESS` filter, SIGSEGV from a crash — is reported by signal, and the
+parent goes on to the next probe. The child allocates nothing and issues no
+syscall of its own but `exit_group`; the parent issues `clone`,
+`pidfd_open`, `ppoll`, `wait4`, `close`, and `kill` on a timeout. `examples/harness-trace` under
+`strace -f` shows exactly that and nothing else.
+
+The engine forks for every probe, whether or not its risk class says it
+requires isolation: a probe that declares it does not need the rollback still
+must not be able to end the run.
+
+`caliper_engine::init` runs once at start-up and marks the engine
+non-dumpable (`PR_SET_DUMPABLE = 0`), which every child inherits. A child
+killed by SIGSYS would otherwise dump core, and inside a container
+`core_pattern` — not namespaced — commonly pipes that to the host's crash
+handler, which is both a side effect on the node and a stall of a second or
+more per crash. `RLIMIT_CORE = 0` does not prevent piped cores; the dumpable
+flag does.
+
 ## The engine's own syscalls
 
 A probe measures what the kernel permits; the engine must not add syscalls of
@@ -58,8 +92,8 @@ as the probe, so its start-up set must survive `RuntimeDefault` and a
 hand-hardened profile.
 
 `baseline/<arch>.txt` is that set — the output of `scripts/baseline-syscalls.sh`,
-an strace of `caliper-probe --noop`. Eleven syscalls on aarch64, twelve on
-x86_64, all Rust std and musl start-up (standard-descriptor check, SIGPIPE,
+an strace of `caliper-probe --noop`. Twelve syscalls on aarch64, thirteen on
+x86_64, all Rust std and musl start-up plus the engine's init (standard-descriptor check, SIGPIPE,
 the stack-overflow handler and its alternate stack, malloc). CI diffs the
 observed set against the file, so a dependency that starts issuing syscalls
 fails the build rather than the measurement.

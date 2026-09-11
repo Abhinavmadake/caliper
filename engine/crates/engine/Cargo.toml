@@ -11,3 +11,11 @@ publish.workspace = true
 libc.workspace = true
 nix = { workspace = true, features = ["process", "signal"] }
 serde.workspace = true
+
+[dev-dependencies]
+libc.workspace = true
+
+# Runs its own single-threaded main; see the file for why.
+[[test]]
+name = "panic"
+harness = false

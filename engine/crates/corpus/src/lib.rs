@@ -3,21 +3,11 @@
 //! `caliper-probe --dump-corpus` emits this crate's contents as JSON, as an
 //! output only.
 //!
-//! A and B both author here. The definition of a probe — the fields
-//! `spec/probe.md` lists — is A's (#8, #9, #10); the ten-probe reference
-//! corpus arrives with #10 and the committed families with #11–#17.
+//! A and B both author here. What a probe *is* — [`Probe`] and its fields —
+//! is defined in `caliper-engine`; the ten-probe reference corpus arrives
+//! with #10 and the committed families with #11–#17.
 
-use serde::Serialize;
-
-/// A probe definition. Placeholder: the fields fixed by `spec/probe.md`
-/// (operation, errno oracle, capability requirement, side effects, risk
-/// class, kernel dependency, applicability) are added under #8–#10.
-#[derive(Debug, Clone, Serialize)]
-pub struct Probe {
-    pub id: &'static str,
-    pub family: &'static str,
-    pub description: &'static str,
-}
+pub use caliper_engine::Probe;
 
 /// Every probe the engine knows about, in corpus order.
 pub fn probes() -> &'static [Probe] {

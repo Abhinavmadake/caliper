@@ -1,6 +1,6 @@
 # caliper-probe --noop, aarch64, Linux 6.8 (Ubuntu 24.04), rust 1.93 musl.
 # Output of scripts/baseline-syscalls.sh. Every entry is Rust std or musl
-# start-up; the engine issues nothing of its own on a no-op run.
+# start-up, plus prctl from the engine's init (PR_SET_DUMPABLE off).
 brk
 execve
 exit_group
@@ -8,6 +8,7 @@ mmap
 mprotect
 munmap
 ppoll
+prctl
 rt_sigaction
 rt_sigprocmask
 set_tid_address
