@@ -87,7 +87,8 @@ Intended for infrastructure you own or have written authorisation to test.
 
 Apache License 2.0 — see [`LICENSE`](LICENSE).
 
-Copyright 2026 The CALIPER Authors.
+Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
+Ritesh Aresh Saindane, Yogesh Babaji Palve.
 
 All four members agreed to this licence before their first commit.
 
