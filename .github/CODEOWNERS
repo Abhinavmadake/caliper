@@ -1,0 +1,19 @@
+# Review routing for CALIPER.
+#
+# Every path is owned by A, so every pull request from B, C or D requires A's
+# approval before it can merge. GitHub does not let anyone approve their own
+# pull request, which is the point: a write collaborator cannot open a change
+# and merge it unreviewed.
+#
+# A's own pull requests are the deliberate asymmetry. A is the only code owner,
+# so they cannot be approved by a code owner at all; A merges them on the
+# administrator bypass instead (branch protection has "include administrators"
+# off). That keeps the engine work on the critical path from waiting on a
+# review by someone who does not yet have the context for it — proposal §12
+# names a foundational slip in the first phase as the principal schedule risk.
+#
+# The asymmetry is recorded rather than hidden: A reviews the team, the team
+# does not review A. Revisit it once the corpus lands and B has context on the
+# engine, or narrow ownership to spec/ and docs/ if the review load bites.
+
+*       @Abhinavmadake
