@@ -27,8 +27,17 @@ set -euo pipefail
 
 REPO="Abhinavmadake/caliper"
 
-# Week 1 begins Monday 2026-09-07. Milestone due dates are the Friday ending
-# each gate week of the seventeen-week schedule in proposal §9.1.
+# Week 1 begins Monday 2026-09-07.
+#
+# The schedule was pulled one week earlier on 2026-09-11, after the week 2
+# interface freeze (#1, #2) landed at the end of week 1. Every gate moved a
+# week; week 16 stays empty, so the declared slack survives and the project
+# ends 2026-12-25 instead of 2027-01-01.
+#
+# Milestone TITLES still carry the proposal's §9.1 week numbers, because the
+# issue bodies and the proposal refer to those phases by number. The DATES are
+# a week ahead of the number they name: "W3" is now due at the end of calendar
+# week 2. Titles name the phase; dates are the commitment.
 M2="W2 — Interfaces frozen"
 M3="W3 — Engine + reference corpus"
 M8="W8 — Corpus frozen"
@@ -98,14 +107,14 @@ mklabel "evaluation"    "006b75" "Success criterion from proposal §11.2"
 # ------------------------------------------------------------ milestones ----
 
 echo "Milestones"
-mkmilestone "$M2"  "2026-09-18" "Probe and fingerprint formats agreed and fixed. Every other workstream develops against these rather than against the engine."
-mkmilestone "$M3"  "2026-09-25" "Probe engine with fork isolation, SIGSYS survival, timeout handling and verdict classification, plus a ten-probe reference corpus end to end. The critical path."
-mkmilestone "$M8"  "2026-10-30" "Committed corpus complete and frozen, every probe carrying its errno oracle. Reference posture drafted with citations."
-mkmilestone "$M9"  "2026-11-06" "Fingerprint format frozen. The system is independently defensible from this point: it measures, classifies and diffs confinement across environments."
-mkmilestone "$M12" "2026-11-27" "Attribution confidence model, evaluator against manifest and posture, and minimal remediation with closure verification."
-mkmilestone "$M15" "2026-12-18" "Environment matrix measured across six cells. Every success criterion in §11.2 reported."
-mkmilestone "$M16" "2026-12-25" "Held deliberately empty. A compressed schedule with no slack fails on its first surprise, and the surprises here are kernel-level. No issues belong in this milestone."
-mkmilestone "$M17" "2027-01-01" "Final report, demonstration, release."
+mkmilestone "$M2"  "2026-09-11" "Probe and fingerprint formats agreed and fixed. Every other workstream develops against these rather than against the engine."
+mkmilestone "$M3"  "2026-09-18" "Probe engine with fork isolation, SIGSYS survival, timeout handling and verdict classification, plus a ten-probe reference corpus end to end. The critical path."
+mkmilestone "$M8"  "2026-10-23" "Committed corpus complete and frozen, every probe carrying its errno oracle. Reference posture drafted with citations."
+mkmilestone "$M9"  "2026-10-30" "Fingerprint format frozen. The system is independently defensible from this point: it measures, classifies and diffs confinement across environments."
+mkmilestone "$M12" "2026-11-20" "Attribution confidence model, evaluator against manifest and posture, and minimal remediation with closure verification."
+mkmilestone "$M15" "2026-12-11" "Environment matrix measured across six cells. Every success criterion in §11.2 reported."
+mkmilestone "$M16" "2026-12-18" "Held deliberately empty. A compressed schedule with no slack fails on its first surprise, and the surprises here are kernel-level. No issues belong in this milestone."
+mkmilestone "$M17" "2026-12-25" "Final report, demonstration, release."
 
 # ---------------------------------------------------- W2 — interfaces -------
 
