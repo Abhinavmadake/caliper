@@ -1,0 +1,13 @@
+[package]
+name = "caliper-corpus"
+description = "Probe definitions, argument-granular, each with its errno oracle"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+[dependencies]
+caliper-engine = { path = "../engine" }
+libc.workspace = true
+serde.workspace = true

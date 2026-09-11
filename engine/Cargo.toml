@@ -1,0 +1,28 @@
+[workspace]
+resolver = "2"
+members = ["crates/engine", "crates/corpus", "crates/probe"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/Abhinavmadake/caliper"
+publish = false
+
+# nix and libc are the only syscall-facing dependencies (issue #4). serde is
+# named by §10 for fingerprint serialisation; it issues no syscalls of its own.
+# Anything added here must justify the syscalls it brings with it.
+[workspace.dependencies]
+libc = "0.2"
+nix = { version = "0.29", default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# The probe image is built from this profile. panic = "abort" matters for more
+# than size: a probe child must never unwind through the parent's state, and
+# an aborting panic is a plain SIGABRT the parent can classify.
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+strip = true

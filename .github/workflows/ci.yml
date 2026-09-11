@@ -16,15 +16,37 @@ jobs:
           shellcheck scripts/*.sh
 
   engine:
-    # Activates once engine/Cargo.toml exists (week 1, issue #4).
     runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: engine
     steps:
       - uses: actions/checkout@v4
-      - name: build and test
+      # rust-toolchain.toml pins the channel and installs the musl targets.
+      # Tests run on the musl target too: the seccomp allowlist test execs
+      # the probe binary, and the allowlist is a property of the musl build.
+      - name: build and test (static musl)
         run: |
-          if [ ! -f engine/Cargo.toml ]; then echo "engine/ not started yet"; exit 0; fi
-          rustup target add x86_64-unknown-linux-musl
-          cd engine && cargo build --target x86_64-unknown-linux-musl --locked && cargo test --locked
+          cargo build --release --target x86_64-unknown-linux-musl --locked
+          cargo test --target x86_64-unknown-linux-musl --locked
+          cargo clippy --all-targets --target x86_64-unknown-linux-musl --locked -- -D warnings
+      - name: no dynamic loader
+        run: |
+          bin=target/x86_64-unknown-linux-musl/release/caliper-probe
+          file "$bin"
+          if readelf -lW "$bin" | grep -q INTERP; then echo "has PT_INTERP"; exit 1; fi
+      # The engine's own syscall footprint must not drift without the
+      # baseline being updated deliberately (issue #4).
+      - name: syscall baseline
+        run: |
+          sudo apt-get install -y -qq strace
+          scripts/baseline-syscalls.sh target/x86_64-unknown-linux-musl/release/caliper-probe > /tmp/observed
+          grep -v '^#' baseline/x86_64.txt | diff -u - /tmp/observed
+      - name: probe image from scratch
+        run: |
+          docker build -t caliper-probe .
+          docker run --rm caliper-probe --noop
+          docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
 
   control:
     # Activates once control/go.mod exists (week 2, issue #3).

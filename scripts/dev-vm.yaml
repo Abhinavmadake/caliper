@@ -1,0 +1,44 @@
+# A disposable Linux VM for engine development on a Mac (§10 asks for
+# disposable VMs; this is the Apple-silicon version, arm64 only — the amd64
+# baseline comes from CI or from D's harness, #52).
+#
+#   limactl start --name caliper scripts/dev-vm.yaml
+#   limactl shell caliper            # ~/caliper is mounted writable at the same path
+#   limactl snapshot create caliper --tag clean
+#   limactl snapshot apply  caliper --tag clean
+#
+# Rootful Docker from the Ubuntu archive, not rootless: the measurement is of
+# the runtime's own default seccomp profile, and rootless adds a user
+# namespace that changes what the kernel permits.
+
+minimumLimaVersion: "1.0.0"
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-arm64.img"
+    arch: "aarch64"
+  - location: "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+
+cpus: 4
+memory: "4GiB"
+disk: "30GiB"
+
+mounts:
+  - location: "~/caliper"
+    writable: true
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -q
+      apt-get install -y -q strace docker.io build-essential
+      usermod -aG docker "{{.User}}"
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      command -v cargo && exit 0
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal

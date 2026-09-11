@@ -1,0 +1,17 @@
+# caliper-probe --noop, x86_64, Linux 6.8 (Ubuntu 24.04), rust 1.93 musl.
+# Output of scripts/baseline-syscalls.sh in an x86_64 VM; the CI job
+# re-derives it with strace on ubuntu-24.04 and diffs. Identical to aarch64
+# except poll for ppoll (x86_64 has both; std's musl build uses poll) and
+# arch_prctl for musl's TLS setup.
+arch_prctl
+brk
+execve
+exit_group
+mmap
+mprotect
+munmap
+poll
+rt_sigaction
+rt_sigprocmask
+set_tid_address
+sigaltstack
