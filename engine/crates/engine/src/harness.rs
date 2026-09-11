@@ -33,8 +33,8 @@ use nix::unistd::Pid;
 use crate::probe::Probe;
 
 /// Largest errno the exit-code encoding carries. Linux errnos on x86_64
-/// and aarch64 stop at 133 (`EHWPOISON`); the two codes above the range
-/// are reserved for harness faults.
+/// and aarch64 stop at 133 (`EHWPOISON`); the gap up to 200 is headroom,
+/// and 253/254 are reserved for harness faults.
 const MAX_ERRNO: i32 = 200;
 /// The probe function panicked. Not a measurement of anything.
 const EXIT_PANIC: i32 = 253;
@@ -131,18 +131,30 @@ fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<
         events: libc::POLLIN,
         revents: 0,
     };
-    let ts = libc::timespec {
+    let mut ts = libc::timespec {
         tv_sec: timeout.as_secs() as _,
         tv_nsec: libc::c_long::from(timeout.subsec_nanos()),
     };
+    // Raw ppoll rather than the libc wrapper: the kernel writes the time
+    // remaining back into the timespec, so an EINTR restart continues the
+    // same deadline instead of starting a fresh one, and the risk class's
+    // timeout is a hard bound — readable against a `timed-out` verdict, as
+    // spec/probe.md decision 2 requires. musl's wrapper passes a copy.
     let ready = loop {
-        // SAFETY: one valid pollfd, a valid timespec, no sigmask.
-        let r = unsafe { libc::ppoll(&mut pfd, 1, &ts, std::ptr::null()) };
+        // SAFETY: one valid pollfd, a valid mutable timespec, no sigmask.
+        let r = unsafe {
+            libc::syscall(
+                libc::SYS_ppoll,
+                &mut pfd as *mut libc::pollfd,
+                1usize,
+                &mut ts as *mut libc::timespec,
+                std::ptr::null::<libc::sigset_t>(),
+                std::mem::size_of::<libc::sigset_t>(),
+            )
+        };
         match r {
             0 => break false,
             r if r > 0 => break true,
-            // The engine installs no handlers, so EINTR is rare; restarting
-            // with the full timeout is the simple, slightly generous choice.
             _ if Errno::last() == Errno::EINTR => continue,
             _ => return Err(Errno::last()),
         }

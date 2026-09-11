@@ -70,7 +70,12 @@ fn kill_process_is_recorded_killed_and_the_run_continues() {
     apply_filter(&filter_on_target(SeccompAction::KillProcess)).unwrap();
 
     let out = run_isolated(&probe("tripwire", target_syscall)).unwrap();
-    assert_eq!(out, Outcome::Signaled { signal: libc::SIGSYS });
+    assert_eq!(
+        out,
+        Outcome::Signaled {
+            signal: libc::SIGSYS
+        }
+    );
     let m = classify(out).unwrap();
     assert_eq!(m.verdict, Verdict::Killed);
     assert_eq!(m.errno, 0);
@@ -102,7 +107,7 @@ fn an_errno_action_is_denied_not_killed() {
     let m = classify(out).unwrap();
     assert_eq!(m.verdict, Verdict::Denied);
     assert_eq!(m.errno, libc::EPERM);
-    assert_eq!(m.errno_name(), Some("Operation not permitted"));
+    assert_eq!(m.errno_name().as_deref(), Some("EPERM"));
 }
 
 #[test]
@@ -114,6 +119,8 @@ fn only_sigsys_is_killed() {
     let out = run_isolated(&probe("segv", crashes)).unwrap();
     assert_eq!(
         classify(out),
-        Err(NotMeasured::Crashed { signal: libc::SIGSEGV })
+        Err(NotMeasured::Crashed {
+            signal: libc::SIGSEGV
+        })
     );
 }

@@ -72,6 +72,14 @@ syscall of its own but `exit_group`; the parent issues `clone`,
 `pidfd_open`, `ppoll`, `wait4`, `close`, and `kill` on a timeout. `examples/harness-trace` under
 `strace -f` shows exactly that and nothing else.
 
+The wait is bounded by the risk class's `timeout_ms`, as a hard deadline:
+the parent uses the raw `ppoll` syscall so that on `EINTR` the kernel hands
+back the time remaining and the same deadline continues. A probe still
+running at the deadline is killed and recorded `timed-out`; hung and slow
+are not distinguished (`spec/probe.md`, decision 2), and `tests/timeout.rs`
+shows the same 200 ms sleep is `timed-out` under a 50 ms deadline and
+`permitted` under a 2 s one.
+
 The engine forks for every probe, whether or not its risk class says it
 requires isolation: a probe that declares it does not need the rollback still
 must not be able to end the run.

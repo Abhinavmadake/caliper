@@ -1,10 +1,10 @@
 //! A probe that panics is a fault, never a measurement.
 //!
-//! Its own binary with `harness = false`, deliberately: the child is a raw
-//! clone of the test process, and a panicking child allocates and writes.
-//! Under libtest's threaded runner another thread could hold musl's malloc
-//! lock at the instant of the clone, and the child would block forever on
-//! it. One thread, no lock, no flake. The real engine is single-threaded for
+//! Its own binary with `harness = false`, deliberately: the child is a fork
+//! of the test process, and a panicking child allocates and writes. Under
+//! libtest's threaded runner another thread could hold musl's malloc lock
+//! at the instant of the fork, and the child would block forever on it.
+//! One thread, no lock, no flake. The real engine is single-threaded for
 //! the same reason.
 //!
 //! Test builds unwind — Cargo forces that for test targets, `--release`
@@ -53,7 +53,12 @@ fn main() {
     fn fine() -> RawResult {
         Ok(())
     }
-    let next = run_isolated(&Probe { id: "fine", run: fine, ..probe }).unwrap();
+    let next = run_isolated(&Probe {
+        id: "fine",
+        run: fine,
+        ..probe
+    })
+    .unwrap();
     assert_eq!(next, Outcome::Returned { errno: 0 });
     println!("ok: panicking probe reported as {out:?}");
 }

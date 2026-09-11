@@ -90,15 +90,25 @@ fn run_under(filter: &BpfProgram) -> libc::c_int {
 #[test]
 fn noop_survives_the_engine_allowlist() {
     let status = run_under(&engine_filter(None));
-    assert!(libc::WIFEXITED(status), "not a normal exit: status {status:#x}");
+    assert!(
+        libc::WIFEXITED(status),
+        "not a normal exit: status {status:#x}"
+    );
     assert_eq!(libc::WEXITSTATUS(status), 0, "exec or run failed");
 }
 
 #[test]
 fn allowlist_is_enforced() {
     // Remove one syscall std issues at start-up: the child must die of SIGSYS.
-    let victim = if cfg!(target_arch = "x86_64") { "poll" } else { "ppoll" };
+    let victim = if cfg!(target_arch = "x86_64") {
+        "poll"
+    } else {
+        "ppoll"
+    };
     let status = run_under(&engine_filter(Some(victim)));
-    assert!(libc::WIFSIGNALED(status), "child was not killed: status {status:#x}");
+    assert!(
+        libc::WIFSIGNALED(status),
+        "child was not killed: status {status:#x}"
+    );
     assert_eq!(libc::WTERMSIG(status), libc::SIGSYS);
 }

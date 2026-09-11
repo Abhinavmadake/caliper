@@ -83,7 +83,12 @@ fn success_and_errno_come_back_in_the_exit_status() {
     assert_eq!(ok, Outcome::Returned { errno: 0 });
 
     let bad = run_isolated(&probe("close-bad-fd", ebadf)).unwrap();
-    assert_eq!(bad, Outcome::Returned { errno: Errno::EBADF as i32 });
+    assert_eq!(
+        bad,
+        Outcome::Returned {
+            errno: Errno::EBADF as i32
+        }
+    );
 }
 
 #[test]
@@ -93,7 +98,12 @@ fn a_crashing_probe_does_not_lose_the_run() {
 
     // The run continues: the next probe measures normally.
     let next = run_isolated(&probe("after-crash", ebadf)).unwrap();
-    assert_eq!(next, Outcome::Returned { errno: Errno::EBADF as i32 });
+    assert_eq!(
+        next,
+        Outcome::Returned {
+            errno: Errno::EBADF as i32
+        }
+    );
 }
 
 #[test]

@@ -43,7 +43,9 @@ pub struct Measured {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NotMeasured {
     /// The child died of a signal other than SIGSYS: the probe crashed.
-    Crashed { signal: i32 },
+    Crashed {
+        signal: i32,
+    },
     Fault(Fault),
 }
 
@@ -79,8 +81,16 @@ pub fn classify(outcome: Outcome) -> Result<Measured, NotMeasured> {
 }
 
 impl Measured {
-    /// The errno as a name, for humans; `None` when there is none.
-    pub fn errno_name(&self) -> Option<&'static str> {
-        (self.errno != 0).then(|| Errno::from_raw(self.errno).desc())
+    /// The errno's name — `EPERM`, not "Operation not permitted" — for a
+    /// human-readable report (#35). `None` when there is no errno, or the
+    /// number has no name on this build.
+    pub fn errno_name(&self) -> Option<String> {
+        if self.errno == 0 {
+            return None;
+        }
+        match Errno::from_raw(self.errno) {
+            Errno::UnknownErrno => None,
+            e => Some(format!("{e:?}")),
+        }
     }
 }
