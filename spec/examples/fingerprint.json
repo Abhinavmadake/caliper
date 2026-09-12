@@ -1,0 +1,88 @@
+{
+  "format_version": 1,
+  "corpus_revision": "0.1.0",
+  "digest": "sha256:1f0c3a6b8d4e5f2a9c7b1e3d5f7a9b1c3e5d7f9a1b3c5e7d9f1a3b5c7e9d1f3a",
+
+  "cell": {
+    "architecture": "x86_64",
+    "kernel": {
+      "release": "6.8.0-51-generic",
+      "sandbox_claimed": false,
+      "modules": ["overlay", "br_netfilter", "nf_tables"]
+    },
+    "distribution": { "value": "Ubuntu 24.04.1 LTS", "source": "node-object" },
+    "runtime": { "value": "containerd", "source": "node-object" },
+    "runtime_version": { "value": "2.2.0", "source": "node-object" },
+    "lsm": "apparmor",
+    "runtime_class": { "value": "runc", "source": "pod-spec" }
+  },
+
+  "results": [
+    {
+      "probe_id": "socket.family.af_alg",
+      "verdict": "denied",
+      "errno": 1,
+      "attribution": {
+        "mechanism": "seccomp",
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "oracle guaranteed EAFNOSUPPORT for an out-of-range family; EPERM proves interception before the family lookup"
+      }
+    },
+    {
+      "probe_id": "socket.family.af_inet",
+      "verdict": "permitted",
+      "errno": 0,
+      "attribution": { "mechanism": null, "confidence": "high", "undecidable": false }
+    },
+    {
+      "probe_id": "mount.fstype.proc",
+      "verdict": "killed",
+      "errno": 0,
+      "attribution": {
+        "mechanism": "seccomp",
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "terminated by SIGSYS, which only a KILL_PROCESS or KILL_THREAD filter produces"
+      }
+    },
+    {
+      "probe_id": "keyctl.op.join_session",
+      "verdict": "denied",
+      "errno": 1,
+      "attribution": {
+        "mechanism": null,
+        "confidence": "low",
+        "undecidable": true,
+        "reason": "EPERM is the oracle's guaranteed errno here, so interception cannot be separated from a dropped capability without privilege"
+      }
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "verdict": "not-applicable",
+      "errno": 0,
+      "attribution": { "mechanism": null, "confidence": "high", "undecidable": false,
+                        "reason": "IORING_REGISTER_PROBE reports the opcode absent on this kernel; the probe's kernel-dependency field excludes it" }
+    },
+    {
+      "probe_id": "netlink.protocol.nf_tables",
+      "verdict": "unimplemented",
+      "errno": 93,
+      "attribution": { "mechanism": null, "confidence": "high", "undecidable": false,
+                        "reason": "EPROTONOSUPPORT from a kernel whose config does not build this netlink family; not a denial" }
+    },
+    {
+      "probe_id": "userfaultfd.create",
+      "verdict": "timed-out",
+      "errno": 0,
+      "attribution": { "mechanism": null, "confidence": "low", "undecidable": true,
+                        "reason": "exceeded the risk class's 1000 ms deadline; hung and slow are not distinguished" }
+    }
+  ],
+
+  "module_delta": {
+    "before": ["overlay", "br_netfilter", "nf_tables"],
+    "after": ["overlay", "br_netfilter", "nf_tables"],
+    "loaded_by_run": []
+  }
+}
