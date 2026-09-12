@@ -21,6 +21,9 @@ the reference corpus and the Go control plane are not started. Progress is
 tracked in the issues, one milestone per freeze gate. The proposal is in
 `docs/`.
 
+Working on this? Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first — `main` is
+protected, so you branch and open a pull request rather than pushing.
+
 ## Why this exists
 
 CVE-2026-31431 ("Copy Fail", CISA KEV, May 2026) is reached through the AF_ALG

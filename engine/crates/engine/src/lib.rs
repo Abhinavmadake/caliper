@@ -32,6 +32,10 @@ pub mod probe;
 pub mod verdict;
 
 pub use harness::{run_isolated, Outcome};
+/// Re-exported because `RawResult` is `Result<(), Errno>`: the corpus cannot
+/// express a probe's error path without it, and should not have to depend on
+/// `nix` directly to author one.
+pub use nix::errno::Errno;
 pub use probe::{Probe, ProbeFn, RawResult, RiskClass};
 pub use verdict::{classify, Measured, Verdict};
 

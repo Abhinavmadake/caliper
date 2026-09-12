@@ -130,3 +130,38 @@ JSON with object keys sorted and insignificant whitespace removed.
 The stability rule is what lets §5's parallelism actually hold — "the reporting
 layers to be developed against recorded fingerprints long before the corpus is
 complete" only works if a fixture recorded in week 3 still parses in week 12.
+
+## Serialisation conventions
+
+Normative, so that two people writing a fingerprint by hand produce the same
+bytes. These are the conventions; the field *names and nesting* are C's to
+settle in #25.
+
+- **Object keys are `snake_case`** — `format_version`, `corpus_revision`,
+  `runtime_version`.
+- **Enumerated values are `kebab-case`** — the verdicts serialise as
+  `"permitted"`, `"denied"`, `"unimplemented"`, `"killed"`, `"timed-out"`,
+  `"not-applicable"`, and the divergence classes as
+  `"architecture-explained"`, `"kernel-version-explained"`,
+  `"runtime-class-explained"`, `"policy-explained"`. The engine already emits
+  the verdicts this way (`#[serde(rename_all = "kebab-case")]` in
+  `engine/crates/engine/src/verdict.rs`); the two halves must agree.
+- Keys are snake_case even where the value is kebab-case. The split is not
+  cosmetic: keys are field identifiers, values are members of a fixed
+  enumeration named in this document and in the proposal.
+- **`errno` is the raw integer**, never a name. `0` where the verdict has no
+  errno because the child did not return (`killed`, `timed-out`) or because
+  the call succeeded (`permitted`). A name is a presentation concern.
+- **Every control-plane field records its source**, per §5 — the field is an
+  object carrying the value and where it came from, not a bare value, because
+  "containerd 2.2 from the Node object" and "containerd 2.2 because the
+  operator said so" are different evidence.
+- **Booleans are stated, not implied by absence.** A missing key means a
+  producer that did not know; `false` means it knew and the answer was no.
+- Canonical form, for the `digest`: object keys sorted, no insignificant
+  whitespace.
+
+`examples/fingerprint.json` is a worked example against these conventions. It
+is **illustrative, not normative** — the shape of the object is #25's to
+decide, and the example is there so that #3's fixtures and C's first parser
+start from the same picture rather than two different guesses.
