@@ -13,7 +13,7 @@
       ]
     },
     "distribution": {
-      "value": "Ubuntu 24.04.1 LTS",
+      "value": "Fedora",
       "source": "node-object"
     },
     "runtime": {
@@ -32,6 +32,71 @@
   },
   "results": [
     {
+      "probe_id": "socket.family.af_inet",
+      "verdict": "permitted",
+      "errno": 0,
+      "attribution": {
+        "mechanism": null,
+        "confidence": "high",
+        "undecidable": false
+      }
+    },
+    {
+      "probe_id": "mount.fstype.proc",
+      "verdict": "killed",
+      "errno": 0,
+      "attribution": {
+        "mechanism": "seccomp",
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "terminated by SIGSYS, which only a KILL_PROCESS or KILL_THREAD filter produces"
+      }
+    },
+    {
+      "probe_id": "keyctl.op.join_session",
+      "verdict": "denied",
+      "errno": 1,
+      "attribution": {
+        "mechanism": null,
+        "confidence": "low",
+        "undecidable": true,
+        "reason": "EPERM is the oracle's guaranteed errno here, so interception cannot be separated from a dropped capability without privilege"
+      }
+    },
+    {
+      "probe_id": "netlink.protocol.nf_tables",
+      "verdict": "unimplemented",
+      "errno": 93,
+      "attribution": {
+        "mechanism": null,
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "EPROTONOSUPPORT from a kernel whose config does not build this netlink family; not a denial"
+      }
+    },
+    {
+      "probe_id": "userfaultfd.create",
+      "verdict": "timed-out",
+      "errno": 0,
+      "attribution": {
+        "mechanism": null,
+        "confidence": "low",
+        "undecidable": true,
+        "reason": "exceeded the risk class's 1000 ms deadline; hung and slow are not distinguished"
+      }
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "verdict": "denied",
+      "errno": 1,
+      "attribution": {
+        "mechanism": "seccomp",
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "oracle guaranteed EBADF; EPERM proves interception"
+      }
+    },
+    {
       "probe_id": "socket.family.af_alg",
       "verdict": "denied",
       "errno": 1,
@@ -43,13 +108,24 @@
       }
     },
     {
-      "probe_id": "socket.family.af_inet",
+      "probe_id": "arch.modify_ldt",
       "verdict": "permitted",
       "errno": 0,
       "attribution": {
         "mechanism": null,
         "confidence": "high",
         "undecidable": false
+      }
+    },
+    {
+      "probe_id": "mount.fstype.bpf",
+      "verdict": "denied",
+      "errno": 13,
+      "attribution": {
+        "mechanism": "selinux",
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "EACCES under an enforcing SELinux label"
       }
     }
   ],
@@ -66,5 +142,5 @@
     ],
     "loaded_by_run": []
   },
-  "digest": "sha256:7e6712652a93bcee88d8f947fb737540ce3beb1fbccb4e739b7ca64cf28d0c82"
+  "digest": "sha256:bc1ac6697bde8f4dc82dfb072b7da4f9b1e824abaef4eab7fa7902486744244b"
 }
