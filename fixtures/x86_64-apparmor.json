@@ -98,13 +98,12 @@
     },
     {
       "probe_id": "socket.family.af_alg",
-      "verdict": "denied",
-      "errno": 1,
+      "verdict": "permitted",
+      "errno": 0,
       "attribution": {
-        "mechanism": "seccomp",
+        "mechanism": null,
         "confidence": "high",
-        "undecidable": false,
-        "reason": "oracle guaranteed EAFNOSUPPORT for an out-of-range family; EPERM proves interception before the family lookup"
+        "undecidable": false
       }
     },
     {
@@ -141,5 +140,5 @@
     ],
     "loaded_by_run": []
   },
-  "digest": "sha256:0aadc53929055dc63e5300b388c4e4660e6004432ab065dfff0390b30cdab570"
+  "digest": "sha256:5024f762d491b99196f42f2a83a5716e512f37b312542940d352a7b7771bd5a9"
 }
