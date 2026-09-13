@@ -1,0 +1,54 @@
+# Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
+# Ritesh Aresh Saindane, Yogesh Babaji Palve
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Cell 4 of proposal §11.1: cell 2 with the runtime version moved back to
+# what noble's release pocket ships. containerd 1.7.12 predates the io_uring
+# deny (2.0) and any AF_ALG deny, so this is the AF_ALG reproduction cell.
+# Held so that an apt upgrade cannot silently turn it into cell 2.
+#
+#   limactl start --name caliper-cell4 deploy/cell4-unpatched.yaml
+#   limactl snapshot create caliper-cell4 --tag clean
+
+minimumLimaVersion: "1.0.0"
+vmType: "qemu"
+
+images:
+  - location: "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img"
+    arch: "x86_64"
+
+cpus: 4
+memory: "4GiB"
+disk: "30GiB"
+
+mounts:
+  - location: "~/caliper"
+    writable: true
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get update -q
+      apt-get install -y -q \
+        containerd=1.7.12-0ubuntu4 \
+        runc=1.1.12-0ubuntu3 \
+        apparmor
+      apt-mark hold containerd runc
+      systemctl enable --now containerd
+      containerd --version   # must print v1.7.12
+      runc --version
+      aa-status --enabled
