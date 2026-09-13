@@ -1,0 +1,70 @@
+{
+  "format_version": 1,
+  "corpus_revision": "0.1.0",
+  "cell": {
+    "architecture": "x86_64",
+    "kernel": {
+      "release": "6.8.0-51-generic",
+      "sandbox_claimed": false,
+      "modules": [
+        "overlay",
+        "br_netfilter",
+        "nf_tables"
+      ]
+    },
+    "distribution": {
+      "value": "Ubuntu 24.04.1 LTS",
+      "source": "node-object"
+    },
+    "runtime": {
+      "value": "containerd",
+      "source": "node-object"
+    },
+    "runtime_version": {
+      "value": "2.2.0",
+      "source": "node-object"
+    },
+    "lsm": "apparmor",
+    "runtime_class": {
+      "value": "runc",
+      "source": "pod-spec"
+    }
+  },
+  "results": [
+    {
+      "probe_id": "socket.family.af_alg",
+      "verdict": "denied",
+      "errno": 1,
+      "attribution": {
+        "mechanism": "seccomp",
+        "confidence": "high",
+        "undecidable": false,
+        "reason": "oracle guaranteed EAFNOSUPPORT for an out-of-range family; EPERM proves interception before the family lookup"
+      }
+    },
+    {
+      "probe_id": "socket.family.af_inet",
+      "verdict": "permitted",
+      "errno": 0,
+      "attribution": {
+        "mechanism": null,
+        "confidence": "high",
+        "undecidable": false
+      }
+    }
+  ],
+  "module_delta": {
+    "before": [
+      "overlay",
+      "br_netfilter",
+      "nf_tables"
+    ],
+    "after": [
+      "overlay",
+      "br_netfilter",
+      "nf_tables"
+    ],
+    "loaded_by_run": []
+  },
+  "digest": "sha256:c32b0de5c1daa2dc93e647bb8af8ab92dd59a2367db9999bb690967d2d86eaec"
+}
