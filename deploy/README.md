@@ -95,5 +95,9 @@ The cells have no Docker, so the probe must enter through containerd itself. Bui
 docker build -t caliper-probe engine/
 docker save caliper-probe | limactl shell caliper-cell2 -- sudo ctr images import -
 docker save caliper-probe | limactl shell caliper-cell4 -- sudo ctr images import -
+
+# Verify execution without triggering probes (probes are deferred to #8/#10)
+limactl shell caliper-cell2 -- sudo ctr run --rm --seccomp docker.io/library/caliper-probe:latest probe --noop
+limactl shell caliper-cell4 -- sudo ctr run --rm --seccomp docker.io/library/caliper-probe:latest probe --noop
 ```
 
