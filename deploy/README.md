@@ -53,3 +53,47 @@ GKE on COS); and Talos, the platform the motivating result was published on.
 The cells need an amd64 host with hardware virtualisation: the Kata cell
 requires it outright, and the other amd64 cells run on an arm64 laptop only
 under emulation. Confirming that machine is the first D task (week 1).
+
+## Bringing up cells 2 and 4
+
+Cells 2 and 4 are the same distribution (Ubuntu 24.04) on either side of one change: the release pocket ships containerd 1.7.12, and the updates pocket ships 2.2.1. This demonstrates the change in default confinement.
+
+### Exact package versions
+
+| Pocket | `containerd` | `runc` | Cell |
+|---|---|---|---|
+| noble (release) | `1.7.12-0ubuntu4` | `1.1.12-0ubuntu3` | 4 |
+| noble-updates | `2.2.1-0ubuntu1~24.04.3` | `1.3.4-0ubuntu1~24.04.1` | 2 |
+
+> **runc version decision:** Cell 4 represents the unpatched release pocket host, moving runc 1.1→1.3 alongside containerd 1.7→2.2. This aligns with the "runtime version" axis in proposal §11.1 which treats an unpatched host as one thing.
+
+### Snapshot commands
+
+```bash
+# Bring up a cell (the yaml provisions it fully on first start)
+limactl start --name caliper-cell2 deploy/cell2-baseline.yaml
+limactl start --name caliper-cell4 deploy/cell4-unpatched.yaml
+
+# Snapshot the clean, provisioned state before running anything
+limactl snapshot create caliper-cell2 --tag clean
+limactl snapshot create caliper-cell4 --tag clean
+
+# Roll back after a run
+limactl snapshot apply caliper-cell2 --tag clean
+limactl snapshot apply caliper-cell4 --tag clean
+
+# Throw the whole thing away
+limactl delete --force caliper-cell2
+```
+
+### Build-and-import flow
+
+The cells have no Docker, so the probe must enter through containerd itself. Build once on the amd64 host, then import the tarball into each cell.
+
+```bash
+# on the amd64 host, from ~/caliper
+docker build -t caliper-probe engine/
+docker save caliper-probe | limactl shell caliper-cell2 -- sudo ctr images import -
+docker save caliper-probe | limactl shell caliper-cell4 -- sudo ctr images import -
+```
+
