@@ -23,7 +23,8 @@ use std::time::Duration;
 
 use caliper_engine::harness::{Fault, Outcome};
 use caliper_engine::{
-    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+    run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
+    SideEffects,
 };
 use nix::errno::Errno;
 use nix::sys::signal::Signal;
@@ -42,6 +43,12 @@ fn probe(id: &'static str, run: fn() -> RawResult) -> Probe {
         risk: RISK,
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        oracle: Oracle {
+            guarantees: None,
+            isolates: Isolates::Seccomp,
+            reason: "test probe",
+        },
+        capability: None,
         effects: SideEffects::NONE,
         run,
     }

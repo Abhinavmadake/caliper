@@ -15,9 +15,9 @@
 
 //! A probe: one kernel operation at argument granularity, and what the
 //! engine needs to know to run it safely. The fields follow
-//! `spec/probe.md`; the ones not yet here (errno oracle, capability
-//! requirement) arrive with #10 and later, each as an addition to this
-//! struct.
+//! `spec/probe.md`; every one of them is here (#10), and each probe is
+//! authored complete — the spec is explicit that attribution metadata is
+//! not deferred.
 
 use std::time::Duration;
 
@@ -153,6 +153,63 @@ fn errno_as_int<S: Serializer>(e: &Option<Errno>, s: S) -> Result<S::Ok, S::Erro
     }
 }
 
+/// The errno oracle (`spec/probe.md`): the argument set is chosen so that,
+/// if the call reaches the kernel past every filter, a specific error is
+/// structurally guaranteed — or the call succeeds. Receiving something else
+/// proves interception before the point at which the kernel would have
+/// produced it; what that isolates is per syscall and is recorded here,
+/// with the reasoning.
+///
+/// The oracle is what makes a guaranteed errno `permitted` rather than
+/// `denied` in [`crate::verdict::classify`]: the call was not intercepted.
+/// The errno is still recorded raw.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Oracle {
+    /// The errno the argument set guarantees when nothing intercepts the
+    /// call. `None`: the call succeeds. Serialised as the raw integer.
+    #[serde(serialize_with = "errno_as_int")]
+    pub guarantees: Option<Errno>,
+    /// What an `EPERM` against the guarantee separates.
+    pub isolates: Isolates,
+    /// The hook-order argument: where in the kernel the guaranteed answer is
+    /// produced, and what runs before it. Goes onto the fingerprint's
+    /// `attribution.reason` verbatim, so it is written for a reader.
+    pub reason: &'static str,
+}
+
+/// Which mechanism an `EPERM` against the oracle can be pinned to. The
+/// mechanism ordering is fixed by the kernel: seccomp runs at syscall entry,
+/// before any argument is looked at; LSM hooks run inside the syscall, at
+/// points that differ per call; capability checks are the syscall's own.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Isolates {
+    /// The guaranteed answer is produced before any LSM hook or capability
+    /// check — descriptor resolution, an out-of-range family, a flag the
+    /// syscall rejects up front — so only a filter at entry can pre-empt it.
+    Seccomp,
+    /// The guaranteed answer is produced after the LSM hook, so `EPERM`
+    /// could be either; it is not the syscall's own capability check.
+    SeccompOrLsm,
+    /// `EPERM` is what the syscall itself returns when the caller lacks the
+    /// capability, so nothing separates a filter from a dropped capability
+    /// from inside the container. The capability field is the correlate.
+    Undecidable,
+}
+
+/// A Linux capability, as the operation's documented requirement
+/// (`spec/probe.md`, capability requirement), for correlation against the
+/// effective and bounding sets. Only the capabilities the corpus names are
+/// listed; add a variant, serialised by its kernel name, when a probe needs
+/// one.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum Capability {
+    #[serde(rename = "CAP_NET_RAW")]
+    NetRaw,
+    #[serde(rename = "CAP_SYS_ADMIN")]
+    SysAdmin,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Probe {
     /// Stable identity; the key the diff engine joins on across runs.
@@ -163,6 +220,11 @@ pub struct Probe {
     pub risk: RiskClass,
     pub arch: Applicability,
     pub kernel: KernelDependency,
+    /// The argument set's guaranteed answer and what an `EPERM` against it
+    /// isolates.
+    pub oracle: Oracle,
+    /// The operation's documented capability, `None` where it needs none.
+    pub capability: Option<Capability>,
     /// What the probe creates and how it is reclaimed (`crate::effects`).
     /// Defaults to `Undeclared`, which the engine refuses to run.
     pub effects: SideEffects,

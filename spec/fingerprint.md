@@ -151,7 +151,11 @@ settle in #25.
   enumeration named in this document and in the proposal.
 - **`errno` is the raw integer**, never a name. `0` where the verdict has no
   errno because the child did not return (`killed`, `timed-out`) or because
-  the call succeeded (`permitted`). A name is a presentation concern.
+  the call succeeded (`permitted`). A `permitted` from a probe whose errno
+  oracle guarantees an error carries that errno, raw: the call reached the
+  point where the kernel produces it, which is what the oracle was built to
+  show, and the answer is recorded as given (`spec/probe.md`, errno oracle).
+  A name is a presentation concern.
 - **Every control-plane field records its source**, per §5 — the field is an
   object carrying the value and where it came from, not a bare value, because
   "containerd 2.2 from the Node object" and "containerd 2.2 because the

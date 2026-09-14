@@ -165,7 +165,8 @@ fn decided_without_running(probe: &Probe, cell: &Cell) -> Option<Result<Measured
 
 fn run_and_classify(probe: &Probe, cell: &Cell) -> Result<Measured, Unmeasurable> {
     let outcome = run_isolated(probe).map_err(Unmeasurable::Harness)?;
-    classify(outcome, &probe.kernel, cell.kernel.version).map_err(Unmeasurable::NotMeasured)
+    classify(outcome, &probe.oracle, &probe.kernel, cell.kernel.version)
+        .map_err(Unmeasurable::NotMeasured)
 }
 
 impl Measurement {

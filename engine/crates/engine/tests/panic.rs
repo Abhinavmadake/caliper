@@ -36,7 +36,8 @@ use std::time::Duration;
 
 use caliper_engine::harness::{Fault, Outcome};
 use caliper_engine::{
-    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+    run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
+    SideEffects,
 };
 use nix::sys::signal::Signal;
 
@@ -56,6 +57,12 @@ fn main() {
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        oracle: Oracle {
+            guarantees: None,
+            isolates: Isolates::Seccomp,
+            reason: "test probe",
+        },
+        capability: None,
         effects: SideEffects::NONE,
         run: panics,
     };

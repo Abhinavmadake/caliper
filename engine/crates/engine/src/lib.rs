@@ -50,7 +50,10 @@ pub use measurement::{measure, Measurement, ProbeResult, Unmeasurable, Unmeasure
 /// express a probe's error path without it, and should not have to depend on
 /// `nix` directly to author one.
 pub use nix::errno::Errno;
-pub use probe::{Applicability, KernelDependency, Probe, ProbeFn, RawResult, RiskClass};
+pub use probe::{
+    Applicability, Capability, Isolates, KernelDependency, Oracle, Probe, ProbeFn, RawResult,
+    RiskClass,
+};
 pub use verdict::{classify, Measured, Verdict};
 
 /// One-time engine set-up, before any probe runs.

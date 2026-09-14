@@ -19,8 +19,10 @@
 //! output only.
 //!
 //! A and B both author here. What a probe *is* — [`Probe`] and its fields —
-//! is defined in `caliper-engine`; the ten-probe reference corpus arrives
-//! with #10 and the committed families with #11–#17.
+//! is defined in `caliper-engine`. The ten-probe reference corpus (#10) is
+//! here, one module per entry family; the committed families (#11–#17)
+//! extend those modules. Every probe is authored complete: oracle,
+//! capability requirement and side-effect declaration, none deferred.
 
 //! # Authoring a probe
 //!
@@ -30,7 +32,9 @@
 //! ```
 //! use std::time::Duration;
 //! use caliper_corpus::Probe;
-//! use caliper_engine::{Applicability, Errno, KernelDependency, RawResult, RiskClass, SideEffects};
+//! use caliper_engine::{
+//!     Applicability, Errno, Isolates, KernelDependency, Oracle, RawResult, RiskClass, SideEffects,
+//! };
 //!
 //! /// `close(2)` on a descriptor that cannot be valid.
 //! ///
@@ -65,6 +69,20 @@
 //!     // `denied` (#8).
 //!     arch: Applicability::All,
 //!     kernel: KernelDependency::NONE,
+//!     // The oracle on the record: what the argument set guarantees, what
+//!     // an EPERM against it isolates, and the hook-order argument for a
+//!     // reader — it goes onto the fingerprint's `attribution.reason`
+//!     // verbatim. `guarantees: None` is a call expected to succeed.
+//!     oracle: Oracle {
+//!         guarantees: Some(Errno::EBADF),
+//!         isolates: Isolates::Seccomp,
+//!         reason: "descriptor resolution precedes every LSM hook, so EBADF is \
+//!                  produced before any of them; only a filter at syscall entry \
+//!                  answers EPERM first",
+//!     },
+//!     // The operation's documented capability, for correlation against
+//!     // the effective and bounding sets; close(2) has none.
+//!     capability: None,
 //!     // Considered: a bad descriptor creates nothing. A probe that may
 //!     // leave something a process does not reclaim names the class —
 //!     // `SideEffects::Declared { residual: &[ResidualClass::SysvIpc],
@@ -92,18 +110,59 @@
 
 pub use caliper_engine::Probe;
 
+mod clone;
+mod common;
+mod io_uring;
+mod mount;
+mod socket;
+
 /// Which corpus a run came from: `corpus_revision` in the fingerprint.
 /// The crate version, so it moves with the corpus and nothing else.
 pub const REVISION: &str = env!("CARGO_PKG_VERSION");
 
-/// Every probe the engine knows about, in corpus order.
+/// Every probe the engine knows about, in corpus order. The order is the
+/// run order (snapshots depend on it) and the order in the fingerprint.
 pub fn probes() -> &'static [Probe] {
-    &[]
+    &[
+        socket::AF_INET,
+        socket::AF_ALG,
+        socket::AF_PACKET,
+        socket::OUT_OF_RANGE_FAMILY,
+        socket::NETLINK_ROUTE,
+        io_uring::REGISTER_PROBE,
+        io_uring::SETUP_ZERO_ENTRIES,
+        mount::REACH,
+        clone::UNSHARE_INVALID_FLAGS,
+        clone::CLONE3_SHORT_ARGS,
+    ]
 }
 
 #[cfg(test)]
 mod tests {
     use super::probes;
+    use std::collections::BTreeSet;
+
+    /// #10: ten probes across at least three entry families.
+    #[test]
+    fn the_reference_corpus_is_ten_probes_over_three_families() {
+        assert!(probes().len() >= 10, "{} probes", probes().len());
+        let families: BTreeSet<_> = probes().iter().map(|p| p.family).collect();
+        assert!(families.len() >= 3, "{families:?}");
+    }
+
+    /// Every probe is authored complete: the oracle's reasoning is on the
+    /// record, and a guaranteed errno is never the one the kernel
+    /// dependency reads as absence — that would make `unimplemented`
+    /// unreachable for the probe.
+    #[test]
+    fn every_oracle_is_reasoned_and_distinct_from_absence() {
+        for p in probes() {
+            assert!(!p.oracle.reason.trim().is_empty(), "{}: no reason", p.id);
+            if let (Some(g), Some(a)) = (p.oracle.guarantees, p.kernel.absent_errno) {
+                assert_ne!(g, a, "{}: the oracle guarantees the absent errno", p.id);
+            }
+        }
+    }
 
     /// The merge gate for #9: `Undeclared` is for authoring, not for
     /// `main`. Every probe in the compiled corpus has considered its side

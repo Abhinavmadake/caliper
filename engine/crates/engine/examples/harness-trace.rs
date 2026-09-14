@@ -29,7 +29,8 @@
 use std::time::Duration;
 
 use caliper_engine::{
-    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+    run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
+    SideEffects,
 };
 
 fn getppid() -> RawResult {
@@ -54,6 +55,12 @@ fn main() {
         risk: RiskClass::new(true, Duration::from_secs(1)),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        oracle: Oracle {
+            guarantees: None,
+            isolates: Isolates::Seccomp,
+            reason: "test probe",
+        },
+        capability: None,
         effects: SideEffects::NONE,
         run: if panic { panics } else { getppid },
     };
