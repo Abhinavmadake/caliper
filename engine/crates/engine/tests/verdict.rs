@@ -32,7 +32,7 @@ use caliper_engine::cell::{Arch, Cell, Kernel, KernelVersion, Lsm};
 use caliper_engine::harness::Outcome;
 use caliper_engine::measurement::{measure, Measurement, FORMAT_VERSION};
 use caliper_engine::verdict::{classify, Verdict};
-use caliper_engine::{Applicability, KernelDependency, Probe, RawResult, RiskClass};
+use caliper_engine::{Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects};
 use nix::errno::Errno;
 use seccompiler::{apply_filter, BpfProgram, SeccompAction, SeccompFilter, TargetArch};
 
@@ -57,6 +57,7 @@ fn probe(id: &'static str, kernel: KernelDependency, run: fn() -> RawResult) -> 
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
         kernel,
+        effects: SideEffects::NONE,
         run,
     }
 }
@@ -83,6 +84,7 @@ fn cell(version: Option<KernelVersion>) -> Cell {
         kernel: Kernel {
             release: "test".into(),
             version,
+            modules: None,
         },
         lsm: Lsm::None,
     }
@@ -213,8 +215,8 @@ fn the_measurement_carries_verdicts_and_no_interpretation() {
         probe("a.permitted", KernelDependency::NONE, ok),
         probe("b.unimplemented", absent(None), missing_syscall),
     ];
-    let (m, unmeasured) = Measurement::run(&probes, "0.1.0", Cell::detect().unwrap());
-    assert!(unmeasured.is_empty());
+    let m = Measurement::run(&probes, "0.1.0", Cell::detect().unwrap());
+    assert!(m.unmeasured.is_empty());
 
     let v: serde_json::Value = serde_json::to_value(&m).unwrap();
     assert_eq!(v["format_version"], FORMAT_VERSION);
@@ -249,6 +251,7 @@ fn the_measurement_carries_verdicts_and_no_interpretation() {
         assert_eq!(r.as_object().unwrap().len(), 3, "{r}");
     }
     assert!(v.get("digest").is_none());
+    assert_eq!(v["unmeasured"], serde_json::json!([]));
 }
 
 #[test]
@@ -258,8 +261,11 @@ fn a_probe_that_produced_no_verdict_is_reported_and_not_recorded() {
         Ok(())
     }
     let probes = [probe("segv", KernelDependency::NONE, crashes)];
-    let (m, unmeasured) = Measurement::run(&probes, "0.1.0", cell(RUNNING));
+    let m = Measurement::run(&probes, "0.1.0", cell(RUNNING));
     assert!(m.results.is_empty());
-    assert_eq!(unmeasured.len(), 1);
-    assert_eq!(unmeasured[0].probe_id, "segv");
+    assert_eq!(m.unmeasured.len(), 1);
+    assert_eq!(m.unmeasured[0].probe_id, "segv");
+    // On the record, not only on stderr.
+    let v = serde_json::to_value(&m).unwrap();
+    assert_eq!(v["unmeasured"][0]["probe_id"], "segv");
 }

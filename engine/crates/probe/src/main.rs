@@ -26,9 +26,10 @@ const USAGE: &str = "\
 usage: caliper-probe <mode>
 
   --run            measure: run every probe in the corpus and emit the
-                   probe-side half of a fingerprint as JSON (#8). Probes
-                   that produced no verdict are listed on stderr and left
-                   out of the results, never recorded as one
+                   probe-side half of a fingerprint as JSON (#8), with the
+                   module delta and residual-state report (#9). Probes that
+                   produced no verdict are listed under `unmeasured` and
+                   left out of the results, never recorded as one
   --noop           start up, do nothing, exit. Establishes the engine's own
                    syscall footprint under strace (issue #4)
   --dump-corpus    emit the compiled-in corpus as JSON. An output, never an
@@ -70,12 +71,23 @@ fn run() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let (measurement, unmeasured) =
-        Measurement::run(caliper_corpus::probes(), caliper_corpus::REVISION, cell);
-    for u in &unmeasured {
+    let m = Measurement::run(caliper_corpus::probes(), caliper_corpus::REVISION, cell);
+    // Everything below is also in the document; stderr is for the person
+    // watching the run, and for a corpus defect to be loud.
+    for u in &m.unmeasured {
         eprintln!("caliper-probe: {}: not measured: {:?}", u.probe_id, u.why);
     }
-    emit(&measurement)
+    for l in &m.residual.leaks {
+        let tag = if l.declared { "declared" } else { "UNDECLARED" };
+        eprintln!(
+            "caliper-probe: {}: residual {:?} {:+} ({tag})",
+            l.probe_id, l.class, l.delta
+        );
+    }
+    for r in &m.residual.janitor {
+        eprintln!("caliper-probe: janitor removed {:?} {}", r.class, r.object);
+    }
+    emit(&m)
 }
 
 fn dump_corpus() -> ExitCode {

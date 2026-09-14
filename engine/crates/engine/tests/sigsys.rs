@@ -30,7 +30,9 @@ use std::time::Duration;
 
 use caliper_engine::harness::Outcome;
 use caliper_engine::verdict::{classify, NotMeasured, Verdict};
-use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
+use caliper_engine::{
+    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+};
 use nix::errno::Errno;
 use seccompiler::{apply_filter, BpfProgram, SeccompAction, SeccompFilter, TargetArch};
 
@@ -52,6 +54,7 @@ fn probe(id: &'static str, run: fn() -> RawResult) -> Probe {
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        effects: SideEffects::NONE,
         run,
     }
 }

@@ -16,8 +16,8 @@
 //! A probe: one kernel operation at argument granularity, and what the
 //! engine needs to know to run it safely. The fields follow
 //! `spec/probe.md`; the ones not yet here (errno oracle, capability
-//! requirement, side effects) arrive with #9–#10, each as an addition to
-//! this struct.
+//! requirement) arrive with #10 and later, each as an addition to this
+//! struct.
 
 use std::time::Duration;
 
@@ -25,6 +25,7 @@ use nix::errno::Errno;
 use serde::{Serialize, Serializer};
 
 use crate::cell::{Arch, KernelVersion};
+use crate::effects::SideEffects;
 
 /// What the probed operation returned — the kernel's answer, untouched.
 /// `Ok` means the operation succeeded; `Err` carries the errno as returned.
@@ -162,6 +163,9 @@ pub struct Probe {
     pub risk: RiskClass,
     pub arch: Applicability,
     pub kernel: KernelDependency,
+    /// What the probe creates and how it is reclaimed (`crate::effects`).
+    /// Defaults to `Undeclared`, which the engine refuses to run.
+    pub effects: SideEffects,
     /// The operation. An output of `--dump-corpus` cannot carry a function,
     /// and the JSON is a view of the corpus, not a way to run it.
     #[serde(skip)]

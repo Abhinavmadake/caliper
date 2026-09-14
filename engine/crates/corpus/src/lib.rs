@@ -30,7 +30,7 @@
 //! ```
 //! use std::time::Duration;
 //! use caliper_corpus::Probe;
-//! use caliper_engine::{Applicability, Errno, KernelDependency, RawResult, RiskClass};
+//! use caliper_engine::{Applicability, Errno, KernelDependency, RawResult, RiskClass, SideEffects};
 //!
 //! /// `close(2)` on a descriptor that cannot be valid.
 //! ///
@@ -65,6 +65,14 @@
 //!     // `denied` (#8).
 //!     arch: Applicability::All,
 //!     kernel: KernelDependency::NONE,
+//!     // Considered: a bad descriptor creates nothing. A probe that may
+//!     // leave something a process does not reclaim names the class —
+//!     // `SideEffects::Declared { residual: &[ResidualClass::SysvIpc],
+//!     // module_autoload: false }` — and removes it itself before
+//!     // returning; the engine measures whether it did. Leave the field
+//!     // out (`..Default::default()`) and it is `Undeclared`: the engine
+//!     // refuses to run the probe, and the corpus test refuses the merge.
+//!     effects: SideEffects::NONE,
 //!     run: close_bad_fd,
 //! };
 //! ```
@@ -78,6 +86,9 @@
 //!   `IORING_REGISTER_PROBE` over submitting queue entries
 //! - a probe that can make the kernel autoload a module declares it; that side
 //!   effect cannot be rolled back
+//! - a POSIX IPC object it creates is named `caliper-…` and a System V key is
+//!   in the instrument's range (`caliper_engine::effects`), so the end-of-run
+//!   janitor can recognise what the child could not remove
 
 pub use caliper_engine::Probe;
 
@@ -88,4 +99,34 @@ pub const REVISION: &str = env!("CARGO_PKG_VERSION");
 /// Every probe the engine knows about, in corpus order.
 pub fn probes() -> &'static [Probe] {
     &[]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::probes;
+
+    /// The merge gate for #9: `Undeclared` is for authoring, not for
+    /// `main`. Every probe in the compiled corpus has considered its side
+    /// effects, or this fails in CI.
+    #[test]
+    fn every_probe_declares_its_side_effects() {
+        let undeclared: Vec<_> = probes()
+            .iter()
+            .filter(|p| !p.effects.is_declared())
+            .map(|p| p.id)
+            .collect();
+        assert!(
+            undeclared.is_empty(),
+            "probes with SideEffects::Undeclared: {undeclared:?}"
+        );
+    }
+
+    #[test]
+    fn probe_ids_are_unique() {
+        let mut ids: Vec<_> = probes().iter().map(|p| p.id).collect();
+        ids.sort_unstable();
+        let before = ids.len();
+        ids.dedup();
+        assert_eq!(before, ids.len(), "duplicate probe ids");
+    }
 }

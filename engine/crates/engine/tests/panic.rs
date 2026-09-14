@@ -35,7 +35,9 @@
 use std::time::Duration;
 
 use caliper_engine::harness::{Fault, Outcome};
-use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
+use caliper_engine::{
+    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+};
 use nix::sys::signal::Signal;
 
 fn panics() -> RawResult {
@@ -54,6 +56,7 @@ fn main() {
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        effects: SideEffects::NONE,
         run: panics,
     };
     let out = run_isolated(&probe).unwrap();

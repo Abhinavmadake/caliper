@@ -24,7 +24,8 @@
 //!
 //! Syscalls, all outside `--noop` and so outside `baseline/`: `uname`, and
 //! `openat`/`read`/`close` on `/proc/self/attr/<lsm>/current` for each LSM
-//! tried.
+//! tried. The module set is filled in by the measurement run, which
+//! snapshots it before the first probe (`crate::residual`).
 
 use std::fmt;
 
@@ -165,6 +166,11 @@ pub struct Kernel {
     /// kernel may lack.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub version: Option<KernelVersion>,
+    /// Loaded modules before any probe ran, so the cell describes the node
+    /// and not the instrument (§6.2). Absent where `/proc/modules` could
+    /// not be read — unknown, not empty.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub modules: Option<Vec<String>>,
 }
 
 impl Kernel {
@@ -179,7 +185,11 @@ impl Kernel {
             .to_string_lossy()
             .into_owned();
         let version = KernelVersion::parse(&release);
-        Ok(Kernel { release, version })
+        Ok(Kernel {
+            release,
+            version,
+            modules: None,
+        })
     }
 }
 
