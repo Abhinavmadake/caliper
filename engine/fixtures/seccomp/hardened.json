@@ -3,8 +3,9 @@
     "Hand-hardened profile for the engine itself (issue #4), in the OCI/Docker profile format.",
     "Default action is KILL_PROCESS, so this is an exact allowlist: the parent survives only if the enumeration in baseline/ is complete.",
     "Group 1: the engine's start-up set from baseline/*.txt. poll and arch_prctl are the x86_64 counterparts of ppoll and musl TLS setup; prctl is the engine's init setting PR_SET_DUMPABLE=0 (RLIMIT_CORE does not stop piped cores).",
-    "Group 2: the isolation harness (#5-#7): clone (musl's fork) for the child, pidfd_open, ppoll on the pidfd (group 1) for the bounded wait, wait4, close of the pidfd, kill on timeout, write for output, exit_group. clone3/waitid/exit/rt_sigreturn are not issued today and are kept for a future harness change.",
-    "Group 3: runc's own pre-exec set. runc applies this filter and then still issues these before execve, so a profile without them kills runc init, not the engine. Found on runc 1.5.1 by running --noop under KILL_PROCESS and adding the audited syscall until runc reached execve, on aarch64 (27) and x86_64 (+clock_gettime: Go's vDSO clock falls back to the syscall when the clocksource is not vDSO-capable, as under emulation, so whether runc needs it is a property of the node). Every kill was comm=runc:[2:INIT], none was the engine. runc also issues close and prctl, listed in groups 2 and 1. A property of the runtime, not of the engine: the seccompiler test in crates/probe/tests applies groups 1-2 alone at execve."
+    "Group 2: the isolation harness (#5-#7): musl's fork() for the child — the fork syscall on x86_64, clone on aarch64, which has no fork — pidfd_open, ppoll on the pidfd (group 1) for the bounded wait, wait4, close of the pidfd, kill on timeout, write for output, exit_group. clone3/waitid/exit/rt_sigreturn are not issued today and are kept for a future harness change.",
+    "Group 3: runc's own pre-exec set. runc applies this filter and then still issues these before execve, so a profile without them kills runc init, not the engine. Found on runc 1.5.1 by running --noop under KILL_PROCESS and adding the audited syscall until runc reached execve, on aarch64 (27) and x86_64 (+clock_gettime: Go's vDSO clock falls back to the syscall when the clocksource is not vDSO-capable, as under emulation, so whether runc needs it is a property of the node). Every kill was comm=runc:[2:INIT], none was the engine. runc also issues close and prctl, listed in groups 2 and 1. A property of the runtime, not of the engine: the seccompiler test in crates/probe/tests applies groups 1-2 alone at execve.",
+    "Group 4: the run path (#8, #9), outside --noop and so outside baseline/: uname for the kernel release, and the /proc and /sys reads of the cell and residual snapshots (openat, fcntl from musl's open after O_CLOEXEC, read, fstat, newfstatat, getdents64, readlinkat; close and write are in group 2). open, stat and readlink are the x86_64 spellings musl uses where that syscall exists; aarch64 has only the *at forms. The probed syscalls are deliberately absent, except clone3, which group 2 keeps for the harness: under this profile nine probes' children die of SIGSYS and the run records nine killed verdicts, which is the SIGSYS path exercised end to end; the janitor's removals run in children of their own and are recorded the same way. Duplicates with group 3 are intended: groups 1, 2 and 4 are the engine's, and the seccompiler test applies those three alone."
   ],
   "defaultAction": "SCMP_ACT_KILL_PROCESS",
   "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_AARCH64"],
@@ -21,7 +22,7 @@
     },
     {
       "names": [
-        "clone", "clone3", "pidfd_open", "wait4", "waitid", "kill", "close",
+        "fork", "clone", "clone3", "pidfd_open", "wait4", "waitid", "kill", "close",
         "write", "exit", "rt_sigreturn"
       ],
       "action": "SCMP_ACT_ALLOW"
@@ -33,6 +34,14 @@
         "getdents64", "geteuid", "getpid", "getppid", "newfstatat", "openat",
         "prlimit64", "read", "readlinkat", "setgid", "setgroups",
         "setuid", "statx", "tgkill"
+      ],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "names": [
+        "uname",
+        "openat", "fcntl", "read", "fstat", "newfstatat", "getdents64", "readlinkat",
+        "open", "stat", "readlink"
       ],
       "action": "SCMP_ACT_ALLOW"
     }

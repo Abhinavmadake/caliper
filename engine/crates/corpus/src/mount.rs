@@ -16,7 +16,7 @@
 //! Mount filesystem types (`corpus/README.md`, committed set). One probe
 //! here: whether `mount(2)` is reachable at all, with an answer produced
 //! before the capability check and the LSM hook. The per-type probes of
-//! the committed family (#14) need a real target and carry a mount-table
+//! the committed family (#13) need a real target and carry a mount-table
 //! side effect; this one, by construction, cannot mount anything.
 
 use caliper_engine::{

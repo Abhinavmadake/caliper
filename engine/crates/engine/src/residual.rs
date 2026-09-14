@@ -93,7 +93,8 @@ impl From<Observation> for Observability {
     }
 }
 
-/// The five classes at one instant. Serialises as `{class: count | null}`.
+/// The five classes at one instant. Serialises as `{class: count | null}`,
+/// keyed by [`ResidualClass::key`] — snake_case, as object keys are.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Snapshot(pub [Observation; ResidualClass::ALL.len()]);
 
@@ -122,7 +123,7 @@ impl Serialize for Snapshot {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut m = s.serialize_map(Some(ResidualClass::ALL.len()))?;
         for class in ResidualClass::ALL {
-            m.serialize_entry(&class, &self.get(class).count())?;
+            m.serialize_entry(class.key(), &self.get(class).count())?;
         }
         m.end()
     }
@@ -135,7 +136,7 @@ impl Serialize for ObservabilityMap {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         let mut m = s.serialize_map(Some(ResidualClass::ALL.len()))?;
         for class in ResidualClass::ALL {
-            m.serialize_entry(&class, &self.0[class.index()])?;
+            m.serialize_entry(class.key(), &self.0[class.index()])?;
         }
         m.end()
     }
@@ -473,7 +474,8 @@ mod tests {
         assert_eq!(v["mounts"], 3);
         assert!(v["keyrings"].is_null());
         assert!(v["cgroups"].is_null());
-        assert_eq!(v["sysv-ipc"], 0);
+        assert_eq!(v["sysv_ipc"], 0);
+        assert!(v.get("sysv-ipc").is_none(), "keys are snake_case");
         let o = serde_json::to_value(s.observability()).unwrap();
         assert_eq!(o["mounts"], "observed");
         assert_eq!(o["keyrings"]["unobservable"]["reason"], "masked");

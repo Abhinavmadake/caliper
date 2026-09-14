@@ -219,11 +219,10 @@ fn a_declared_class_that_cannot_be_observed_here_is_reported_as_unverifiable() {
     // And the observability map says the same, once, for the run.
     let v = serde_json::to_value(&m).unwrap();
     for c in ResidualClass::ALL {
-        let key = serde_json::to_value(c).unwrap();
-        let entry = &v["residual"]["observability"][key.as_str().unwrap()];
+        let entry = &v["residual"]["observability"][c.key()];
         if blind.contains(&c) {
             assert!(entry != "observed", "{c:?}: {entry}");
-            assert!(v["residual"]["before"][key.as_str().unwrap()].is_null());
+            assert!(v["residual"]["before"][c.key()].is_null());
         } else {
             assert_eq!(entry, "observed", "{c:?}");
         }

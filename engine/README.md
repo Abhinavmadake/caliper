@@ -131,18 +131,23 @@ observed set against the file, so a dependency that starts issuing syscalls
 fails the build rather than the measurement.
 
 `fixtures/seccomp/hardened.json` is the hand-hardened profile: an exact
-allowlist with `KILL_PROCESS` as the default, in three groups — the start-up
-set, the isolation harness set (fork, wait, kill, write, exit), and runc's own
+allowlist with `KILL_PROCESS` as the default, in four groups — the start-up
+set, the isolation harness set (fork, wait, kill, write, exit), runc's own
 pre-exec set, which is a property of the runtime and was found empirically
-(runc 1.5.1, on aarch64 and x86_64). It is verified two ways:
+(runc 1.5.1, on aarch64 and x86_64), and the run path's set (`uname` and the
+`/proc` and `/sys` reads of the cell and residual snapshots). The probed
+syscalls are deliberately not in it — except `clone3`, which the harness group
+keeps — so under this profile nine probes' children die of SIGSYS and the run
+records nine `killed` verdicts. It is verified two ways:
 
-- `crates/probe/tests/hardened.rs` applies the first two groups with
+- `crates/probe/tests/hardened.rs` applies the engine's three groups with
   `seccompiler` in a forked child immediately before `execve`, so nothing but
-  the engine is under the filter. A negative control drops one start-up
-  syscall and checks the child dies of SIGSYS. Runs in CI on the musl target.
+  the engine is under the filter, for `--noop` and for `--run`. A negative
+  control drops one start-up syscall and checks the child dies of SIGSYS.
+  Runs in CI on the musl target.
 - `docker run --security-opt seccomp=fixtures/seccomp/hardened.json
-  caliper-probe --noop` exercises the whole profile under a real runtime,
-  alongside a run under the runtime's default profile.
+  caliper-probe --noop` and `--run` exercise the whole profile under a real
+  runtime, alongside runs under the runtime's default profile.
 
 ## Developing on a Mac
 
