@@ -32,9 +32,18 @@ use caliper_engine::cell::{Arch, Cell, Kernel, KernelVersion, Lsm};
 use caliper_engine::harness::Outcome;
 use caliper_engine::measurement::{measure, Measurement, FORMAT_VERSION};
 use caliper_engine::verdict::{classify, Verdict};
-use caliper_engine::{Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects};
+use caliper_engine::{
+    Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass, SideEffects,
+};
 use nix::errno::Errno;
 use seccompiler::{apply_filter, BpfProgram, SeccompAction, SeccompFilter, TargetArch};
+
+/// An oracle for a probe whose call is expected to succeed.
+const SUCCEEDS: Oracle = Oracle {
+    guarantees: None,
+    isolates: Isolates::Seccomp,
+    reason: "test probe",
+};
 
 #[cfg(target_arch = "aarch64")]
 const ARCH: TargetArch = TargetArch::aarch64;
@@ -57,6 +66,12 @@ fn probe(id: &'static str, kernel: KernelDependency, run: fn() -> RawResult) -> 
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
         kernel,
+        oracle: Oracle {
+            guarantees: None,
+            isolates: Isolates::Seccomp,
+            reason: "test probe",
+        },
+        capability: None,
         effects: SideEffects::NONE,
         run,
     }
@@ -106,10 +121,10 @@ fn absent(since: Option<(u32, u32)>) -> KernelDependency {
 fn absent_errno_from_a_kernel_that_may_lack_it_is_unimplemented() {
     let out = Outcome::Returned { errno: ENOSYS };
     // Presence is a config/module property: no version settles it.
-    let m = classify(out, &absent(None), RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &absent(None), RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Unimplemented, ENOSYS));
     // The entry point is newer than the running kernel.
-    let m = classify(out, &absent(Some((6, 9))), RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &absent(Some((6, 9))), RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Unimplemented, ENOSYS));
 }
 
@@ -118,25 +133,25 @@ fn absent_errno_from_a_kernel_that_implements_it_is_denied() {
     // spec/probe.md: "ENOSYS from a syscall the cell's kernel implements is
     // a filter, not unimplemented".
     let out = Outcome::Returned { errno: ENOSYS };
-    let m = classify(out, &absent(Some((6, 8))), RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &absent(Some((6, 8))), RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Denied, ENOSYS));
-    let m = classify(out, &absent(Some((2, 6))), RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &absent(Some((2, 6))), RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Denied, ENOSYS));
 }
 
 #[test]
 fn a_different_errno_is_denied_whatever_the_dependency_says() {
     let out = Outcome::Returned { errno: libc::EPERM };
-    let m = classify(out, &absent(None), RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &absent(None), RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Denied, libc::EPERM));
-    let m = classify(out, &KernelDependency::NONE, RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &KernelDependency::NONE, RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Denied, libc::EPERM));
 }
 
 #[test]
 fn no_absent_errno_means_every_errno_is_a_denial() {
     let out = Outcome::Returned { errno: ENOSYS };
-    let m = classify(out, &KernelDependency::NONE, RUNNING).unwrap();
+    let m = classify(out, &SUCCEEDS, &KernelDependency::NONE, RUNNING).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Denied, ENOSYS));
 }
 
@@ -144,9 +159,9 @@ fn no_absent_errno_means_every_errno_is_a_denial() {
 fn an_unparsed_kernel_release_reads_absence_as_unimplemented() {
     // The reading that does not invent a policy finding.
     let out = Outcome::Returned { errno: ENOSYS };
-    let m = classify(out, &absent(Some((2, 6))), None).unwrap();
+    let m = classify(out, &SUCCEEDS, &absent(Some((2, 6))), None).unwrap();
     assert_eq!(m.verdict, Verdict::Unimplemented);
-    let m = classify(out, &KernelDependency::NONE, None).unwrap();
+    let m = classify(out, &SUCCEEDS, &KernelDependency::NONE, None).unwrap();
     assert_eq!(m.verdict, Verdict::Denied);
 }
 
@@ -182,6 +197,59 @@ fn a_filter_answering_enosys_is_denied_not_unimplemented() {
     let c = cell(RUNNING);
     let m = measure(&probe("filtered", absent(Some((2, 6))), target_syscall), &c).unwrap();
     assert_eq!((m.verdict, m.errno), (Verdict::Denied, ENOSYS));
+}
+
+// --- the oracle ----------------------------------------------------------
+
+#[test]
+fn the_oracles_guaranteed_errno_is_permitted_with_the_errno_kept() {
+    let oracle = Oracle {
+        guarantees: Some(Errno::EBADF),
+        isolates: Isolates::Seccomp,
+        reason: "descriptor resolution precedes every hook",
+    };
+    let hit = Outcome::Returned {
+        errno: Errno::EBADF as i32,
+    };
+    let m = classify(hit, &oracle, &KernelDependency::NONE, RUNNING).unwrap();
+    assert_eq!(
+        (m.verdict, m.errno),
+        (Verdict::Permitted, Errno::EBADF as i32)
+    );
+
+    // Anything else against the oracle is what it always was.
+    let miss = Outcome::Returned {
+        errno: Errno::EPERM as i32,
+    };
+    let m = classify(miss, &oracle, &KernelDependency::NONE, RUNNING).unwrap();
+    assert_eq!((m.verdict, m.errno), (Verdict::Denied, Errno::EPERM as i32));
+    let m = classify(miss, &oracle, &absent(Some((2, 6))), RUNNING).unwrap();
+    assert_eq!(m.verdict, Verdict::Denied);
+    let m = classify(hit, &SUCCEEDS, &KernelDependency::NONE, RUNNING).unwrap();
+    assert_eq!(m.verdict, Verdict::Denied, "no oracle: EBADF is a denial");
+}
+
+#[test]
+fn an_oracle_probe_measures_permitted_end_to_end() {
+    fn close_bad_fd() -> RawResult {
+        let r = unsafe { libc::syscall(libc::SYS_close, -1) };
+        if r < 0 {
+            Err(Errno::last())
+        } else {
+            Ok(())
+        }
+    }
+    let mut p = probe("close.bad_fd", KernelDependency::NONE, close_bad_fd);
+    p.oracle = Oracle {
+        guarantees: Some(Errno::EBADF),
+        isolates: Isolates::Seccomp,
+        reason: "descriptor resolution precedes every hook",
+    };
+    let m = measure(&p, &cell(RUNNING)).unwrap();
+    assert_eq!(
+        (m.verdict, m.errno),
+        (Verdict::Permitted, Errno::EBADF as i32)
+    );
 }
 
 // --- not-applicable ------------------------------------------------------

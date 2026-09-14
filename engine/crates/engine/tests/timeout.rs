@@ -23,7 +23,15 @@ use std::time::{Duration, Instant};
 use caliper_engine::harness::Outcome;
 use caliper_engine::verdict::{classify, Verdict};
 use caliper_engine::{
-    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+    run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
+    SideEffects,
+};
+
+/// An oracle for a probe whose call is expected to succeed.
+const SUCCEEDS: Oracle = Oracle {
+    guarantees: None,
+    isolates: Isolates::Seccomp,
+    reason: "test probe",
 };
 
 fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
@@ -35,6 +43,12 @@ fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
         risk: RiskClass::new(true, timeout),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        oracle: Oracle {
+            guarantees: None,
+            isolates: Isolates::Seccomp,
+            reason: "test probe",
+        },
+        capability: None,
         effects: SideEffects::NONE,
         run,
     }
@@ -67,7 +81,7 @@ fn a_hung_probe_is_killed_at_the_deadline_and_recorded_timed_out() {
     let took = started.elapsed();
 
     assert_eq!(out, Outcome::TimedOut);
-    let m = classify(out, &KernelDependency::NONE, None).unwrap();
+    let m = classify(out, &SUCCEEDS, &KernelDependency::NONE, None).unwrap();
     assert_eq!(m.verdict, Verdict::TimedOut);
     assert_eq!(m.errno, 0);
     // Killed at the deadline, not stalled: generous upper bound for a
@@ -88,7 +102,7 @@ fn the_deadline_comes_from_the_risk_class() {
 
     let under = run_isolated(&probe("slow-loose", Duration::from_secs(2), slow_200ms)).unwrap();
     assert_eq!(
-        classify(under, &KernelDependency::NONE, None)
+        classify(under, &SUCCEEDS, &KernelDependency::NONE, None)
             .unwrap()
             .verdict,
         Verdict::Permitted
@@ -103,7 +117,7 @@ fn the_run_continues_after_a_timeout() {
     let _ = run_isolated(&probe("hangs", Duration::from_millis(50), hangs)).unwrap();
     let next = run_isolated(&probe("after", Duration::from_secs(1), fine)).unwrap();
     assert_eq!(
-        classify(next, &KernelDependency::NONE, None)
+        classify(next, &SUCCEEDS, &KernelDependency::NONE, None)
             .unwrap()
             .verdict,
         Verdict::Permitted

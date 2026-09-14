@@ -20,11 +20,14 @@
 //! and #8: a child the kernel terminated with SIGSYS is `killed`, and only
 //! that signal is — SIGABRT, SIGSEGV and the rest are the probe crashing,
 //! which is a fault of the instrument and not a measurement. An errno is
-//! `denied` unless the probe's kernel dependency says this kernel may lack
-//! the entry point and the errno is the one absence produces, which is
-//! `unimplemented` (#8; the rule is on [`KernelDependency`]).
-//! `not-applicable` is decided before anything runs, in
-//! [`crate::measurement::measure`], from the probe's applicability.
+//! `denied` unless it is the one the probe's oracle guarantees — the
+//! argument set was built to elicit it, so receiving it means the call was
+//! not intercepted: `permitted`, with the errno recorded raw (#10) — or
+//! the probe's kernel dependency says this kernel may lack the entry point
+//! and the errno is the one absence produces, which is `unimplemented`
+//! (#8; the rule is on [`KernelDependency`]). `not-applicable` is decided
+//! before anything runs, in [`crate::measurement::measure`], from the
+//! probe's applicability.
 //!
 //! Nothing here is attribution. Which mechanism produced a denial, and how
 //! sure one can be, is the control plane's to compute from the oracle;
@@ -35,7 +38,7 @@ use serde::Serialize;
 
 use crate::cell::KernelVersion;
 use crate::harness::{Fault, Outcome};
-use crate::probe::KernelDependency;
+use crate::probe::{KernelDependency, Oracle};
 
 /// The six verdicts of `spec/fingerprint.md`, serialised by those names.
 /// Additive-only within a format version: variants are never removed.
@@ -52,9 +55,11 @@ pub enum Verdict {
     NotApplicable,
 }
 
-/// A verdict with the raw errno that produced it. `errno` is `0` for
-/// `permitted`, and for the verdicts that have no errno because the child
-/// did not return (`killed`, `timed-out`).
+/// A verdict with the raw errno that produced it. `errno` is `0` for the
+/// verdicts that have no errno because the child did not return (`killed`,
+/// `timed-out`), and for `permitted` where the call succeeded; a
+/// `permitted` from an oracle probe carries the errno the oracle
+/// guaranteed, raw (`spec/fingerprint.md`, conventions).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Measured {
     pub verdict: Verdict,
@@ -74,6 +79,11 @@ pub enum NotMeasured {
 
 /// Turn how the child ended into what the kernel said.
 ///
+/// `oracle` is the probe's: an errno equal to its guarantee is `permitted`.
+/// That is checked before the kernel dependency, so an oracle that
+/// guarantees the absent errno (it should not — an author's mistake the
+/// corpus review catches) reads as the oracle says, not as absence.
+///
 /// `dep` is the probe's kernel dependency and `running` the cell's kernel,
 /// `None` when its release did not parse: then every version-gated entry
 /// point is one this kernel may lack, and the absent errno reads as
@@ -85,6 +95,7 @@ pub enum NotMeasured {
 /// one.
 pub fn classify(
     outcome: Outcome,
+    oracle: &Oracle,
     dep: &KernelDependency,
     running: Option<KernelVersion>,
 ) -> Result<Measured, NotMeasured> {
@@ -94,6 +105,12 @@ pub fn classify(
             verdict: Verdict::Permitted,
             errno: 0,
         },
+        Outcome::Returned { errno } if oracle.guarantees.is_some_and(|e| e as i32 == errno) => {
+            Measured {
+                verdict: Verdict::Permitted,
+                errno,
+            }
+        }
         Outcome::Returned { errno } => {
             let absent = match running {
                 Some(k) => dep.means_absent(errno, k),

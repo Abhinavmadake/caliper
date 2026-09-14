@@ -36,7 +36,9 @@ use caliper_engine::cell::Cell;
 use caliper_engine::effects::{ResidualClass, SYSV_IPC_KEY_BASE};
 use caliper_engine::measurement::{measure, Measurement, Unmeasurable};
 use caliper_engine::residual::{janitor, Snapshot};
-use caliper_engine::{Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects};
+use caliper_engine::{
+    Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass, SideEffects,
+};
 use nix::errno::Errno;
 
 fn probe(id: &'static str, effects: SideEffects, run: fn() -> RawResult) -> Probe {
@@ -48,6 +50,12 @@ fn probe(id: &'static str, effects: SideEffects, run: fn() -> RawResult) -> Prob
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        oracle: Oracle {
+            guarantees: None,
+            isolates: Isolates::Seccomp,
+            reason: "test probe",
+        },
+        capability: None,
         effects,
         run,
     }
