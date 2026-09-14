@@ -43,7 +43,7 @@ use crate::cell::Cell;
 use crate::effects::ResidualClass;
 use crate::harness::run_isolated;
 use crate::probe::Probe;
-use crate::residual::{janitor, loaded_modules, ModuleDelta, ObservabilityMap, Removed, Snapshot};
+use crate::residual::{janitor, loaded_modules, ModuleDelta, ObservabilityMap, Removal, Snapshot};
 use crate::verdict::{classify, Measured, NotMeasured, Verdict};
 
 /// `spec/fingerprint.md`: incremented only by a breaking change to the
@@ -123,7 +123,8 @@ pub struct Residual {
     pub leaks: Vec<Leak>,
     pub unverifiable: Vec<Unverifiable>,
     pub audit: Vec<AuditMismatch>,
-    pub janitor: Vec<Removed>,
+    /// Every removal the janitor attempted, succeeded or not.
+    pub janitor: Vec<Removal>,
 }
 
 /// What the probe emits for `--run`.
@@ -145,15 +146,24 @@ pub struct Measurement {
 /// is `not-applicable` and is not run. So is the declaration: an
 /// `Undeclared` probe is refused.
 pub fn measure(probe: &Probe, cell: &Cell) -> Result<Measured, Unmeasurable> {
+    decided_without_running(probe, cell).unwrap_or_else(|| run_and_classify(probe, cell))
+}
+
+/// The answer that needs no child, or `None`: the probe runs.
+fn decided_without_running(probe: &Probe, cell: &Cell) -> Option<Result<Measured, Unmeasurable>> {
     if !probe.effects.is_declared() {
-        return Err(Unmeasurable::Undeclared);
+        return Some(Err(Unmeasurable::Undeclared));
     }
     if !probe.arch.includes(cell.architecture) {
-        return Ok(Measured {
+        return Some(Ok(Measured {
             verdict: Verdict::NotApplicable,
             errno: 0,
-        });
+        }));
     }
+    None
+}
+
+fn run_and_classify(probe: &Probe, cell: &Cell) -> Result<Measured, Unmeasurable> {
     let outcome = run_isolated(probe).map_err(Unmeasurable::Harness)?;
     classify(outcome, &probe.kernel, cell.kernel.version).map_err(Unmeasurable::NotMeasured)
 }
@@ -173,19 +183,44 @@ impl Measurement {
         let mut per_probe_sum = [0i64; ResidualClass::ALL.len()];
 
         for probe in probes {
-            for class in ResidualClass::ALL {
-                if probe.effects.declares(class) && run_before.get(class).count().is_none() {
-                    unverifiable.push(Unverifiable {
-                        probe_id: probe.id,
-                        class,
-                    });
+            // A probe that is refused or not applicable never forks, so
+            // nothing is snapshotted around it: whatever moved in that
+            // window belongs to the run's audit, not to a probe that did
+            // nothing.
+            let outcome = match decided_without_running(probe, &cell) {
+                Some(decided) => decided,
+                None => {
+                    for class in ResidualClass::ALL {
+                        if probe.effects.declares(class) && run_before.get(class).count().is_none()
+                        {
+                            unverifiable.push(Unverifiable {
+                                probe_id: probe.id,
+                                class,
+                            });
+                        }
+                    }
+                    let before = Snapshot::take();
+                    let outcome = run_and_classify(probe, &cell);
+                    // Returns only after waitpid has reaped the child, so
+                    // this is the kernel's state after teardown, not on
+                    // exit.
+                    let after = Snapshot::take();
+                    for (class, delta) in ResidualClass::ALL.iter().zip(before.delta(&after)) {
+                        if let Some(delta) = delta {
+                            per_probe_sum[class.index()] += delta;
+                            if delta != 0 {
+                                leaks.push(Leak {
+                                    probe_id: probe.id,
+                                    class: *class,
+                                    delta,
+                                    declared: probe.effects.declares(*class),
+                                });
+                            }
+                        }
+                    }
+                    outcome
                 }
-            }
-            let before = Snapshot::take();
-            let outcome = measure(probe, &cell);
-            // `measure` returns only after waitpid has reaped the child, so
-            // this is the kernel's state after teardown, not on exit.
-            let after = Snapshot::take();
+            };
             match outcome {
                 Ok(measured) => results.push(ProbeResult {
                     probe_id: probe.id,
@@ -195,19 +230,6 @@ impl Measurement {
                     probe_id: probe.id,
                     why,
                 }),
-            }
-            for (class, delta) in ResidualClass::ALL.iter().zip(before.delta(&after)) {
-                if let Some(delta) = delta {
-                    per_probe_sum[class.index()] += delta;
-                    if delta != 0 {
-                        leaks.push(Leak {
-                            probe_id: probe.id,
-                            class: *class,
-                            delta,
-                            declared: probe.effects.declares(*class),
-                        });
-                    }
-                }
             }
         }
 
@@ -226,7 +248,8 @@ impl Measurement {
             })
             .collect();
         // After the final snapshot: what the janitor removes has been
-        // measured and attributed already.
+        // measured and attributed already. Each removal is a forked child
+        // (`crate::residual`), so a filter that kills it kills a child.
         let removed = janitor();
         let module_delta = match (modules_before, loaded_modules()) {
             (Some(before), Some(after)) => Some(ModuleDelta::new(before, after)),

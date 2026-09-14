@@ -22,3 +22,9 @@ serde_json.workspace = true
 [[test]]
 name = "panic"
 harness = false
+
+# Likewise: seccomp filters are per thread and permanent, and the test
+# needs a thread left unfiltered to clean up with.
+[[test]]
+name = "janitor"
+harness = false
