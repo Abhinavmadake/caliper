@@ -62,7 +62,8 @@ pub struct Measured {
 }
 
 /// Why an outcome is not a measurement.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum NotMeasured {
     /// The child died of a signal other than SIGSYS: the probe crashed.
     Crashed {

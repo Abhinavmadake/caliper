@@ -29,16 +29,21 @@
 //!   kernel, LSM (#8)
 //! - [`measurement`] — the run over the corpus and the document it emits,
 //!   the probe-side half of a fingerprint (#8)
-//!
-//! Side-effect accounting (#9) follows.
+//! - [`effects`] — the side-effect declaration every probe carries, and the
+//!   sentinel the engine refuses to run (#9)
+//! - [`residual`] — the five residual classes counted directly around each
+//!   probe, the module snapshot, and the end-of-run janitor (#9)
 
 pub mod cell;
+pub mod effects;
 pub mod harness;
 pub mod measurement;
 pub mod probe;
+pub mod residual;
 pub mod verdict;
 
 pub use cell::{Arch, Cell, KernelVersion, Lsm};
+pub use effects::{ResidualClass, SideEffects};
 pub use harness::{run_isolated, Outcome};
 pub use measurement::{measure, Measurement, ProbeResult, Unmeasurable, Unmeasured};
 /// Re-exported because `RawResult` is `Result<(), Errno>`: the corpus cannot

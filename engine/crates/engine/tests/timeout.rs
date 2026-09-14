@@ -22,7 +22,9 @@ use std::time::{Duration, Instant};
 
 use caliper_engine::harness::Outcome;
 use caliper_engine::verdict::{classify, Verdict};
-use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
+use caliper_engine::{
+    run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass, SideEffects,
+};
 
 fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
     caliper_engine::init().unwrap();
@@ -33,6 +35,7 @@ fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
         risk: RiskClass::new(true, timeout),
         arch: Applicability::All,
         kernel: KernelDependency::NONE,
+        effects: SideEffects::NONE,
         run,
     }
 }
