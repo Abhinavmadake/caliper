@@ -20,9 +20,15 @@
 use std::io::Write;
 use std::process::ExitCode;
 
+use caliper_engine::{Cell, Measurement};
+
 const USAGE: &str = "\
 usage: caliper-probe <mode>
 
+  --run            measure: run every probe in the corpus and emit the
+                   probe-side half of a fingerprint as JSON (#8). Probes
+                   that produced no verdict are listed on stderr and left
+                   out of the results, never recorded as one
   --noop           start up, do nothing, exit. Establishes the engine's own
                    syscall footprint under strace (issue #4)
   --dump-corpus    emit the compiled-in corpus as JSON. An output, never an
@@ -42,6 +48,7 @@ fn main() -> ExitCode {
         .collect::<Vec<_>>()
         .as_slice()
     {
+        ["--run"] => run(),
         ["--noop"] => ExitCode::SUCCESS,
         ["--dump-corpus"] => dump_corpus(),
         ["--version"] => {
@@ -55,10 +62,30 @@ fn main() -> ExitCode {
     }
 }
 
+fn run() -> ExitCode {
+    let cell = match Cell::detect() {
+        Ok(cell) => cell,
+        Err(e) => {
+            eprintln!("caliper-probe: cell: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let (measurement, unmeasured) =
+        Measurement::run(caliper_corpus::probes(), caliper_corpus::REVISION, cell);
+    for u in &unmeasured {
+        eprintln!("caliper-probe: {}: not measured: {:?}", u.probe_id, u.why);
+    }
+    emit(&measurement)
+}
+
 fn dump_corpus() -> ExitCode {
+    emit(caliper_corpus::probes())
+}
+
+fn emit<T: serde::Serialize + ?Sized>(value: &T) -> ExitCode {
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
-    match serde_json::to_writer_pretty(&mut out, caliper_corpus::probes()) {
+    match serde_json::to_writer_pretty(&mut out, value) {
         Ok(()) => {
             let _ = out.write_all(b"\n");
             ExitCode::SUCCESS

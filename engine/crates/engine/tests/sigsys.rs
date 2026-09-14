@@ -30,7 +30,7 @@ use std::time::Duration;
 
 use caliper_engine::harness::Outcome;
 use caliper_engine::verdict::{classify, NotMeasured, Verdict};
-use caliper_engine::{run_isolated, Probe, RawResult, RiskClass};
+use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
 use nix::errno::Errno;
 use seccompiler::{apply_filter, BpfProgram, SeccompAction, SeccompFilter, TargetArch};
 
@@ -50,6 +50,8 @@ fn probe(id: &'static str, run: fn() -> RawResult) -> Probe {
         family: "test",
         description: id,
         risk: RiskClass::new(true, Duration::from_secs(5)),
+        arch: Applicability::All,
+        kernel: KernelDependency::NONE,
         run,
     }
 }
@@ -91,18 +93,28 @@ fn kill_process_is_recorded_killed_and_the_run_continues() {
             signal: libc::SIGSYS
         }
     );
-    let m = classify(out).unwrap();
+    let m = classify(out, &KernelDependency::NONE, None).unwrap();
     assert_eq!(m.verdict, Verdict::Killed);
     assert_eq!(m.errno, 0);
 
     // The parent is alive, under the same filter, and the next probe —
     // one the filter allows — measures normally.
     let next = run_isolated(&probe("after-kill", other_syscall)).unwrap();
-    assert_eq!(classify(next).unwrap().verdict, Verdict::Permitted);
+    assert_eq!(
+        classify(next, &KernelDependency::NONE, None)
+            .unwrap()
+            .verdict,
+        Verdict::Permitted
+    );
 
     // And so does a second trip of the same wire.
     let again = run_isolated(&probe("tripwire-again", target_syscall)).unwrap();
-    assert_eq!(classify(again).unwrap().verdict, Verdict::Killed);
+    assert_eq!(
+        classify(again, &KernelDependency::NONE, None)
+            .unwrap()
+            .verdict,
+        Verdict::Killed
+    );
 }
 
 #[test]
@@ -110,7 +122,12 @@ fn kill_thread_is_also_killed() {
     // A single-threaded child dies the same way under KILL_THREAD.
     apply_filter(&filter_on_target(SeccompAction::KillThread)).unwrap();
     let out = run_isolated(&probe("tripwire", target_syscall)).unwrap();
-    assert_eq!(classify(out).unwrap().verdict, Verdict::Killed);
+    assert_eq!(
+        classify(out, &KernelDependency::NONE, None)
+            .unwrap()
+            .verdict,
+        Verdict::Killed
+    );
 }
 
 #[test]
@@ -119,7 +136,7 @@ fn an_errno_action_is_denied_not_killed() {
     apply_filter(&filter_on_target(SeccompAction::Errno(libc::EPERM as u32))).unwrap();
     let out = run_isolated(&probe("filtered", target_syscall)).unwrap();
     assert_eq!(out, Outcome::Returned { errno: libc::EPERM });
-    let m = classify(out).unwrap();
+    let m = classify(out, &KernelDependency::NONE, None).unwrap();
     assert_eq!(m.verdict, Verdict::Denied);
     assert_eq!(m.errno, libc::EPERM);
     assert_eq!(m.errno_name().as_deref(), Some("EPERM"));
@@ -133,7 +150,7 @@ fn only_sigsys_is_killed() {
     }
     let out = run_isolated(&probe("segv", crashes)).unwrap();
     assert_eq!(
-        classify(out),
+        classify(out, &KernelDependency::NONE, None),
         Err(NotMeasured::Crashed {
             signal: libc::SIGSEGV
         })

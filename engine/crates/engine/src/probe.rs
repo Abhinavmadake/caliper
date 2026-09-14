@@ -16,13 +16,15 @@
 //! A probe: one kernel operation at argument granularity, and what the
 //! engine needs to know to run it safely. The fields follow
 //! `spec/probe.md`; the ones not yet here (errno oracle, capability
-//! requirement, side effects, kernel dependency, applicability) arrive with
-//! #8–#10, each as an addition to this struct.
+//! requirement, side effects) arrive with #9–#10, each as an addition to
+//! this struct.
 
 use std::time::Duration;
 
 use nix::errno::Errno;
-use serde::Serialize;
+use serde::{Serialize, Serializer};
+
+use crate::cell::{Arch, KernelVersion};
 
 /// What the probed operation returned — the kernel's answer, untouched.
 /// `Ok` means the operation succeeded; `Err` carries the errno as returned.
@@ -69,6 +71,87 @@ impl RiskClass {
     }
 }
 
+/// Which architectures the entry point exists on (`spec/probe.md`,
+/// architecture applicability). A probe outside its set is recorded
+/// `not-applicable` without being run, so the diff engine never sees
+/// architecture as policy.
+///
+/// Presence that is a kernel property rather than an architecture property
+/// (the 32-bit compatibility ABI on arm64) is not declared here: the spec
+/// has it detected at run time, which is what [`KernelDependency`] and the
+/// `unimplemented` verdict are for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Applicability {
+    All,
+    Only(&'static [Arch]),
+}
+
+impl Applicability {
+    pub fn includes(&self, arch: Arch) -> bool {
+        match self {
+            Applicability::All => true,
+            Applicability::Only(set) => set.contains(&arch),
+        }
+    }
+}
+
+/// What the entry point needs from the kernel, and how the kernel answers
+/// when it lacks it (`spec/probe.md`, kernel dependency). This is what
+/// separates `unimplemented` from `denied` in [`crate::verdict::classify`]:
+/// an address family the kernel does not build is not a policy finding.
+///
+/// The rule is structural, not a judgement. `absent_errno` is what the
+/// kernel returns when the entry point is missing — `ENOSYS` for a syscall,
+/// `EAFNOSUPPORT` for a family, `EPROTONOSUPPORT` for a netlink family.
+/// Seeing it is `unimplemented` only if this kernel *may* lack the entry
+/// point: it is older than `since`, or presence is a configuration or
+/// module property that no version number settles (`since == None`).
+/// Seeing it from a kernel that is known to implement the entry point is a
+/// filter answering in the kernel's voice — `denied`, per spec/probe.md
+/// ("`ENOSYS` from a syscall the cell's kernel implements is a filter").
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct KernelDependency {
+    /// The kernel release the entry point appeared in, as (major, minor).
+    /// `None` when presence is decided by configuration or a module rather
+    /// than by version.
+    pub since: Option<(u32, u32)>,
+    /// The errno the kernel produces when the entry point is absent. `None`
+    /// for an entry point every supported kernel has: any errno is then a
+    /// denial. Serialised as the raw integer, like every errno in the
+    /// fingerprint.
+    #[serde(serialize_with = "errno_as_int")]
+    pub absent_errno: Option<Errno>,
+}
+
+impl KernelDependency {
+    /// Every kernel the project supports (6.1 or later, §10) has the entry
+    /// point; nothing it returns can mean "absent".
+    pub const NONE: KernelDependency = KernelDependency {
+        since: None,
+        absent_errno: None,
+    };
+
+    /// Whether `errno`, from `running`, means the entry point is absent
+    /// rather than filtered.
+    pub fn means_absent(&self, errno: i32, running: KernelVersion) -> bool {
+        match (self.absent_errno, self.since) {
+            (Some(e), since) if e as i32 == errno => match since {
+                Some(v) => !running.at_least(v),
+                None => true,
+            },
+            _ => false,
+        }
+    }
+}
+
+fn errno_as_int<S: Serializer>(e: &Option<Errno>, s: S) -> Result<S::Ok, S::Error> {
+    match e {
+        Some(e) => s.serialize_some(&(*e as i32)),
+        None => s.serialize_none(),
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Probe {
     /// Stable identity; the key the diff engine joins on across runs.
@@ -77,6 +160,8 @@ pub struct Probe {
     pub family: &'static str,
     pub description: &'static str,
     pub risk: RiskClass,
+    pub arch: Applicability,
+    pub kernel: KernelDependency,
     /// The operation. An output of `--dump-corpus` cannot carry a function,
     /// and the JSON is a view of the corpus, not a way to run it.
     #[serde(skip)]

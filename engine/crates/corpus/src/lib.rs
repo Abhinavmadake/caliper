@@ -30,7 +30,7 @@
 //! ```
 //! use std::time::Duration;
 //! use caliper_corpus::Probe;
-//! use caliper_engine::{Errno, RawResult, RiskClass};
+//! use caliper_engine::{Applicability, Errno, KernelDependency, RawResult, RiskClass};
 //!
 //! /// `close(2)` on a descriptor that cannot be valid.
 //! ///
@@ -57,6 +57,14 @@
 //!     // requires_fork is the author's claim about side effects, reviewed in
 //!     // #18; the engine forks for every probe regardless.
 //!     risk: RiskClass::new(true, Duration::from_millis(500)),
+//!     // close(2) exists everywhere and on every supported kernel, so no
+//!     // errno from it can mean "absent". A probe of a newer entry point
+//!     // names the release it appeared in and the errno absence produces:
+//!     // `KernelDependency { since: Some((5, 1)), absent_errno: Some(Errno::ENOSYS) }`
+//!     // for io_uring, say. That is what separates `unimplemented` from
+//!     // `denied` (#8).
+//!     arch: Applicability::All,
+//!     kernel: KernelDependency::NONE,
 //!     run: close_bad_fd,
 //! };
 //! ```
@@ -72,6 +80,10 @@
 //!   effect cannot be rolled back
 
 pub use caliper_engine::Probe;
+
+/// Which corpus a run came from: `corpus_revision` in the fingerprint.
+/// The crate version, so it moves with the corpus and nothing else.
+pub const REVISION: &str = env!("CARGO_PKG_VERSION");
 
 /// Every probe the engine knows about, in corpus order.
 pub fn probes() -> &'static [Probe] {

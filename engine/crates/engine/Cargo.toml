@@ -16,6 +16,7 @@ serde.workspace = true
 libc.workspace = true
 # §10: seccompiler for filter construction in test fixtures.
 seccompiler = "0.4"
+serde_json.workspace = true
 
 # Runs its own single-threaded main; see the file for why.
 [[test]]

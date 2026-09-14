@@ -22,7 +22,7 @@ use std::time::{Duration, Instant};
 
 use caliper_engine::harness::Outcome;
 use caliper_engine::verdict::{classify, Verdict};
-use caliper_engine::{run_isolated, Probe, RawResult, RiskClass};
+use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
 
 fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
     caliper_engine::init().unwrap();
@@ -31,6 +31,8 @@ fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
         family: "test",
         description: id,
         risk: RiskClass::new(true, timeout),
+        arch: Applicability::All,
+        kernel: KernelDependency::NONE,
         run,
     }
 }
@@ -62,7 +64,7 @@ fn a_hung_probe_is_killed_at_the_deadline_and_recorded_timed_out() {
     let took = started.elapsed();
 
     assert_eq!(out, Outcome::TimedOut);
-    let m = classify(out).unwrap();
+    let m = classify(out, &KernelDependency::NONE, None).unwrap();
     assert_eq!(m.verdict, Verdict::TimedOut);
     assert_eq!(m.errno, 0);
     // Killed at the deadline, not stalled: generous upper bound for a
@@ -82,7 +84,12 @@ fn the_deadline_comes_from_the_risk_class() {
     assert_eq!(over, Outcome::TimedOut);
 
     let under = run_isolated(&probe("slow-loose", Duration::from_secs(2), slow_200ms)).unwrap();
-    assert_eq!(classify(under).unwrap().verdict, Verdict::Permitted);
+    assert_eq!(
+        classify(under, &KernelDependency::NONE, None)
+            .unwrap()
+            .verdict,
+        Verdict::Permitted
+    );
 }
 
 #[test]
@@ -92,5 +99,10 @@ fn the_run_continues_after_a_timeout() {
     }
     let _ = run_isolated(&probe("hangs", Duration::from_millis(50), hangs)).unwrap();
     let next = run_isolated(&probe("after", Duration::from_secs(1), fine)).unwrap();
-    assert_eq!(classify(next).unwrap().verdict, Verdict::Permitted);
+    assert_eq!(
+        classify(next, &KernelDependency::NONE, None)
+            .unwrap()
+            .verdict,
+        Verdict::Permitted
+    );
 }
