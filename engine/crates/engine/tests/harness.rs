@@ -22,7 +22,7 @@
 use std::time::Duration;
 
 use caliper_engine::harness::{Fault, Outcome};
-use caliper_engine::{run_isolated, Probe, RawResult, RiskClass};
+use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
 use nix::errno::Errno;
 use nix::sys::signal::Signal;
 
@@ -38,6 +38,8 @@ fn probe(id: &'static str, run: fn() -> RawResult) -> Probe {
         family: "test",
         description: id,
         risk: RISK,
+        arch: Applicability::All,
+        kernel: KernelDependency::NONE,
         run,
     }
 }

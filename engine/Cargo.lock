@@ -25,6 +25,7 @@ dependencies = [
  "nix",
  "seccompiler",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -35,6 +36,7 @@ dependencies = [
  "caliper-engine",
  "libc",
  "seccompiler",
+ "serde",
  "serde_json",
 ]
 

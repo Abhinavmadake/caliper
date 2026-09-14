@@ -16,19 +16,26 @@
 //! The verdict: the fingerprint's per-probe result (`spec/fingerprint.md`),
 //! a fact about how the kernel answered and never an interpretation of it.
 //!
-//! What this module decides is fixed by the spec's enumeration and by #6:
-//! a child the kernel terminated with SIGSYS is `killed`, and only that
-//! signal is. SIGABRT, SIGSEGV and the rest are the probe crashing, which
-//! is a fault of the instrument and not a measurement. Separating
-//! `unimplemented` from `denied` needs the probe's kernel-dependency field
-//! and the cell's kernel, and `not-applicable` needs its applicability
-//! field; both are #8 and arrive as arguments to [`classify`], not as a
-//! change to it.
+//! What this module decides is fixed by the spec's enumeration and by #6
+//! and #8: a child the kernel terminated with SIGSYS is `killed`, and only
+//! that signal is — SIGABRT, SIGSEGV and the rest are the probe crashing,
+//! which is a fault of the instrument and not a measurement. An errno is
+//! `denied` unless the probe's kernel dependency says this kernel may lack
+//! the entry point and the errno is the one absence produces, which is
+//! `unimplemented` (#8; the rule is on [`KernelDependency`]).
+//! `not-applicable` is decided before anything runs, in
+//! [`crate::measurement::measure`], from the probe's applicability.
+//!
+//! Nothing here is attribution. Which mechanism produced a denial, and how
+//! sure one can be, is the control plane's to compute from the oracle;
+//! the engine records what the kernel said and the errno it said it with.
 
 use nix::errno::Errno;
 use serde::Serialize;
 
+use crate::cell::KernelVersion;
 use crate::harness::{Fault, Outcome};
+use crate::probe::KernelDependency;
 
 /// The six verdicts of `spec/fingerprint.md`, serialised by those names.
 /// Additive-only within a format version: variants are never removed.
@@ -66,22 +73,40 @@ pub enum NotMeasured {
 
 /// Turn how the child ended into what the kernel said.
 ///
+/// `dep` is the probe's kernel dependency and `running` the cell's kernel,
+/// `None` when its release did not parse: then every version-gated entry
+/// point is one this kernel may lack, and the absent errno reads as
+/// `unimplemented` — the reading that does not put a policy finding where
+/// there may be none.
+///
 /// `Err` is not a verdict and must not be recorded as one: a crashing or
 /// panicking probe on a permissive node would otherwise read as a hardened
 /// one.
-pub fn classify(outcome: Outcome) -> Result<Measured, NotMeasured> {
+pub fn classify(
+    outcome: Outcome,
+    dep: &KernelDependency,
+    running: Option<KernelVersion>,
+) -> Result<Measured, NotMeasured> {
     let sigsys = libc::SIGSYS;
     Ok(match outcome {
         Outcome::Returned { errno: 0 } => Measured {
             verdict: Verdict::Permitted,
             errno: 0,
         },
-        // #8 separates `unimplemented` from `denied` here, with the probe's
-        // kernel dependency in hand. Until then an errno is a denial.
-        Outcome::Returned { errno } => Measured {
-            verdict: Verdict::Denied,
-            errno,
-        },
+        Outcome::Returned { errno } => {
+            let absent = match running {
+                Some(k) => dep.means_absent(errno, k),
+                None => dep.absent_errno.is_some_and(|e| e as i32 == errno),
+            };
+            Measured {
+                verdict: if absent {
+                    Verdict::Unimplemented
+                } else {
+                    Verdict::Denied
+                },
+                errno,
+            }
+        }
         Outcome::Signaled { signal } if signal == sigsys => Measured {
             verdict: Verdict::Killed,
             errno: 0,

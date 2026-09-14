@@ -23,20 +23,29 @@
 //!   measurement (#5), including termination by SIGSYS (#6) and the timeout
 //!   from the probe's risk class (#7)
 //! - [`verdict`] — how the child ended, as the fingerprint records it:
-//!   `killed` is SIGSYS and nothing else (#6); the rest is #8
+//!   `killed` is SIGSYS and nothing else (#6); `unimplemented` is the
+//!   absent errno from a kernel that may lack the entry point (#8)
+//! - [`cell`] — the environment cell as the probe sees it: architecture,
+//!   kernel, LSM (#8)
+//! - [`measurement`] — the run over the corpus and the document it emits,
+//!   the probe-side half of a fingerprint (#8)
 //!
 //! Side-effect accounting (#9) follows.
 
+pub mod cell;
 pub mod harness;
+pub mod measurement;
 pub mod probe;
 pub mod verdict;
 
+pub use cell::{Arch, Cell, KernelVersion, Lsm};
 pub use harness::{run_isolated, Outcome};
+pub use measurement::{measure, Measurement, ProbeResult, Unmeasurable, Unmeasured};
 /// Re-exported because `RawResult` is `Result<(), Errno>`: the corpus cannot
 /// express a probe's error path without it, and should not have to depend on
 /// `nix` directly to author one.
 pub use nix::errno::Errno;
-pub use probe::{Probe, ProbeFn, RawResult, RiskClass};
+pub use probe::{Applicability, KernelDependency, Probe, ProbeFn, RawResult, RiskClass};
 pub use verdict::{classify, Measured, Verdict};
 
 /// One-time engine set-up, before any probe runs.

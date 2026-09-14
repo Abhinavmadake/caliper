@@ -28,7 +28,7 @@
 
 use std::time::Duration;
 
-use caliper_engine::{run_isolated, Probe, RawResult, RiskClass};
+use caliper_engine::{run_isolated, Applicability, KernelDependency, Probe, RawResult, RiskClass};
 
 fn getppid() -> RawResult {
     unsafe { libc::syscall(libc::SYS_getppid) };
@@ -50,6 +50,8 @@ fn main() {
         family: "test",
         description: "getppid in a child",
         risk: RiskClass::new(true, Duration::from_secs(1)),
+        arch: Applicability::All,
+        kernel: KernelDependency::NONE,
         run: if panic { panics } else { getppid },
     };
     let out = run_isolated(&probe).unwrap();
