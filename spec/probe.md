@@ -107,3 +107,42 @@ in this file, every promotion would edit a frozen format.
 A deferred probe is therefore a complete, valid probe definition that the index
 marks as unimplemented (#20), and the index is the artefact frozen at the end
 of week 8 (#19).
+
+### Rollback is the child's, not a hook
+
+The side-effects field says a probe "must declare its rollback". That is a
+declaration — the class of object the probe may leave behind — not a rollback
+function the engine calls. The child removes what it created before it
+returns; the engine measures whether it did.
+
+The proposal puts the rollback in the isolation, not in a callback: "fork
+isolation is the rollback for most of the corpus" (§6.2), and the side-effect
+declaration requirement is a §12 mitigation the engine enforces "rather than
+leaving to convention". A hook would be a second code path, and it cannot be
+made to run soundly from the parent. The parent runs under a different view of
+the filters than the child — its calls were made before any probe's, and a
+filter that permits `shmget` and denies `shmctl(IPC_RMID)` is a finding, not a
+fault — so a parent-side rollback would succeed in exactly the ways the probe
+could not, and hide the asymmetry the corpus exists to measure. It also cannot
+be ordered correctly: a rollback that ran before the residual snapshot would
+erase the residual, and one that ran after is hygiene the finding has already
+done.
+
+Residual state is therefore measured after the child is reaped and before
+anything is removed. A probe that cannot remove what it created — killed
+first, or create permitted and remove blocked — leaves an object that is
+counted, attributed to the probe, and checked against its declaration. The
+structural fallback is an end-of-run janitor: after the run's final snapshot it
+removes what is recognisably the instrument's (POSIX objects under a reserved
+name prefix, System V objects in a reserved key range), each removal in its own
+forked child under the same filters the probe had, and every attempt is
+recorded on the fingerprint whether it succeeded or not. It runs once, it is
+not on any probe's path, and its output is a finding about the corpus, never a
+silent fix. Per-probe namespaces were considered and are not available: a
+fresh namespace needs `CAP_SYS_ADMIN` or a user namespace, RuntimeDefault
+denies both, and a user namespace would change what the kernel permits — the
+workload's room is the only room the engine gets (§5).
+
+What this rules out is a probe that leaves a `caliper-` object behind by
+design and relies on the janitor. The child owns its objects; the janitor is
+for the case where the kernel would not let it.
