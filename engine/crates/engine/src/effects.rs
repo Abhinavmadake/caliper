@@ -38,7 +38,9 @@ use serde::{Serialize, Serializer};
 pub enum ResidualClass {
     /// Entries in the mount table (`/proc/self/mountinfo`).
     Mounts,
-    /// Keys on the session and user keyrings (`/proc/keys`).
+    /// Keys this process may view (`/proc/keys`): the session and user
+    /// keyrings' contents and whatever else is visible — a superset, and
+    /// the whole file is masked under RuntimeDefault.
     Keyrings,
     /// Directories under the cgroup subtree this process can see.
     Cgroups,

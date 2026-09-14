@@ -37,6 +37,11 @@
 //! The parent's syscalls per probe: `clone` (musl's fork), `pidfd_open`,
 //! `ppoll`, `wait4`, `close`, and `kill` on a timeout. All are in groups 1–2
 //! of the hardened profile.
+//!
+//! The same child is what the end-of-run janitor (#9) removes objects
+//! with, one per object: a removal runs under the same filter the probe
+//! did, so it can be killed the same way, and a killed child is a record
+//! where a killed parent is a lost run.
 
 use std::time::Duration;
 
@@ -45,7 +50,7 @@ use nix::sys::signal::{kill, Signal};
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
 
-use crate::probe::Probe;
+use crate::probe::{Probe, RawResult};
 
 /// Largest errno the exit-code encoding carries. Linux errnos on x86_64
 /// and aarch64 stop at 133 (`EHWPOISON`); the gap up to 200 is headroom,
@@ -58,7 +63,8 @@ const EXIT_ERRNO_RANGE: i32 = 254;
 
 /// How the child ended: the wait status decoded, and nothing more. Turning
 /// this into a verdict is #8's job.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum Outcome {
     /// The operation returned. `errno == 0` means it succeeded.
     Returned { errno: i32 },
@@ -95,15 +101,22 @@ impl Outcome {
 /// not of the probe. Sequential by design: the module snapshot and residual
 /// state accounting (#9) depend on probes not overlapping.
 pub fn run_isolated(probe: &Probe) -> nix::Result<Outcome> {
+    run_isolated_with(&probe.run, probe.risk.timeout())
+}
+
+/// Run `f` in a forked child, bounded by `timeout`, and report how the
+/// child ended. `run_isolated` is this with the probe's function and risk
+/// class; the janitor passes a removal.
+pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::Result<Outcome> {
     // SAFETY: the engine is single-threaded, and the child calls nothing but
-    // the probe and _exit. See the module comment for why this is fork(2)
-    // and not a raw clone.
+    // `f` and _exit. See the module comment for why this is fork(2) and not
+    // a raw clone.
     let pid = unsafe { libc::fork() };
     if pid < 0 {
         return Err(Errno::last());
     }
     if pid == 0 {
-        child(probe)
+        child(f)
     }
     // SAFETY: plain syscall on a pid this process just created and has not
     // yet reaped, so it cannot have been recycled.
@@ -116,18 +129,19 @@ pub fn run_isolated(probe: &Probe) -> nix::Result<Outcome> {
         let _ = waitpid(Pid::from_raw(pid), None);
         return Err(err);
     }
-    let outcome = wait_bounded(Pid::from_raw(pid), pidfd, probe.risk.timeout());
+    let outcome = wait_bounded(Pid::from_raw(pid), pidfd, timeout);
     // SAFETY: pidfd is a descriptor this function owns and closes once.
     unsafe { libc::close(pidfd) };
     outcome
 }
 
 /// The child. Never returns.
-fn child(probe: &Probe) -> ! {
+fn child(f: &dyn Fn() -> RawResult) -> ! {
     // catch_unwind is a no-op under panic = "abort" (the image profile) and
     // turns a debug-build panic into a recorded fault rather than an unwind
     // through the harness. It allocates nothing unless a panic occurs.
-    let code = match std::panic::catch_unwind(probe.run) {
+    // AssertUnwindSafe: nothing `f` borrows is used again in this process.
+    let code = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
         Ok(Ok(())) => 0,
         Ok(Err(errno)) => match errno as i32 {
             n @ 1..=MAX_ERRNO => n,

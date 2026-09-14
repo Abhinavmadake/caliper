@@ -85,7 +85,14 @@ fn run() -> ExitCode {
         );
     }
     for r in &m.residual.janitor {
-        eprintln!("caliper-probe: janitor removed {:?} {}", r.class, r.object);
+        if r.removed {
+            eprintln!("caliper-probe: janitor removed {:?} {}", r.class, r.object);
+        } else {
+            eprintln!(
+                "caliper-probe: janitor COULD NOT remove {:?} {}: {:?}",
+                r.class, r.object, r.attempt
+            );
+        }
     }
     emit(&m)
 }

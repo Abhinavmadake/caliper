@@ -152,6 +152,7 @@ fn a_leak_is_attributed_to_its_probe_and_checked_against_its_declaration() {
     assert_eq!(m.residual.janitor.len(), 1, "{:?}", m.residual.janitor);
     assert_eq!(m.residual.janitor[0].class, ResidualClass::SysvIpc);
     assert!(m.residual.janitor[0].object.contains("shm"));
+    assert!(m.residual.janitor[0].removed, "{:?}", m.residual.janitor[0]);
     assert!(janitor().is_empty(), "the janitor left something");
 }
 
@@ -172,10 +173,16 @@ fn an_undeclared_leak_is_a_finding_against_the_probe() {
     assert!(!posix[0].declared);
     assert_eq!(m.residual.janitor.len(), 1);
     assert_eq!(m.residual.janitor[0].object, "/dev/shm/caliper-test-leak");
+    assert!(m.residual.janitor[0].removed, "{:?}", m.residual.janitor[0]);
 
     let v = serde_json::to_value(&m).unwrap();
     assert_eq!(v["residual"]["leaks"][0]["declared"], false);
     assert_eq!(v["residual"]["janitor"][0]["class"], "posix-ipc");
+    assert_eq!(v["residual"]["janitor"][0]["removed"], true);
+    assert_eq!(
+        v["residual"]["janitor"][0]["attempt"]["child"]["returned"]["errno"],
+        0
+    );
 }
 
 #[test]

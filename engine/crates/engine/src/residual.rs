@@ -22,10 +22,13 @@
 //! any child's measurement. It reads `/proc` and `/sys` with `std::fs`;
 //! the syscalls that adds — `openat`, `fcntl` (musl's `open` after
 //! `O_CLOEXEC`), `read`, `fstat`, `newfstatat`, `getdents64`,
-//! `readlinkat`, `close`, and from the janitor `unlinkat` and the three
-//! `*ctl(IPC_RMID)` calls when there is something to remove — are outside
-//! `--noop` and so outside `baseline/`, and are the run path's, not the
-//! probe's.
+//! `readlinkat`, `close` — are outside `--noop` and so outside
+//! `baseline/`, and are the run path's, not the probe's. The janitor's
+//! removals — `unlink`/`unlinkat` and the three `*ctl(IPC_RMID)` calls —
+//! are made from a forked child each, through the same harness as a probe:
+//! they run under the filter the probe ran under, so on the profile that
+//! blocks the remove they get the same `EPERM`, or the same `SIGSYS`, and
+//! either is a record. In the parent they would be a lost run.
 //!
 //! A count is never synthesised. A class this environment does not expose
 //! — `/proc/keys` is a masked path under RuntimeDefault, `/dev/mqueue` may
@@ -36,15 +39,20 @@
 //! exculpatory value, and the error would read as a pass.
 
 use std::collections::BTreeSet;
+use std::ffi::CString;
 use std::fs;
 use std::io;
 use std::os::unix::fs::FileTypeExt;
 use std::path::Path;
+use std::time::Duration;
 
+use nix::errno::Errno;
 use serde::ser::SerializeMap;
 use serde::{Serialize, Serializer};
 
 use crate::effects::{is_instrument_sysv_key, ResidualClass, POSIX_IPC_PREFIX};
+use crate::harness::{run_isolated_with, Outcome};
+use crate::probe::RawResult;
 
 /// One class, counted — or not, and why not.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -222,7 +230,11 @@ fn directories_below(root: &'static str) -> Observation {
     let mut n = 0;
     match walk(Path::new(root), &mut n) {
         Ok(()) => Observation::Observed(n),
-        Err(e) => unobservable(&e, "not mounted"),
+        // The root itself: absent or unreadable is "not mounted". A failure
+        // below it is a subtree this process may not list, and the count
+        // would be short — reported as an error, not as a smaller number.
+        Err(e) if n == 0 => unobservable(&e, "not mounted"),
+        Err(e) => Observation::Error(e.raw_os_error().unwrap_or(0)),
     }
 }
 
@@ -296,30 +308,67 @@ impl ModuleDelta {
 
 // --- janitor ---------------------------------------------------------------
 
-/// Something the janitor removed at the end of the run. Loud by design:
-/// this is a finding about the corpus, not a silent fix.
+/// How long one removal may take. A removal is a single syscall; the bound
+/// exists so that a filter which traps rather than answers cannot hang the
+/// end of the run.
+const REMOVAL_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// One thing the janitor tried to remove at the end of the run, and how it
+/// went. Loud by design: a removal is a finding about the corpus, and a
+/// failed removal is the asymmetric filter — create permitted, remove
+/// blocked — caught in the act, which is the finding the janitor exists
+/// for. Neither is a silent fix.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-pub struct Removed {
+pub struct Removal {
     pub class: ResidualClass,
     pub object: String,
+    /// The removal returned success. Anything else is `false`, and
+    /// `attempt` says what: `EPERM` from an `ERRNO` filter, `SIGSYS` from
+    /// a `KILL_PROCESS` one, a harness fault.
+    pub removed: bool,
+    pub attempt: Attempt,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Attempt {
+    /// A child ran the removal and ended this way, in the harness's terms.
+    Child(Outcome),
+    /// The harness could not run a child — fork, pidfd or wait failed —
+    /// so nothing was attempted.
+    Harness { errno: i32 },
 }
 
 /// Remove what is recognisably the instrument's and was left behind:
 /// POSIX objects named with [`POSIX_IPC_PREFIX`], System V objects keyed in
 /// the instrument's range. Runs once, after the run's final snapshot, so
-/// what it removes has already been measured and attributed.
-pub fn janitor() -> Vec<Removed> {
-    let mut removed = Vec::new();
+/// what it removes has already been measured and attributed. Each removal
+/// is made in its own forked child; the parent only lists.
+pub fn janitor() -> Vec<Removal> {
+    let mut removals = Vec::new();
     for dir in ["/dev/shm", "/dev/mqueue"] {
         let Ok(rd) = fs::read_dir(dir) else { continue };
         for entry in rd.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if name.starts_with(POSIX_IPC_PREFIX) && fs::remove_file(entry.path()).is_ok() {
-                removed.push(Removed {
-                    class: ResidualClass::PosixIpc,
-                    object: format!("{dir}/{name}"),
-                });
+            if !name.starts_with(POSIX_IPC_PREFIX) {
+                continue;
             }
+            let object = format!("{dir}/{name}");
+            // Built here so the child allocates nothing. `unlink` is what
+            // `shm_unlink` and `mq_unlink` are on Linux.
+            let Ok(path) = CString::new(object.as_str()) else {
+                continue;
+            };
+            let remove = || {
+                // SAFETY: a NUL-terminated path owned by the parent, which
+                // the child reads and does not touch again.
+                if unsafe { libc::unlink(path.as_ptr()) } == 0 {
+                    Ok(())
+                } else {
+                    Err(Errno::last())
+                }
+            };
+            removals.push(attempt(ResidualClass::PosixIpc, object, &remove));
         }
     }
     for (file, kind) in [
@@ -338,15 +387,30 @@ pub fn janitor() -> Vec<Removed> {
             let (Ok(key), Ok(id)) = (key.parse::<i32>(), id.parse::<i32>()) else {
                 continue;
             };
-            if is_instrument_sysv_key(key) && kind.remove(id) {
-                removed.push(Removed {
-                    class: ResidualClass::SysvIpc,
-                    object: format!("{} key {key:#x} id {id}", kind.name()),
-                });
+            if !is_instrument_sysv_key(key) {
+                continue;
             }
+            let object = format!("{} key {key:#x} id {id}", kind.name());
+            let remove = || kind.remove(id);
+            removals.push(attempt(ResidualClass::SysvIpc, object, &remove));
         }
     }
-    removed
+    removals
+}
+
+fn attempt(class: ResidualClass, object: String, remove: &dyn Fn() -> RawResult) -> Removal {
+    let attempt = match run_isolated_with(remove, REMOVAL_TIMEOUT) {
+        Ok(outcome) => Attempt::Child(outcome),
+        Err(errno) => Attempt::Harness {
+            errno: errno as i32,
+        },
+    };
+    Removal {
+        class,
+        object,
+        removed: attempt == Attempt::Child(Outcome::Returned { errno: 0 }),
+        attempt,
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -365,7 +429,7 @@ impl SysvKind {
         }
     }
 
-    fn remove(self, id: i32) -> bool {
+    fn remove(self, id: i32) -> RawResult {
         // SAFETY: IPC_RMID with a null buffer; the id came from /proc.
         let r = unsafe {
             match self {
@@ -374,7 +438,11 @@ impl SysvKind {
                 SysvKind::Msg => libc::msgctl(id, libc::IPC_RMID, std::ptr::null_mut()),
             }
         };
-        r == 0
+        if r == 0 {
+            Ok(())
+        } else {
+            Err(Errno::last())
+        }
     }
 }
 
