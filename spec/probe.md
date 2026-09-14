@@ -119,14 +119,16 @@ The proposal puts the rollback in the isolation, not in a callback: "fork
 isolation is the rollback for most of the corpus" (§6.2), and the side-effect
 declaration requirement is a §12 mitigation the engine enforces "rather than
 leaving to convention". A hook would be a second code path, and it cannot be
-made to run soundly from the parent. The parent runs under a different view of
-the filters than the child — its calls were made before any probe's, and a
-filter that permits `shmget` and denies `shmctl(IPC_RMID)` is a finding, not a
-fault — so a parent-side rollback would succeed in exactly the ways the probe
-could not, and hide the asymmetry the corpus exists to measure. It also cannot
-be ordered correctly: a rollback that ran before the residual snapshot would
-erase the residual, and one that ran after is hygiene the finding has already
-done.
+made to run soundly from the parent. The parent shares the child's filters, so
+a removal the filter blocks fails the parent the same way — silently under
+`ERRNO`, fatally under `KILL_PROCESS` — and a killed parent is a lost run where
+a killed child is a record; a filter that permits `shmget` and denies
+`shmctl(IPC_RMID)` is a finding, not a fault. Where the child carried a filter
+the parent does not, the reverse holds: the parent would succeed in exactly the
+ways the probe could not, and hide the asymmetry the corpus exists to measure.
+It also cannot be ordered correctly: a rollback that ran before the residual
+snapshot would erase the residual, and one that ran after is hygiene the
+finding has already done.
 
 Residual state is therefore measured after the child is reaped and before
 anything is removed. A probe that cannot remove what it created — killed
