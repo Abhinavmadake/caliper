@@ -69,6 +69,8 @@ jobs:
           docker build -t caliper-probe .
           docker run --rm caliper-probe --noop
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
+          docker run --rm caliper-probe --run > /dev/null
+          docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --run > /dev/null
 
   control:
     # Activates once control/go.mod exists (week 2, issue #3).

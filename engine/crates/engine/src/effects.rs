@@ -66,6 +66,20 @@ impl ResidualClass {
     pub fn index(self) -> usize {
         self as usize
     }
+
+    /// The class as an object key. Values are kebab-case and keys are
+    /// snake_case (`spec/fingerprint.md`, conventions) — the same name in
+    /// the two positions is spelled two ways, on purpose.
+    pub fn key(self) -> &'static str {
+        match self {
+            ResidualClass::Mounts => "mounts",
+            ResidualClass::Keyrings => "keyrings",
+            ResidualClass::Cgroups => "cgroups",
+            ResidualClass::SysvIpc => "sysv_ipc",
+            ResidualClass::PosixIpc => "posix_ipc",
+            ResidualClass::NetNamespaces => "net_namespaces",
+        }
+    }
 }
 
 /// A probe's declaration.

@@ -15,14 +15,16 @@
 
 //! The engine survives an exact seccomp allowlist (issue #4).
 //!
-//! `fixtures/seccomp/hardened.json` has three groups: the engine's start-up
-//! set, the isolation harness set, and the set runc itself needs between
-//! applying a profile and `execve`. The third is a property of the runtime.
-//! This test applies the first two alone, from inside a forked child at the
-//! last instant before `execve`, so what is measured is the engine and nothing
-//! in front of it. Mismatch action is `kill_process`: a single syscall outside
-//! the list terminates the child with SIGSYS, and the negative control below
-//! shows the filter is actually enforced.
+//! `fixtures/seccomp/hardened.json` has four groups: the engine's start-up
+//! set, the isolation harness set, the set runc itself needs between
+//! applying a profile and `execve`, and the run path's set (#8, #9). The
+//! third is a property of the runtime. This test applies the other three
+//! alone, from inside a forked child at the last instant before `execve`, so
+//! what is measured is the engine and nothing in front of it. Mismatch
+//! action is `kill_process`: a single syscall outside the list terminates
+//! the child with SIGSYS, and the negative control below shows the filter is
+//! actually enforced. Under it `--run` records a probe `killed` for every
+//! probed syscall outside the list, and survives to say so.
 //!
 //! Linux only, and meaningful only when the test binary and `caliper-probe`
 //! are the musl build: `cargo test --target x86_64-unknown-linux-musl`.
@@ -40,7 +42,7 @@ const PROBE: &str = env!("CARGO_BIN_EXE_caliper-probe");
 /// Names listed for the other architecture. seccompiler rejects a name the
 /// target architecture does not have, so they are dropped before compiling.
 #[cfg(target_arch = "aarch64")]
-const FOREIGN: &[&str] = &["arch_prctl", "poll"];
+const FOREIGN: &[&str] = &["arch_prctl", "poll", "fork", "open", "stat", "readlink"];
 #[cfg(target_arch = "x86_64")]
 const FOREIGN: &[&str] = &[];
 
@@ -53,8 +55,9 @@ const ARCH: TargetArch = TargetArch::x86_64;
 fn engine_filter(drop: Option<&str>) -> BpfProgram {
     let profile: serde_json::Value = serde_json::from_str(PROFILE).unwrap();
     let groups = profile["syscalls"].as_array().unwrap();
-    let names: Vec<&str> = groups[..2]
-        .iter()
+    // Groups 1, 2 and 4: the engine's. Group 3 is runc's.
+    let names: Vec<&str> = [&groups[0], &groups[1], &groups[3]]
+        .into_iter()
         .flat_map(|g| g["names"].as_array().unwrap())
         .map(|n| n.as_str().unwrap())
         .filter(|n| !FOREIGN.contains(n) && Some(*n) != drop)
@@ -79,15 +82,31 @@ fn engine_filter(drop: Option<&str>) -> BpfProgram {
 /// before `execve` is `apply_filter` (prctl + seccomp, both issued before
 /// the filter is live) and `execv` itself.
 fn run_under(filter: &BpfProgram) -> libc::c_int {
+    run_mode_under("--noop", filter).0
+}
+
+/// `caliper-probe <mode>` under `filter`: the wait status, and what it
+/// wrote to a pipe on stdout.
+fn run_mode_under(mode: &str, filter: &BpfProgram) -> (libc::c_int, Vec<u8>) {
     let path = CString::new(PROBE).unwrap();
-    let arg = CString::new("--noop").unwrap();
+    let arg = CString::new(mode).unwrap();
     let argv = [path.as_ptr(), arg.as_ptr(), std::ptr::null()];
+    let mut fds = [0 as libc::c_int; 2];
+    // SAFETY: a two-element array for pipe(2).
+    assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0, "pipe failed");
 
     // SAFETY: the child calls only async-signal-safe functions before exec;
     // every allocation it needs was made above.
     let pid = unsafe { libc::fork() };
     assert!(pid >= 0, "fork failed");
     if pid == 0 {
+        // dup2 and close before the filter: neither is in the allowlist,
+        // and neither is the engine's.
+        unsafe {
+            libc::dup2(fds[1], 1);
+            libc::close(fds[0]);
+            libc::close(fds[1]);
+        }
         if apply_filter(filter).is_err() {
             unsafe { libc::_exit(126) };
         }
@@ -96,10 +115,22 @@ fn run_under(filter: &BpfProgram) -> libc::c_int {
             libc::_exit(127);
         }
     }
+    unsafe { libc::close(fds[1]) };
+    let mut out = Vec::new();
+    let mut buf = [0u8; 4096];
+    loop {
+        // SAFETY: a valid buffer on a pipe this process owns.
+        let n = unsafe { libc::read(fds[0], buf.as_mut_ptr().cast(), buf.len()) };
+        if n <= 0 {
+            break;
+        }
+        out.extend_from_slice(&buf[..n as usize]);
+    }
+    unsafe { libc::close(fds[0]) };
     let mut status = 0;
     let r = unsafe { libc::waitpid(pid, &mut status, 0) };
     assert_eq!(r, pid, "waitpid failed");
-    status
+    (status, out)
 }
 
 #[test]
@@ -126,4 +157,29 @@ fn allowlist_is_enforced() {
         "child was not killed: status {status:#x}"
     );
     assert_eq!(libc::WTERMSIG(status), libc::SIGSYS);
+}
+
+/// Probes whose syscall the allowlist carries for the harness's own sake,
+/// so under it they reach the kernel: `clone3` is in group 2.
+const REACHES_THE_KERNEL: &[&str] = &["clone3.args.short"];
+
+#[test]
+fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
+    let (status, out) = run_mode_under("--run", &engine_filter(None));
+    assert!(
+        libc::WIFEXITED(status) && libc::WEXITSTATUS(status) == 0,
+        "the parent did not survive: status {status:#x}"
+    );
+    let doc: serde_json::Value = serde_json::from_slice(&out).expect("output is JSON");
+    let results = doc["results"].as_array().unwrap();
+    assert!(results.len() >= 10, "{}", doc["results"]);
+    for r in results {
+        let id = r["probe_id"].as_str().unwrap();
+        if REACHES_THE_KERNEL.contains(&id) {
+            assert_eq!(r["verdict"], "permitted", "{r}");
+        } else {
+            assert_eq!(r["verdict"], "killed", "{r}");
+        }
+    }
+    assert_eq!(doc["unmeasured"], serde_json::json!([]));
 }

@@ -16,7 +16,7 @@
 //! Clone and unshare flags (`corpus/README.md`, committed set). Both
 //! probes here get their answer from flag validation, which runs before
 //! any namespace is created, any capability is checked, or any LSM hook
-//! fires; the per-flag probes of the committed family (#15) are the ones
+//! fires; the per-flag probes of the committed family (#14) are the ones
 //! that reach those.
 
 use caliper_engine::{

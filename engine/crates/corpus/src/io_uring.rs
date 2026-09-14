@@ -18,7 +18,7 @@
 //! supported opcodes without submitting a queue entry (§6.2). These two
 //! probes measure whether the two syscalls that interface needs are
 //! reachable at all, each with an answer the kernel produces before any
-//! hook; the opcode table itself is the committed family's (#13).
+//! hook; the opcode table itself is the committed family's (#12).
 
 use caliper_engine::{
     Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects,

@@ -108,19 +108,17 @@ fn is_snake_case(key: &str) -> bool {
 }
 
 /// Every object key below `v` is snake_case (`spec/fingerprint.md`,
-/// conventions), except under `skip`, whose keys are enumeration members.
-fn check_keys(v: &Value, path: &str, skip: &[&str]) {
+/// conventions).
+fn check_keys(v: &Value, path: &str) {
     if let Value::Object(m) = v {
         for (k, child) in m {
             assert!(is_snake_case(k), "{path}.{k}: object key is not snake_case");
-            if !skip.contains(&k.as_str()) {
-                check_keys(child, &format!("{path}.{k}"), skip);
-            }
+            check_keys(child, &format!("{path}.{k}"));
         }
     }
     if let Value::Array(a) = v {
         for (i, child) in a.iter().enumerate() {
-            check_keys(child, &format!("{path}[{i}]"), skip);
+            check_keys(child, &format!("{path}[{i}]"));
         }
     }
 }
@@ -193,9 +191,10 @@ fn the_run_emits_the_probe_side_of_a_fingerprint() {
         assert!(!doc["residual"][key].is_null(), "residual.{key}");
     }
 
-    // snake_case keys throughout, kebab-case enumeration values. The
-    // residual snapshots are keyed by class name; see the note on #9.
-    check_keys(&doc, "$", &["observability", "before", "after"]);
+    // snake_case keys throughout, kebab-case enumeration values — the
+    // residual snapshots included, whose keys are the classes' snake_case
+    // spelling.
+    check_keys(&doc, "$");
 }
 
 #[test]
