@@ -59,12 +59,14 @@ D also acts as integrator, responsible for the components composing correctly.
 | Member | GitHub | Workstream |
 |--------|--------|------------|
 | A | `Abhinavmadake` | Probe engine, safety, attribution engine, half the corpus |
-| B | `sahilwaje23` | Corpus, oracle discipline, reference posture |
+| B | `Ritesh-Saindane` | Corpus, oracle discipline, reference posture |
 | C | `Yogesh-Palve` | Fingerprint, diff, evaluation, reporting |
-| D | `Ritesh-Saindane` | Delivery, environment harness, remediation, integration |
+| D | `sahilwaje23` | Delivery, environment harness, remediation, integration |
 
-Work is tracked as GitHub issues, one milestone per freeze gate; the workstream
-letter is in every issue title.
+B and D exchanged workstreams on 2026-09-14, after the week-3 gate; the letters
+name the workstreams and did not move. Work is tracked as GitHub issues, one
+milestone per freeze gate; the workstream letter is in every issue title, and
+the issue's assignee is the person.
 
 ## The interface
 
