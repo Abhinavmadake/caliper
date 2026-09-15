@@ -148,3 +148,29 @@ workload's room is the only room the engine gets (§5).
 What this rules out is a probe that leaves a `caliper-` object behind by
 design and relies on the janitor. The child owns its objects; the janitor is
 for the case where the kernel would not let it.
+
+### A mask is reported through an errno the kernel cannot produce for the object
+
+A masked path (`spec` §7, "unmasked procfs"; OCI `maskedPaths`) is a
+`/dev/null` bind mount over a procfs file or an empty tmpfs over a directory.
+The kernel's answer to opening the mask is success, and to reading it, zero
+bytes; the real object, for an unprivileged caller, often answers `EACCES`. A
+probe that recorded those answers untouched would report the mask as
+`permitted` and the real object as `denied` — the inverse of the confinement.
+
+The kernel's honest answer to "is this the object or the mask" is not an
+errno: it is `fstatfs` reporting tmpfs where procfs belongs. So a probe of a
+masked *file* opens the path with `O_PATH` (no permission check, no read),
+asks `fstatfs`, and — where the filesystem is not the object's — returns
+`ENODATA`: an errno `read(2)` defines for "no data here" and one that procfs
+never produces for these files. The oracle names that encoding in `reason`.
+A masked *directory* needs no encoding: opening a child procfs always
+provides answers `ENOENT` on the empty tmpfs.
+
+This is the one exception to "the kernel's answer, untouched", and it is
+bounded: the errno is chosen so that the kernel could not have produced it
+for that object, the probe's oracle says so, and the attributor reads it as
+the mount-masking mechanism and nothing else. Decided 2026-09-15 for #15
+(A, under the week-2 delegation); the alternative — probing directories only —
+would have left `/proc/kcore` and `/proc/keys`, the files the posture asserts
+against, unprobed.
