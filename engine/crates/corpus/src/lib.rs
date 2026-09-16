@@ -149,7 +149,6 @@ pub fn probes() -> &'static [Probe] {
         clone::CLONE_FLAGS_NEWIPC,
         clone::CLONE_FLAGS_NEWUTS,
         clone::CLONE_FLAGS_NEWCGROUP,
-        clone::CLONE_FLAGS_NEWTIME,
         clone::CLONE_FLAGS_NEWUSER_NEWNET,
         clone::CLONE3_SHORT_ARGS,
     ]

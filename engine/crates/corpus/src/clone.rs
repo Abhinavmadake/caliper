@@ -120,9 +120,6 @@ fn clone_newuts() -> RawResult {
 fn clone_newcgroup() -> RawResult {
     clone_flag(libc::CLONE_NEWCGROUP)
 }
-fn clone_newtime() -> RawResult {
-    clone_flag(libc::CLONE_NEWTIME)
-}
 fn clone_newuser_newnet() -> RawResult {
     clone_flag(libc::CLONE_NEWUSER | libc::CLONE_NEWNET)
 }
@@ -451,25 +448,6 @@ pub const CLONE_FLAGS_NEWCGROUP: Probe = Probe {
     capability: Some(Capability::SysAdmin),
     effects: SideEffects::NONE,
     run: clone_newcgroup,
-};
-
-pub const CLONE_FLAGS_NEWTIME: Probe = Probe {
-    id: "clone.flags.newtime",
-    family: "clone",
-    description:
-        "clone(CLONE_NEWTIME | SIGCHLD): process creation in a new time namespace, CAP_SYS_ADMIN",
-    risk: ONE_CALL,
-    arch: Applicability::All,
-    kernel: KernelDependency::NONE,
-    oracle: Oracle {
-        guarantees: None,
-        isolates: Isolates::Undecidable,
-        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
-                 answers EPERM itself; nothing separates seccomp from a missing capability",
-    },
-    capability: Some(Capability::SysAdmin),
-    effects: SideEffects::NONE,
-    run: clone_newtime,
 };
 
 pub const CLONE_FLAGS_NEWUSER_NEWNET: Probe = Probe {

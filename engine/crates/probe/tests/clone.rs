@@ -55,7 +55,6 @@ fn native_unprivileged_clone_and_unshare_verdicts() {
         "unshare.flags.newuser_newnet",
         "clone.flags.newuser",
         "clone.flags.newuser_newnet",
-        "clone.flags.newtime",
     ];
     for id in unprivileged_flags {
         let (verdict, errno) = map.get(id).copied().expect(id);

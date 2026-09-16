@@ -170,7 +170,6 @@ const REACHES_THE_KERNEL: &[&str] = &[
     "clone.flags.newipc",
     "clone.flags.newuts",
     "clone.flags.newcgroup",
-    "clone.flags.newtime",
     "clone.flags.newuser_newnet",
 ];
 
