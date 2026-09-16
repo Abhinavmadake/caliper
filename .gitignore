@@ -20,3 +20,8 @@
 # Local environment
 .env
 *.local.yaml
+
+
+# Ritesh Reference doc
+caliper-guides
+issue_*_completion*.md

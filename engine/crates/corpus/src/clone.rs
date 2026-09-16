@@ -20,7 +20,8 @@
 //! that reach those.
 
 use caliper_engine::{
-    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects,
+    Applicability, Capability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult,
+    ResidualClass, SideEffects,
 };
 
 use crate::common::{result, ONE_CALL};
@@ -38,6 +39,92 @@ fn clone3_short() -> RawResult {
     // SAFETY: a null pointer the kernel never reads, because a size of zero
     // is rejected before copy_from_user.
     result(unsafe { libc::syscall(libc::SYS_clone3, std::ptr::null::<libc::c_void>(), 0usize) })
+}
+
+fn unshare_flag(flags: libc::c_int) -> RawResult {
+    // SAFETY: one integer argument.
+    result(unsafe { libc::syscall(libc::SYS_unshare, flags) })
+}
+
+fn clone_flag(flags: libc::c_int) -> RawResult {
+    // SAFETY: no stack (fork-like), null tids/tls; pointer-argument order
+    // differs between x86_64 and aarch64 but every pointer is null.
+    let pid = unsafe {
+        libc::syscall(
+            libc::SYS_clone,
+            flags | libc::SIGCHLD,
+            0usize,
+            0usize,
+            0usize,
+            0usize,
+        )
+    };
+    if pid == 0 {
+        unsafe { libc::syscall(libc::SYS_exit_group, 0) };
+        unreachable!()
+    }
+    if pid < 0 {
+        return Err(Errno::last());
+    }
+    // SAFETY: reap our own child; no status wanted.
+    unsafe { libc::syscall(libc::SYS_wait4, pid, 0usize, 0, 0usize) };
+    Ok(())
+}
+
+fn unshare_newuser() -> RawResult {
+    unshare_flag(libc::CLONE_NEWUSER)
+}
+fn unshare_newns() -> RawResult {
+    unshare_flag(libc::CLONE_NEWNS)
+}
+fn unshare_newnet() -> RawResult {
+    unshare_flag(libc::CLONE_NEWNET)
+}
+fn unshare_newpid() -> RawResult {
+    unshare_flag(libc::CLONE_NEWPID)
+}
+fn unshare_newipc() -> RawResult {
+    unshare_flag(libc::CLONE_NEWIPC)
+}
+fn unshare_newuts() -> RawResult {
+    unshare_flag(libc::CLONE_NEWUTS)
+}
+fn unshare_newcgroup() -> RawResult {
+    unshare_flag(libc::CLONE_NEWCGROUP)
+}
+fn unshare_newtime() -> RawResult {
+    unshare_flag(libc::CLONE_NEWTIME)
+}
+fn unshare_newuser_newnet() -> RawResult {
+    unshare_flag(libc::CLONE_NEWUSER | libc::CLONE_NEWNET)
+}
+
+fn clone_newuser() -> RawResult {
+    clone_flag(libc::CLONE_NEWUSER)
+}
+fn clone_newns() -> RawResult {
+    clone_flag(libc::CLONE_NEWNS)
+}
+fn clone_newnet() -> RawResult {
+    clone_flag(libc::CLONE_NEWNET)
+}
+fn clone_newpid() -> RawResult {
+    clone_flag(libc::CLONE_NEWPID)
+}
+fn clone_newipc() -> RawResult {
+    clone_flag(libc::CLONE_NEWIPC)
+}
+fn clone_newuts() -> RawResult {
+    clone_flag(libc::CLONE_NEWUTS)
+}
+fn clone_newcgroup() -> RawResult {
+    clone_flag(libc::CLONE_NEWCGROUP)
+}
+fn clone_newtime() -> RawResult {
+    clone_flag(libc::CLONE_NEWTIME)
+}
+fn clone_newuser_newnet() -> RawResult {
+    clone_flag(libc::CLONE_NEWUSER | libc::CLONE_NEWNET)
 }
 
 pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
@@ -60,6 +147,351 @@ pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
     capability: None,
     effects: SideEffects::NONE,
     run: unshare_invalid,
+};
+
+pub const UNSHARE_FLAGS_NEWUSER: Probe = Probe {
+    id: "unshare.flags.newuser",
+    family: "clone",
+    description: "unshare(CLONE_NEWUSER): user namespace creation without host privilege",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::SeccompOrLsm,
+        reason: "create_user_ns in ksys_unshare requires no capability; EPERM is seccomp filter \
+                 or userns policy (e.g. Debian kernel.unprivileged_userns_clone or AppArmor \
+                 security_create_user_ns hook answering EACCES/EPERM)",
+    },
+    capability: None,
+    effects: SideEffects::NONE,
+    run: unshare_newuser,
+};
+
+pub const UNSHARE_FLAGS_NEWNS: Probe = Probe {
+    id: "unshare.flags.newns",
+    family: "clone",
+    description: "unshare(CLONE_NEWNS): mount namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: unshare_newns,
+};
+
+pub const UNSHARE_FLAGS_NEWNET: Probe = Probe {
+    id: "unshare.flags.newnet",
+    family: "clone",
+    description: "unshare(CLONE_NEWNET): network namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::Declared {
+        residual: &[ResidualClass::NetNamespaces],
+        module_autoload: false,
+    },
+    run: unshare_newnet,
+};
+
+pub const UNSHARE_FLAGS_NEWPID: Probe = Probe {
+    id: "unshare.flags.newpid",
+    family: "clone",
+    description: "unshare(CLONE_NEWPID): PID namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: unshare_newpid,
+};
+
+pub const UNSHARE_FLAGS_NEWIPC: Probe = Probe {
+    id: "unshare.flags.newipc",
+    family: "clone",
+    description: "unshare(CLONE_NEWIPC): IPC namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: unshare_newipc,
+};
+
+pub const UNSHARE_FLAGS_NEWUTS: Probe = Probe {
+    id: "unshare.flags.newuts",
+    family: "clone",
+    description: "unshare(CLONE_NEWUTS): UTS namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: unshare_newuts,
+};
+
+pub const UNSHARE_FLAGS_NEWCGROUP: Probe = Probe {
+    id: "unshare.flags.newcgroup",
+    family: "clone",
+    description: "unshare(CLONE_NEWCGROUP): cgroup namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: unshare_newcgroup,
+};
+
+pub const UNSHARE_FLAGS_NEWTIME: Probe = Probe {
+    id: "unshare.flags.newtime",
+    family: "clone",
+    description: "unshare(CLONE_NEWTIME): time namespace creation, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) \
+                 and answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: unshare_newtime,
+};
+
+pub const UNSHARE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
+    id: "unshare.flags.newuser_newnet",
+    family: "clone",
+    description: "unshare(CLONE_NEWUSER | CLONE_NEWNET): user+net namespace creation escalation path",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::SeccompOrLsm,
+        reason: "CLONE_NEWUSER creates a user namespace first in ksys_unshare, granting \
+                 CAP_SYS_ADMIN inside it so create_new_namespaces succeeds without host privileges; \
+                 EPERM is seccomp or userns policy",
+    },
+    capability: None,
+    effects: SideEffects::Declared {
+        residual: &[ResidualClass::NetNamespaces],
+        module_autoload: false,
+    },
+    run: unshare_newuser_newnet,
+};
+
+pub const CLONE_FLAGS_NEWUSER: Probe = Probe {
+    id: "clone.flags.newuser",
+    family: "clone",
+    description: "clone(CLONE_NEWUSER | SIGCHLD): process creation in a new user namespace",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::SeccompOrLsm,
+        reason: "create_user_ns in copy_process requires no capability; EPERM is seccomp filter \
+                 or userns policy",
+    },
+    capability: None,
+    effects: SideEffects::NONE,
+    run: clone_newuser,
+};
+
+pub const CLONE_FLAGS_NEWNS: Probe = Probe {
+    id: "clone.flags.newns",
+    family: "clone",
+    description:
+        "clone(CLONE_NEWNS | SIGCHLD): process creation in a new mount namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: clone_newns,
+};
+
+pub const CLONE_FLAGS_NEWNET: Probe = Probe {
+    id: "clone.flags.newnet",
+    family: "clone",
+    description:
+        "clone(CLONE_NEWNET | SIGCHLD): process creation in a new net namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::Declared {
+        residual: &[ResidualClass::NetNamespaces],
+        module_autoload: false,
+    },
+    run: clone_newnet,
+};
+
+pub const CLONE_FLAGS_NEWPID: Probe = Probe {
+    id: "clone.flags.newpid",
+    family: "clone",
+    description:
+        "clone(CLONE_NEWPID | SIGCHLD): process creation in a new PID namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: clone_newpid,
+};
+
+pub const CLONE_FLAGS_NEWIPC: Probe = Probe {
+    id: "clone.flags.newipc",
+    family: "clone",
+    description:
+        "clone(CLONE_NEWIPC | SIGCHLD): process creation in a new IPC namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: clone_newipc,
+};
+
+pub const CLONE_FLAGS_NEWUTS: Probe = Probe {
+    id: "clone.flags.newuts",
+    family: "clone",
+    description:
+        "clone(CLONE_NEWUTS | SIGCHLD): process creation in a new UTS namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: clone_newuts,
+};
+
+pub const CLONE_FLAGS_NEWCGROUP: Probe = Probe {
+    id: "clone.flags.newcgroup",
+    family: "clone",
+    description: "clone(CLONE_NEWCGROUP | SIGCHLD): process creation in a new cgroup namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: clone_newcgroup,
+};
+
+pub const CLONE_FLAGS_NEWTIME: Probe = Probe {
+    id: "clone.flags.newtime",
+    family: "clone",
+    description:
+        "clone(CLONE_NEWTIME | SIGCHLD): process creation in a new time namespace, CAP_SYS_ADMIN",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::Undecidable,
+        reason: "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and \
+                 answers EPERM itself; nothing separates seccomp from a missing capability",
+    },
+    capability: Some(Capability::SysAdmin),
+    effects: SideEffects::NONE,
+    run: clone_newtime,
+};
+
+pub const CLONE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
+    id: "clone.flags.newuser_newnet",
+    family: "clone",
+    description: "clone(CLONE_NEWUSER | CLONE_NEWNET | SIGCHLD): user+net namespace process creation escalation path",
+    risk: ONE_CALL,
+    arch: Applicability::All,
+    kernel: KernelDependency::NONE,
+    oracle: Oracle {
+        guarantees: None,
+        isolates: Isolates::SeccompOrLsm,
+        reason: "CLONE_NEWUSER creates a user namespace first in copy_process, granting \
+                 CAP_SYS_ADMIN inside it so copy_namespaces succeeds without host privileges; \
+                 EPERM is seccomp or userns policy",
+    },
+    capability: None,
+    effects: SideEffects::Declared {
+        residual: &[ResidualClass::NetNamespaces],
+        module_autoload: false,
+    },
+    run: clone_newuser_newnet,
 };
 
 /// `clone3` is where the ENOSYS-is-a-filter rule bites: Docker's default

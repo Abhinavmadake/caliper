@@ -50,6 +50,7 @@ const PROBED: &[libc::c_long] = &[
     libc::SYS_mount,
     libc::SYS_unshare,
     libc::SYS_clone3,
+    libc::SYS_clone,
 ];
 
 fn kill_probed() -> BpfProgram {

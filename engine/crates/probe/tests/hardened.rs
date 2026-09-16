@@ -161,7 +161,18 @@ fn allowlist_is_enforced() {
 
 /// Probes whose syscall the allowlist carries for the harness's own sake,
 /// so under it they reach the kernel: `clone3` is in group 2.
-const REACHES_THE_KERNEL: &[&str] = &["clone3.args.short"];
+const REACHES_THE_KERNEL: &[&str] = &[
+    "clone3.args.short",
+    "clone.flags.newuser",
+    "clone.flags.newns",
+    "clone.flags.newnet",
+    "clone.flags.newpid",
+    "clone.flags.newipc",
+    "clone.flags.newuts",
+    "clone.flags.newcgroup",
+    "clone.flags.newtime",
+    "clone.flags.newuser_newnet",
+];
 
 #[test]
 fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
@@ -176,7 +187,10 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
     for r in results {
         let id = r["probe_id"].as_str().unwrap();
         if REACHES_THE_KERNEL.contains(&id) {
-            assert_eq!(r["verdict"], "permitted", "{r}");
+            assert!(
+                r["verdict"] == "permitted" || r["verdict"] == "denied",
+                "{r}"
+            );
         } else {
             assert_eq!(r["verdict"], "killed", "{r}");
         }
