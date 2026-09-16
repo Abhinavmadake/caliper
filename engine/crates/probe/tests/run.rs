@@ -50,6 +50,8 @@ const PROBED: &[libc::c_long] = &[
     libc::SYS_mount,
     libc::SYS_unshare,
     libc::SYS_clone3,
+    #[cfg(target_arch = "x86_64")]
+    libc::SYS_clone,
 ];
 
 fn kill_probed() -> BpfProgram {
@@ -203,6 +205,14 @@ fn under_a_kill_filter_every_probe_is_killed_and_the_run_survives() {
     let results = doc["results"].as_array().unwrap();
     assert!(results.len() >= 10, "{}", doc["results"]);
     for r in results {
+        #[cfg(target_arch = "aarch64")]
+        {
+            let id = r["probe_id"].as_str().unwrap();
+            if id.starts_with("clone.flags.") {
+                assert_ne!(r["verdict"], "killed", "{r}");
+                continue;
+            }
+        }
         assert_eq!(r["verdict"], "killed", "{r}");
         assert_eq!(r["errno"], 0, "{r}");
     }
