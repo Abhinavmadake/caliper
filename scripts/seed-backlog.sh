@@ -48,6 +48,11 @@ REPO="Abhinavmadake/caliper"
 # week; week 16 stays empty, so the declared slack survives and the project
 # ends 2026-12-25 instead of 2027-01-01.
 #
+# Pulled again on 2026-09-17, after the week 3 gate closed on 2026-09-14 with
+# the engine and reference corpus done: the corpus freeze (W8) is due
+# 2026-09-27 and every later gate moves with it, 26 days earlier. Milestone
+# titles keep the proposal's week numbers; the dates are what count.
+#
 # Milestone TITLES still carry the proposal's §9.1 week numbers, because the
 # issue bodies and the proposal refer to those phases by number. The DATES are
 # a week ahead of the number they name: "W3" is now due at the end of calendar
@@ -123,12 +128,12 @@ mklabel "evaluation"    "006b75" "Success criterion from proposal §11.2"
 echo "Milestones"
 mkmilestone "$M2"  "2026-09-11" "Probe and fingerprint formats agreed and fixed. Every other workstream develops against these rather than against the engine."
 mkmilestone "$M3"  "2026-09-18" "Probe engine with fork isolation, SIGSYS survival, timeout handling and verdict classification, plus a ten-probe reference corpus end to end. The critical path."
-mkmilestone "$M8"  "2026-10-23" "Committed corpus complete and frozen, every probe carrying its errno oracle. Reference posture drafted with citations."
-mkmilestone "$M9"  "2026-10-30" "Fingerprint format frozen. The system is independently defensible from this point: it measures, classifies and diffs confinement across environments."
-mkmilestone "$M12" "2026-11-20" "Attribution confidence model, evaluator against manifest and posture, and minimal remediation with closure verification."
-mkmilestone "$M15" "2026-12-11" "Environment matrix measured across six cells. Every success criterion in §11.2 reported."
-mkmilestone "$M16" "2026-12-18" "Held deliberately empty. A compressed schedule with no slack fails on its first surprise, and the surprises here are kernel-level. No issues belong in this milestone."
-mkmilestone "$M17" "2026-12-25" "Final report, demonstration, release."
+mkmilestone "$M8"  "2026-09-27" "Committed corpus complete and frozen, every probe carrying its errno oracle. Reference posture drafted with citations."
+mkmilestone "$M9"  "2026-10-04" "Fingerprint format frozen. The system is independently defensible from this point: it measures, classifies and diffs confinement across environments."
+mkmilestone "$M12" "2026-10-25" "Attribution confidence model, evaluator against manifest and posture, and minimal remediation with closure verification."
+mkmilestone "$M15" "2026-11-15" "Environment matrix measured across six cells. Every success criterion in §11.2 reported."
+mkmilestone "$M16" "2026-11-22" "Held deliberately empty. A compressed schedule with no slack fails on its first surprise, and the surprises here are kernel-level. No issues belong in this milestone."
+mkmilestone "$M17" "2026-11-29" "Final report, demonstration, release."
 
 # ---------------------------------------------------- W2 — interfaces -------
 
