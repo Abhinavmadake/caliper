@@ -204,6 +204,8 @@ pub enum Isolates {
 /// one.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum Capability {
+    #[serde(rename = "CAP_NET_ADMIN")]
+    NetAdmin,
     #[serde(rename = "CAP_NET_RAW")]
     NetRaw,
     #[serde(rename = "CAP_SYS_ADMIN")]
