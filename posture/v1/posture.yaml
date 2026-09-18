@@ -1,0 +1,27 @@
+posture_version: 1
+tiers:
+  - name: untrusted-multi-tenant
+    named_after: restricted
+    description: "Workloads from untrusted operators in a multi-tenant environment."
+    stronger_because: "Asserts against AF_ALG, module loading, io_uring, and raw netlink which PSS Restricted does not cover."
+
+assertions:
+  - tier: untrusted-multi-tenant
+    family: socket-address-family
+    probe_ids: ["af-alg"]
+    expect: denied
+    rationale: "The kernel crypto API is a known attack surface (CVE-2026-31431) and not needed by standard workloads."
+    citations: ["CVE-2026-31431"]
+
+  - tier: untrusted-multi-tenant
+    family: io-uring
+    expect: denied
+    rationale: "io_uring bypasses syscall filtering and has a history of escapes."
+    citations: ["Containerd 2.0 default deny"]
+
+  - tier: untrusted-multi-tenant
+    family: netlink
+    probe_ids: ["netlink-raw"]
+    expect: denied
+    rationale: "Raw netlink gives deep access to networking configuration."
+    citations: ["General hardening best practices"]
