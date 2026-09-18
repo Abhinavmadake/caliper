@@ -15,9 +15,9 @@
 
 //! `caliper-probe --run` end to end (#10): the reference corpus, from image
 //! start to the emitted document, checked against `spec/fingerprint.md`'s
-//! conventions; and the same run under a filter that kills every probed
-//! syscall, so the ten children die of SIGSYS and the parent survives to
-//! record ten `killed` verdicts.
+//! conventions; and the same run under a filter that kills every reachable
+//! probed syscall, so those children die of SIGSYS and the parent survives to
+//! record `killed` verdicts.
 //!
 //! The filter is applied in the forked child at the last instant before
 //! `execve`, as `hardened.rs` does, so what is measured is the engine and
@@ -40,9 +40,8 @@ const ARCH: TargetArch = TargetArch::aarch64;
 #[cfg(target_arch = "x86_64")]
 const ARCH: TargetArch = TargetArch::x86_64;
 
-/// The syscalls the reference corpus probes, and nothing else: a
-/// `KILL_PROCESS` on each is the SIGSYS path, and the parent — which
-/// issues none of them — carries on.
+/// The syscalls the corpus probes: a `KILL_PROCESS` on each is the SIGSYS
+/// path, and the parent — which issues none of them — carries on.
 const PROBED: &[libc::c_long] = &[
     libc::SYS_socket,
     libc::SYS_io_uring_register,
@@ -50,6 +49,7 @@ const PROBED: &[libc::c_long] = &[
     libc::SYS_mount,
     libc::SYS_unshare,
     libc::SYS_clone3,
+    libc::SYS_fstatfs,
     #[cfg(target_arch = "x86_64")]
     libc::SYS_clone,
 ];
@@ -200,14 +200,20 @@ fn the_run_emits_the_probe_side_of_a_fingerprint() {
 }
 
 #[test]
-fn under_a_kill_filter_every_probe_is_killed_and_the_run_survives() {
+fn under_a_kill_filter_reachable_probes_are_killed_and_the_run_survives() {
     let doc = run("--run", Some(kill_probed()));
     let results = doc["results"].as_array().unwrap();
     assert!(results.len() >= 10, "{}", doc["results"]);
     for r in results {
+        let id = r["probe_id"].as_str().unwrap();
+        if id.starts_with("path.") && r["verdict"] == "unimplemented" {
+            // The path itself was optional in this cell: openat reported the
+            // declared ENOENT before the filter could kill fstatfs.
+            assert_eq!(r["errno"], libc::ENOENT as u64, "{r}");
+            continue;
+        }
         #[cfg(target_arch = "aarch64")]
         {
-            let id = r["probe_id"].as_str().unwrap();
             if id.starts_with("clone.flags.") {
                 assert_ne!(r["verdict"], "killed", "{r}");
                 continue;

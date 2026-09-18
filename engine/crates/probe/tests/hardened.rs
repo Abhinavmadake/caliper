@@ -190,6 +190,13 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
                 r["verdict"] == "permitted" || r["verdict"] == "denied",
                 "{r}"
             );
+        } else if id.starts_with("path.") {
+            // A missing optional procfs/sysfs path reports ENOENT before the
+            // fstatfs call reaches the engine-only filter.
+            assert!(
+                r["verdict"] == "killed" || r["verdict"] == "unimplemented",
+                "{r}"
+            );
         } else {
             assert_eq!(r["verdict"], "killed", "{r}");
         }
