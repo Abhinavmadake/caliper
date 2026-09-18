@@ -115,6 +115,7 @@ mod common;
 mod io_uring;
 mod mount;
 mod netlink;
+mod paths;
 mod socket;
 
 /// Which corpus a run came from: `corpus_revision` in the fingerprint.
@@ -221,6 +222,23 @@ pub fn probes() -> &'static [Probe] {
         io_uring::OP_BIND,
         io_uring::OP_LISTEN,
         mount::REACH,
+        paths::MASKED_PROC_KCORE,
+        paths::MASKED_PROC_KEYS,
+        paths::MASKED_PROC_LATENCY_STATS,
+        paths::MASKED_PROC_TIMER_LIST,
+        paths::MASKED_PROC_TIMER_STATS,
+        paths::MASKED_PROC_SCHED_DEBUG,
+        paths::MASKED_PROC_ACPI,
+        paths::MASKED_PROC_ASOUND,
+        paths::MASKED_PROC_SCSI,
+        paths::MASKED_SYS_FIRMWARE,
+        paths::MASKED_SYS_POWERCAP,
+        paths::READONLY_PROC_BUS,
+        paths::READONLY_PROC_FS,
+        paths::READONLY_PROC_IRQ,
+        paths::READONLY_PROC_SYS,
+        paths::READONLY_PROC_SYSRQ_TRIGGER,
+        paths::CONTROL_PROC_SELF_STATUS,
         clone::UNSHARE_INVALID_FLAGS,
         clone::UNSHARE_FLAGS_NEWUSER,
         clone::UNSHARE_FLAGS_NEWNS,
