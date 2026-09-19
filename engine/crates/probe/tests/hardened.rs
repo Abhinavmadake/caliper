@@ -171,6 +171,14 @@ const REACHES_THE_KERNEL: &[&str] = &[
     "clone.flags.newuts",
     "clone.flags.newcgroup",
     "clone.flags.newuser_newnet",
+    "device.open.fuse",
+    "device.open.net_tun",
+    "device.open.kvm",
+    "device.open.kmsg",
+    "device.open.mem",
+    "device.open.port",
+    "device.open.null",
+    "device.open.sda",
 ];
 
 #[test]
