@@ -210,6 +210,8 @@ pub enum Capability {
     NetRaw,
     #[serde(rename = "CAP_SYS_ADMIN")]
     SysAdmin,
+    #[serde(rename = "CAP_SYS_RAWIO")]
+    SysRawio,
 }
 
 #[derive(Debug, Clone, Serialize)]

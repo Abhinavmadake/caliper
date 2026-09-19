@@ -112,6 +112,7 @@ pub use caliper_engine::Probe;
 
 mod clone;
 mod common;
+mod device;
 mod io_uring;
 mod mount;
 mod netlink;
@@ -222,6 +223,14 @@ pub fn probes() -> &'static [Probe] {
         io_uring::OP_BIND,
         io_uring::OP_LISTEN,
         mount::REACH,
+        device::OPEN_FUSE,
+        device::OPEN_NET_TUN,
+        device::OPEN_KVM,
+        device::OPEN_KMSG,
+        device::OPEN_MEM,
+        device::OPEN_PORT,
+        device::OPEN_NULL,
+        device::OPEN_SDA,
         paths::MASKED_PROC_KCORE,
         paths::MASKED_PROC_KEYS,
         paths::MASKED_PROC_LATENCY_STATS,

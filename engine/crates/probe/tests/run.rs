@@ -206,6 +206,13 @@ fn under_a_kill_filter_reachable_probes_are_killed_and_the_run_survives() {
     assert!(results.len() >= 10, "{}", doc["results"]);
     for r in results {
         let id = r["probe_id"].as_str().unwrap();
+        if id.starts_with("device.") {
+            assert!(
+                r["verdict"] == "permitted" || r["verdict"] == "denied",
+                "{r}"
+            );
+            continue;
+        }
         if id.starts_with("path.") && r["verdict"] == "unimplemented" {
             // The path itself was optional in this cell: openat reported the
             // declared ENOENT before the filter could kill fstatfs.
