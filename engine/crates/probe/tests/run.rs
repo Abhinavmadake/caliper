@@ -143,6 +143,14 @@ fn the_run_emits_the_probe_side_of_a_fingerprint() {
     assert!(doc["cell"]["architecture"].is_string());
     assert!(doc["cell"]["kernel"]["release"].is_string());
     assert!(doc["cell"]["lsm"].is_string());
+    for key in ["effective", "permitted", "bounding", "ambient"] {
+        let value = doc["cell"]["capabilities"][key].as_str().unwrap();
+        assert_eq!(value.len(), 16, "capabilities.{key}: {value}");
+        assert!(
+            value.bytes().all(|b| b.is_ascii_hexdigit()),
+            "capabilities.{key}: {value}"
+        );
+    }
     assert!(
         doc.get("digest").is_none(),
         "the digest is the control plane's"

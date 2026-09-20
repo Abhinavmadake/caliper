@@ -28,7 +28,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use caliper_engine::cell::{Arch, Cell, Kernel, KernelVersion, Lsm};
+use caliper_engine::cell::{Arch, Capabilities, Cell, Kernel, KernelVersion, Lsm};
 use caliper_engine::harness::Outcome;
 use caliper_engine::measurement::{measure, Measurement, FORMAT_VERSION};
 use caliper_engine::verdict::{classify, Verdict};
@@ -102,6 +102,7 @@ fn cell(version: Option<KernelVersion>) -> Cell {
             modules: None,
         },
         lsm: Lsm::None,
+        capabilities: Capabilities::EMPTY,
     }
 }
 
@@ -301,6 +302,14 @@ fn the_measurement_carries_verdicts_and_no_interpretation() {
         v["cell"]["lsm"].as_str(),
         Some("apparmor" | "selinux" | "none")
     ));
+    for key in ["effective", "permitted", "bounding", "ambient"] {
+        let value = v["cell"]["capabilities"][key].as_str().unwrap();
+        assert_eq!(value.len(), 16, "capabilities.{key}: {value}");
+        assert!(
+            value.bytes().all(|b| b.is_ascii_hexdigit()),
+            "capabilities.{key}: {value}"
+        );
+    }
     // What the probe cannot know is absent, not false.
     assert!(v["cell"]["kernel"].get("sandbox_claimed").is_none());
     assert!(v["cell"].get("runtime").is_none());
