@@ -22,14 +22,15 @@
 //! the RuntimeClass, which the probe cannot see — the key is left out, which
 //! the spec reads as "the producer did not know", not as `false`.
 //!
-//! Syscalls, all outside `--noop` and so outside `baseline/`: `uname`, and
-//! `openat`/`read`/`close` on `/proc/self/attr/<lsm>/current` for each LSM
-//! tried. The module set is filled in by the measurement run, which
+//! Syscalls, all outside `--noop` and so outside `baseline/`: `uname`,
+//! `openat`/`read`/`close` on `/proc/self/status` for the capability sets,
+//! and `openat`/`read`/`close` on `/proc/self/attr/<lsm>/current` for each
+//! LSM tried. The module set is filled in by the measurement run, which
 //! snapshots it before the first probe (`crate::residual`).
 
 use std::fmt;
 
-use serde::Serialize;
+use serde::{Serialize, Serializer};
 
 /// The processor architectures the corpus can name. Serialised by the
 /// `uname -m` spelling the fingerprint uses.
@@ -156,6 +157,92 @@ fn label(lsm: &str) -> bool {
     n > 0
 }
 
+fn serialize_cap<S>(cap: &u64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&format!("{cap:016x}"))
+}
+
+/// The process capability sets from `/proc/self/status`, read before any
+/// probe runs. The kernel publishes them as fixed-width hex masks; the
+/// struct keeps numbers for correlation and serialises back to that spelling.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Capabilities {
+    #[serde(serialize_with = "serialize_cap")]
+    pub effective: u64,
+    #[serde(serialize_with = "serialize_cap")]
+    pub permitted: u64,
+    #[serde(serialize_with = "serialize_cap")]
+    pub bounding: u64,
+    #[serde(serialize_with = "serialize_cap")]
+    pub ambient: u64,
+}
+
+impl Capabilities {
+    pub const EMPTY: Capabilities = Capabilities {
+        effective: 0,
+        permitted: 0,
+        bounding: 0,
+        ambient: 0,
+    };
+
+    pub fn detect() -> nix::Result<Capabilities> {
+        let status = read_proc_self_status()?;
+        let text = std::str::from_utf8(&status).map_err(|_| nix::errno::Errno::EINVAL)?;
+        Ok(Capabilities {
+            effective: cap_line(text, "CapEff")?,
+            permitted: cap_line(text, "CapPrm")?,
+            bounding: cap_line(text, "CapBnd")?,
+            ambient: cap_line(text, "CapAmb")?,
+        })
+    }
+}
+
+fn read_proc_self_status() -> nix::Result<Vec<u8>> {
+    let path = c"/proc/self/status";
+    // SAFETY: a NUL-terminated path and constant flags.
+    let fd = unsafe {
+        libc::syscall(
+            libc::SYS_openat,
+            libc::AT_FDCWD,
+            path.as_ptr(),
+            libc::O_RDONLY | libc::O_CLOEXEC,
+        )
+    } as libc::c_int;
+    if fd < 0 {
+        return Err(nix::errno::Errno::last());
+    }
+    let mut buf = vec![0u8; 16 * 1024];
+    // SAFETY: fd is open and buf is valid for its full length.
+    let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
+    let read_errno = if n < 0 {
+        Some(nix::errno::Errno::last())
+    } else {
+        None
+    };
+    // SAFETY: fd is a descriptor this function owns and closes once.
+    let close_rc = unsafe { libc::close(fd) };
+    if let Some(errno) = read_errno {
+        return Err(errno);
+    }
+    if close_rc < 0 {
+        return Err(nix::errno::Errno::last());
+    }
+    let n = usize::try_from(n).map_err(|_| nix::errno::Errno::EINVAL)?;
+    buf.truncate(n);
+    Ok(buf)
+}
+
+fn cap_line(status: &str, key: &str) -> nix::Result<u64> {
+    let value = status
+        .lines()
+        .find_map(|line| line.strip_prefix(key)?.strip_prefix(':'))
+        .ok_or(nix::errno::Errno::EINVAL)?
+        .trim();
+    u64::from_str_radix(value, 16).map_err(|_| nix::errno::Errno::EINVAL)
+}
+
 /// The kernel as the probe sees it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Kernel {
@@ -199,6 +286,7 @@ pub struct Cell {
     pub architecture: Arch,
     pub kernel: Kernel,
     pub lsm: Lsm,
+    pub capabilities: Capabilities,
 }
 
 impl Cell {
@@ -207,6 +295,7 @@ impl Cell {
             architecture: Arch::current(),
             kernel: Kernel::running()?,
             lsm: Lsm::detect(),
+            capabilities: Capabilities::detect()?,
         })
     }
 }
@@ -254,5 +343,34 @@ mod tests {
             "\"aarch64\""
         );
         assert_eq!(serde_json::to_string(&Lsm::None).unwrap(), "\"none\"");
+    }
+
+    #[test]
+    fn parses_capability_lines() {
+        let status = "\
+Name:\tcaliper\n\
+CapPrm:\t00000000a80425fb\n\
+CapEff:\t0000000000000000\n\
+CapBnd:\t00000000a80425fb\n\
+CapAmb:\t0000000000000000\n";
+        assert_eq!(cap_line(status, "CapEff").unwrap(), 0);
+        assert_eq!(cap_line(status, "CapPrm").unwrap(), 0x00000000a80425fb);
+        assert_eq!(cap_line(status, "CapBnd").unwrap(), 0x00000000a80425fb);
+        assert_eq!(cap_line(status, "CapAmb").unwrap(), 0);
+    }
+
+    #[test]
+    fn capabilities_serialise_as_status_hex() {
+        let caps = Capabilities {
+            effective: 0,
+            permitted: 0x00000000a80425fb,
+            bounding: 0xffff_ffff_ffff_ffff,
+            ambient: 0x20,
+        };
+        let v = serde_json::to_value(caps).unwrap();
+        assert_eq!(v["effective"], "0000000000000000");
+        assert_eq!(v["permitted"], "00000000a80425fb");
+        assert_eq!(v["bounding"], "ffffffffffffffff");
+        assert_eq!(v["ambient"], "0000000000000020");
     }
 }
