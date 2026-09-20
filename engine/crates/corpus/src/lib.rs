@@ -273,7 +273,19 @@ pub fn probes() -> &'static [Probe] {
 #[cfg(test)]
 mod tests {
     use super::probes;
+    use caliper_engine::Isolates;
     use std::collections::BTreeSet;
+
+    const COMMITTED_FAMILIES: &[&str] = &[
+        "socket",
+        "netlink",
+        "io_uring",
+        "mount",
+        "clone",
+        "path",
+        "device",
+        "capability",
+    ];
 
     /// #10: ten probes across at least three entry families.
     #[test]
@@ -291,10 +303,48 @@ mod tests {
     fn every_oracle_is_reasoned_and_distinct_from_absence() {
         for p in probes() {
             assert!(!p.oracle.reason.trim().is_empty(), "{}: no reason", p.id);
+            assert!(
+                reason_names_kernel_location(p.oracle.reason),
+                "{}: oracle reason must name a kernel function or file: {}",
+                p.id,
+                p.oracle.reason
+            );
+            if p.oracle.isolates == Isolates::Seccomp {
+                assert!(
+                    p.oracle.reason.to_ascii_lowercase().contains("before"),
+                    "{}: seccomp-isolating oracle must spell out the before-ordering: {}",
+                    p.id,
+                    p.oracle.reason
+                );
+            }
             if let (Some(g), Some(a)) = (p.oracle.guarantees, p.kernel.absent_errno) {
                 assert_ne!(g, a, "{}: the oracle guarantees the absent errno", p.id);
             }
         }
+    }
+
+    fn reason_names_kernel_location(reason: &str) -> bool {
+        reason.contains("::")
+            || reason.contains(".c")
+            || reason
+                .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_' || c == '('))
+                .any(|word| {
+                    let name = word.strip_suffix('(').unwrap_or(word);
+                    name.contains('_') && name.chars().any(|c| c.is_ascii_alphabetic())
+                })
+    }
+
+    #[test]
+    fn every_probe_family_is_in_the_committed_set() {
+        let stray: Vec<_> = probes()
+            .iter()
+            .filter(|p| !COMMITTED_FAMILIES.contains(&p.family))
+            .map(|p| (p.id, p.family))
+            .collect();
+        assert!(
+            stray.is_empty(),
+            "probe families outside the committed set: {stray:?}"
+        );
     }
 
     /// The merge gate for #9: `Undeclared` is for authoring, not for

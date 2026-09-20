@@ -134,11 +134,12 @@ macro_rules! opcode {
                 guarantees: None,
                 isolates: Isolates::Seccomp,
                 reason: "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or \
-                         capability check, so EPERM is a filter at entry on either syscall; since \
-                         6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and \
-                         on such a cell the filter is not isolated. A clear SUPPORTED bit is \
-                         returned as ENOSYS, which io_uring_register never produces for an \
-                         accepted ring: absence, read as unimplemented",
+                         capability check before the SUPPORTED bit is read, so EPERM is a filter \
+                         at entry on either syscall; since 6.6 the kernel.io_uring_disabled \
+                         sysctl also answers EPERM at setup, and on such a cell the filter is not \
+                         isolated. A clear SUPPORTED bit is returned as ENOSYS, which \
+                         io_uring_register never produces for an accepted ring: absence, read as \
+                         unimplemented",
             },
             capability: None,
             effects: SideEffects::NONE,
