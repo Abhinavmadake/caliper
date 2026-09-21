@@ -47,6 +47,7 @@ const PROBED: &[libc::c_long] = &[
     libc::SYS_io_uring_register,
     libc::SYS_io_uring_setup,
     libc::SYS_mount,
+    libc::SYS_mkdirat,
     libc::SYS_unshare,
     libc::SYS_clone3,
     libc::SYS_fstatfs,
@@ -217,6 +218,15 @@ fn under_a_kill_filter_reachable_probes_are_killed_and_the_run_survives() {
         if id.starts_with("device.") {
             assert!(
                 r["verdict"] == "permitted" || r["verdict"] == "denied",
+                "{r}"
+            );
+            continue;
+        }
+        if id.starts_with("mount.type.") {
+            // Enumeration through the engine's own openat/read/close, which
+            // the filter must not kill; the answer is the kernel's.
+            assert!(
+                r["verdict"] == "permitted" || r["verdict"] == "unimplemented",
                 "{r}"
             );
             continue;

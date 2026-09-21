@@ -160,7 +160,9 @@ fn allowlist_is_enforced() {
 }
 
 /// Probes whose syscall the allowlist carries for the harness's own sake,
-/// so under it they reach the kernel: `clone3` is in group 2.
+/// so under it they reach the kernel: `clone3` is in group 2. The
+/// `mount.type.*` probes read `/proc/filesystems` with the engine's own
+/// `openat`/`read`/`close` and are matched by prefix.
 const REACHES_THE_KERNEL: &[&str] = &[
     "clone3.args.short",
     "clone.flags.newuser",
@@ -193,9 +195,11 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
     assert!(results.len() >= 10, "{}", doc["results"]);
     for r in results {
         let id = r["probe_id"].as_str().unwrap();
-        if REACHES_THE_KERNEL.contains(&id) {
+        if REACHES_THE_KERNEL.contains(&id) || id.starts_with("mount.type.") {
             assert!(
-                r["verdict"] == "permitted" || r["verdict"] == "denied",
+                r["verdict"] == "permitted"
+                    || r["verdict"] == "denied"
+                    || r["verdict"] == "unimplemented",
                 "{r}"
             );
         } else if id.starts_with("path.") {
