@@ -36,10 +36,15 @@ RUN case "$TARGETARCH" in \
       *) echo "unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
     esac \
  && cargo build --release --locked --target "$triple" \
- && cp "target/$triple/release/caliper-probe" /caliper-probe
+ && cp "target/$triple/release/caliper-probe" /caliper-probe \
+ && mkdir /caliper-tmp
 
 FROM scratch
 COPY --from=build /caliper-probe /caliper-probe
+# A writable directory for probes that need a path of their own (the mount
+# family's target, #13): the only thing in the image the probe may write,
+# owned by the user it runs as. Empty, and nothing is read from it.
+COPY --from=build --chown=65534:65534 /caliper-tmp /tmp
 # Unprivileged by default; the measurement is of what an ordinary workload
 # can reach. Deployments that need to measure a different identity say so.
 USER 65534:65534
