@@ -1,0 +1,4650 @@
+[
+  {
+    "id": "socket.family.af_inet",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_INET, SOCK_STREAM, 0): the family every workload uses",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "security_socket_create runs before the family lookup in __sock_create, so EPERM is seccomp or an LSM; AF_INET is built into every supported kernel"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "socket.family.af_alg",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_ALG, SOCK_SEQPACKET, 0): the crypto user API is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "security_socket_create runs before the family lookup in __sock_create, so EPERM is seccomp or an LSM; EAFNOSUPPORT is the family absent from this kernel (CONFIG_CRYPTO_USER_API) or its module not loadable, which is unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_packet",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_PACKET, SOCK_RAW, 0): raw link-layer access, CAP_NET_RAW",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "packet_create checks CAP_NET_RAW after security_socket_create and answers EPERM itself, so EPERM is seccomp, an LSM, or the capability absent from the effective set; the capability field is the correlate. An LSM that denies the family answers EACCES"
+    },
+    "capability": "CAP_NET_RAW",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "socket.family.out_of_range",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(1000, SOCK_STREAM, 0): a family beyond NPROTO, guaranteed EAFNOSUPPORT",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 97,
+      "isolates": "seccomp",
+      "reason": "__sock_create rejects a family at or beyond NPROTO with EAFNOSUPPORT before security_socket_create and before the family table is consulted; only a filter at syscall entry can answer EPERM first"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "socket.family.af_unix",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_UNIX, SOCK_STREAM, 0): the local family every runtime needs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "unix_create runs after security_socket_create and checks nothing; EPERM is seccomp or an LSM. Built into every kernel: EAFNOSUPPORT cannot be absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "socket.family.af_inet6",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_INET6, SOCK_STREAM, 0): IPv6 is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "inet6_create runs after security_socket_create; EPERM is seccomp or an LSM. EAFNOSUPPORT is CONFIG_IPV6=n, ipv6.disable=1, or the ipv6 module not loadable (net-pf-10): absence, not policy"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_key",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_KEY, SOCK_RAW, PF_KEY_V2): the IPsec key management interface, CAP_NET_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "pfkey_create checks ns_capable(CAP_NET_ADMIN) first and answers EPERM itself, after security_socket_create and the family lookup; nothing separates a filter from the missing capability. EAFNOSUPPORT is af_key absent (net-pf-15)"
+    },
+    "capability": "CAP_NET_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_bluetooth",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM): the Bluetooth stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "bt_sock_create runs after security_socket_create, loads bt-proto-3 (rfcomm) if unregistered, and rfcomm_sock_create checks no capability for SOCK_STREAM; EPERM is seccomp or an LSM. EAFNOSUPPORT is bluetooth absent (net-pf-31); EPROTONOSUPPORT is rfcomm absent with the family present"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_can",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_CAN, SOCK_RAW, CAN_RAW): the CAN bus stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "can_create runs after security_socket_create, loads can-proto-1 (can_raw) if unregistered, and raw_init checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is can absent (net-pf-29); EPROTONOSUPPORT is can_raw absent"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_tipc",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_TIPC, SOCK_RDM, 0): the TIPC cluster stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "tipc_sk_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is tipc absent (net-pf-30)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_rds",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_RDS, SOCK_SEQPACKET, 0): Reliable Datagram Sockets are reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "rds_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is rds absent (net-pf-21)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_xdp",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_XDP, SOCK_RAW, 0): AF_XDP zero-copy sockets, CAP_NET_RAW",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "xsk_create checks ns_capable(CAP_NET_RAW) first and answers EPERM itself, after security_socket_create; nothing separates a filter from the missing capability. Built in where CONFIG_XDP_SOCKETS=y: EAFNOSUPPORT is absence"
+    },
+    "capability": "CAP_NET_RAW",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "socket.family.af_rxrpc",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_RXRPC, SOCK_DGRAM, PF_INET): the RxRPC transport is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "rxrpc_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is rxrpc absent (net-pf-33)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_phonet",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_PHONET, SOCK_DGRAM, 0): the Phonet stack, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "pn_socket_create checks capable(CAP_SYS_ADMIN) first, for every socket type, and answers EPERM itself, after security_socket_create and the family lookup; nothing separates a filter from the missing capability. EAFNOSUPPORT is phonet absent (net-pf-35), or a network namespace other than the initial one"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_ieee802154",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_IEEE802154, SOCK_DGRAM, 0): the 802.15.4 stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "ieee802154_create answers EAFNOSUPPORT for any network namespace but the initial one, after the family lookup has loaded af_802154 (net-pf-36): inside a container the errno is the same as absence and the module snapshot is what tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_nfc",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_NFC, SOCK_STREAM, NFC_SOCKPROTO_LLCP): the NFC stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "nfc_sock_create runs after security_socket_create; the LLCP protocol checks no capability (raw would need CAP_NET_RAW). EPERM is seccomp or an LSM. EAFNOSUPPORT is nfc absent (net-pf-39)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_vsock",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_VSOCK, SOCK_STREAM, 0): the host-guest vsock family is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "vsock_create runs after security_socket_create and checks no capability for protocol 0; EPERM is seccomp or an LSM. EAFNOSUPPORT is vsock absent (net-pf-40), the usual state on a node with no hypervisor transport"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_kcm",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_KCM, SOCK_DGRAM, KCMPROTO_CONNECTED): kernel connection multiplexor",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "kcm_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is kcm absent (net-pf-41)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_qipcrtr",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_QIPCRTR, SOCK_DGRAM, PF_QIPCRTR): the Qualcomm IPC router is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "qrtr_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is qrtr absent (net-pf-42)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_smc",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_SMC, SOCK_STREAM, SMCPROTO_SMC): shared memory communications",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "smc_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is smc absent (net-pf-43)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_mctp",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_MCTP, SOCK_DGRAM, 0): the Management Component Transport Protocol",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "mctp_pf_create runs after security_socket_create and checks no capability; EPERM is seccomp or an LSM. EAFNOSUPPORT is mctp absent (net-pf-45)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_ax25",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_AX25, SOCK_DGRAM, 0): the amateur-radio AX.25 stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "ax25_create answers EAFNOSUPPORT outside the initial network namespace, after the family lookup has loaded ax25 (net-pf-3): inside a container the errno is the same as absence and the module snapshot tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_appletalk",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_APPLETALK, SOCK_DGRAM, 0): the AppleTalk stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "atalk_create answers EAFNOSUPPORT outside the initial network namespace, after the family lookup has loaded appletalk (net-pf-5): inside a container the errno is the same as absence and the module snapshot tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "socket.family.af_x25",
+    "family": "socket",
+    "status": "committed",
+    "description": "socket(AF_X25, SOCK_SEQPACKET, 0): the X.25 stack is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 97
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "x25_create answers EAFNOSUPPORT outside the initial network namespace, after the family lookup has loaded x25 (net-pf-9): inside a container the errno is the same as absence and the module snapshot tells them apart. EPERM is seccomp or an LSM"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.route",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE): rtnetlink is reachable",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "netlink_create checks the protocol number after security_socket_create and after the family lookup, so EPERM is seccomp or an LSM; NETLINK_ROUTE is built into every supported kernel, so EPROTONOSUPPORT cannot be absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.usersock",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_USERSOCK): the user-space-to-user-space protocol",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "always registered by af_netlink itself; netlink_create checks no capability, so EPERM is seccomp or an LSM and EPROTONOSUPPORT cannot be absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.sock_diag",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_SOCK_DIAG): socket enumeration (ss, inet_diag)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "sock_diag registers the handler at init where CONFIG_INET_DIAG or unix_diag is built; EPERM is seccomp or an LSM after the hook; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.nflog",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_NFLOG): the legacy netfilter log protocol",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "no in-tree handler since ipt_ULOG was removed; netlink_create asks for net-pf-16-proto-5 and answers EPROTONOSUPPORT when nothing registers, which is absence. EPERM is seccomp or an LSM after the hook"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.xfrm",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_XFRM): IPsec transform configuration",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "xfrm_user registers the handler; netlink_create loads net-pf-16-proto-6 with no capability check (CAP_NET_ADMIN is on sendmsg). EPERM is seccomp or an LSM; EPROTONOSUPPORT is xfrm_user absent"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.selinux",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_SELINUX): SELinux event notifications",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "selnl_init registers the handler only when SELinux is built and enabled; on an AppArmor cell EPROTONOSUPPORT is that absence. EPERM is seccomp or an LSM"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.iscsi",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_ISCSI): the open-iSCSI transport",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "scsi_transport_iscsi registers the handler; netlink_create loads net-pf-16-proto-8 with no capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is the module absent"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.audit",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_AUDIT): the audit subsystem",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "audit_init registers the handler where CONFIG_AUDIT=y; creating the socket checks nothing (CAP_AUDIT_READ/WRITE/CONTROL are checked in audit_receive). EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.fib_lookup",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_FIB_LOOKUP): route lookups from user space",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "nl_fib_lookup_init registers the handler per network namespace where CONFIG_IP_MULTIPLE_TABLES=y; EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.connector",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_CONNECTOR): the kernel connector (proc events)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "cn registers the handler; netlink_create loads net-pf-16-proto-11 with no capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.netfilter",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_NETFILTER): nfnetlink, the nf_tables entry point",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "nfnetlink registers the handler; netlink_create loads net-pf-16-proto-12 with no capability check (CAP_NET_ADMIN is on the messages). EPERM is seccomp or an LSM; EPROTONOSUPPORT is nfnetlink absent"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.kobject_uevent",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_KOBJECT_UEVENT): device hotplug events",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "kobject_uevent_init registers the handler per network namespace where CONFIG_NET=y; no capability to create, none to listen. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.generic",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC): generic netlink, every modern family's bus",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "genl_init registers the handler in every supported kernel; EPERM is seccomp or an LSM after the hook, and EPROTONOSUPPORT cannot be absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.scsitransport",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_SCSITRANSPORT): the SCSI transport netlink",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "scsi_netlink_init registers the handler where CONFIG_SCSI_NETLINK=y (a dependency of the FC transport); EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "netlink.protocol.rdma",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_RDMA): the RDMA subsystem's netlink",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "ib_core registers the handler; netlink_create loads net-pf-16-proto-20 with no capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.crypto",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_CRYPTO): the crypto user configuration API",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "crypto_user registers the handler; netlink_create loads net-pf-16-proto-21 with no capability check (CAP_NET_ADMIN is on the messages). EPERM is seccomp or an LSM; EPROTONOSUPPORT is crypto_user absent"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.smc",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, NETLINK_SMC): the SMC protocol's netlink",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 93
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "smc registers the handler; netlink_create loads net-pf-16-proto-22 with no capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": true
+    }
+  },
+  {
+    "id": "netlink.protocol.out_of_range",
+    "family": "netlink",
+    "status": "committed",
+    "description": "socket(AF_NETLINK, SOCK_RAW, 32): a protocol at MAX_LINKS, guaranteed EPROTONOSUPPORT",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 93,
+      "isolates": "seccomp-or-lsm",
+      "reason": "netlink_create rejects a protocol at or beyond MAX_LINKS before looking for a handler, but after security_socket_create and the family lookup: EPROTONOSUPPORT here proves the netlink family itself is reachable, and EPERM instead is seccomp or an LSM, not separable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.register.probe",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "io_uring_register(-1, IORING_REGISTER_PROBE, NULL, 0): guaranteed EBADF",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 9,
+      "isolates": "seccomp",
+      "reason": "io_uring_register resolves the descriptor with fdget as soon as the opcode is in range, and -1 is never a descriptor; EBADF is produced before any LSM hook, so only a filter at syscall entry answers EPERM first"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.setup.zero_entries",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "io_uring_setup(0, &params): guaranteed EINVAL, no ring is created",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp",
+      "reason": "io_uring_create rejects zero entries with EINVAL and io_uring_setup has no LSM hook. Since 6.6 the kernel.io_uring_disabled sysctl makes the kernel itself answer EPERM before that check; on such a cell EPERM does not isolate the filter"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.nop",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_NOP (0, since 5.1): the control: a ring that can be probed at all supports it",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.readv",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_READV (1, since 5.1): vectored reads without read(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.writev",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_WRITEV (2, since 5.1): vectored writes without write(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.fsync",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FSYNC (3, since 5.1): fsync without fsync(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.read_fixed",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_READ_FIXED (4, since 5.1): reads into registered buffers",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.write_fixed",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_WRITE_FIXED (5, since 5.1): writes from registered buffers",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.poll_add",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_POLL_ADD (6, since 5.1): poll without poll(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.sync_file_range",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SYNC_FILE_RANGE (8, since 5.2): sync_file_range without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.sendmsg",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SENDMSG (9, since 5.3): sendmsg without sendmsg(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.recvmsg",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_RECVMSG (10, since 5.3): recvmsg without recvmsg(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.timeout",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_TIMEOUT (11, since 5.4): timers in the ring",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.accept",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_ACCEPT (13, since 5.5): accept without accept4(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.connect",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_CONNECT (16, since 5.5): connect without connect(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.fallocate",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FALLOCATE (17, since 5.6): fallocate without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.openat",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_OPENAT (18, since 5.6): opening files without openat(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.close",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_CLOSE (19, since 5.6): close without close(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.statx",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_STATX (21, since 5.6): statx without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.read",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_READ (22, since 5.6): read without read(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.write",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_WRITE (23, since 5.6): write without write(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.fadvise",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FADVISE (24, since 5.6): fadvise without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.madvise",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_MADVISE (25, since 5.6): madvise without madvise(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.send",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SEND (26, since 5.6): send without send(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.recv",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_RECV (27, since 5.6): recv without recv(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.openat2",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_OPENAT2 (28, since 5.6): openat2 without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.epoll_ctl",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_EPOLL_CTL (29, since 5.6): epoll_ctl without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.splice",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SPLICE (30, since 5.7): splice without splice(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.tee",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_TEE (33, since 5.8): tee without tee(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.shutdown",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SHUTDOWN (34, since 5.11): shutdown without shutdown(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.renameat",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_RENAMEAT (35, since 5.11): renames without renameat2(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.unlinkat",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_UNLINKAT (36, since 5.11): unlinks without unlinkat(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.mkdirat",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_MKDIRAT (37, since 5.15): mkdir without mkdirat(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.symlinkat",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SYMLINKAT (38, since 5.15): symlinks without symlinkat(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.linkat",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_LINKAT (39, since 5.15): hard links without linkat(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.msg_ring",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_MSG_RING (40, since 5.18): messages and descriptors passed between rings",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.fsetxattr",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FSETXATTR (41, since 5.19): fsetxattr without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.setxattr",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SETXATTR (42, since 5.19): setxattr without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.fgetxattr",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FGETXATTR (43, since 5.19): fgetxattr without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.getxattr",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_GETXATTR (44, since 5.19): getxattr without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.socket",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SOCKET (45, since 5.19): socket creation without socket(2), any family",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.uring_cmd",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_URING_CMD (46, since 5.19): driver passthrough commands (NVMe, ublk) without ioctl(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.send_zc",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SEND_ZC (47, since 6.0): zero-copy send",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.sendmsg_zc",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_SENDMSG_ZC (48, since 6.1): zero-copy sendmsg",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.read_multishot",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_READ_MULTISHOT (49, since 6.7): multishot reads",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.waitid",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_WAITID (50, since 6.7): waitid without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.futex_wait",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FUTEX_WAIT (51, since 6.7): futex wait without futex(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.futex_wake",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FUTEX_WAKE (52, since 6.7): futex wake without futex(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.futex_waitv",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FUTEX_WAITV (53, since 6.7): futex_waitv without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.fixed_fd_install",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FIXED_FD_INSTALL (54, since 6.8): a ring-registered descriptor installed into the process's table",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.ftruncate",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_FTRUNCATE (55, since 6.9): ftruncate without the syscall",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.bind",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_BIND (56, since 6.11): bind without bind(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "io_uring.opcode.listen",
+    "family": "io_uring",
+    "status": "committed",
+    "description": "IORING_REGISTER_PROBE reports IORING_OP_LISTEN (57, since 6.11): listen without listen(2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp",
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.reach",
+    "family": "mount",
+    "status": "committed",
+    "description": "mount(NULL, \"/caliper-no-such-dir\", \"proc\", 0, NULL): guaranteed ENOENT",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 2,
+      "isolates": "seccomp",
+      "reason": "do_mount resolves the target path before path_mount calls may_mount (CAP_SYS_ADMIN, EPERM) and security_sb_mount; a target that does not exist is ENOENT before either, so only a filter at syscall entry answers EPERM first"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [
+        "mounts"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.proc",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists proc: procfs, mountable anywhere the capability allows",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.sysfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists sysfs: sysfs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.tmpfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists tmpfs: tmpfs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.devtmpfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists devtmpfs: the kernel's own /dev",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.devpts",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists devpts: pseudoterminals",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.overlay",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists overlay: overlayfs, every container's root",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.fuse",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists fuse: user-space filesystems",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.fusectl",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists fusectl: the FUSE control filesystem",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.cgroup2",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists cgroup2: the unified cgroup hierarchy",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.cgroup",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists cgroup: the v1 cgroup hierarchy",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.bpf",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists bpf: pinned BPF objects",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.debugfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists debugfs: kernel debugging interfaces",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.tracefs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists tracefs: ftrace",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.configfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists configfs: kernel object configuration",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.securityfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists securityfs: LSM interfaces",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.efivarfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists efivarfs: UEFI variables",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.pstore",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists pstore: persistent storage for crash logs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.binfmt_misc",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists binfmt_misc: interpreter registration",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.hugetlbfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists hugetlbfs: huge pages",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.mqueue",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists mqueue: POSIX message queues",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.autofs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists autofs: automounter",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.ecryptfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists ecryptfs: stacked encryption",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.squashfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists squashfs: compressed read-only images",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.iso9660",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists iso9660: optical media images",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.vfat",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists vfat: FAT",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.ext4",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists ext4: ext4",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.btrfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists btrfs: btrfs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.xfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists xfs: xfs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.nfs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists nfs: NFS v3",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.nfs4",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists nfs4: NFS v4",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.cifs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists cifs: SMB",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.9p",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists 9p: Plan 9 transport (virtio-9p)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.virtiofs",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists virtiofs: virtio-fs",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.type.ntfs3",
+    "family": "mount",
+    "status": "committed",
+    "description": "/proc/filesystems lists ntfs3: NTFS, the in-kernel driver",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 19
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "enumeration, not execution: the type is read from /proc/filesystems, which needs no privilege and loads nothing. Absence is returned as ENODEV, the errno get_fs_type answers with and one read(2) never produces, and reads as unimplemented. An EPERM here is /proc itself unreadable, not a filter on mount(2); mount.reach measures that"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.fs.proc",
+    "family": "mount",
+    "status": "committed",
+    "description": "mount(none, /tmp/caliper-mount, proc): a second procfs, unmounted by the child",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN, before get_fs_type reads the type: EPERM is the capability or a filter, not separable. With the capability the mount happens and the child unmounts it; the mount-table snapshot verifies the rollback"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [
+        "mounts"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.fs.overlay",
+    "family": "mount",
+    "status": "committed",
+    "description": "mount(none, /tmp/caliper-mount, overlay, lowerdir=a:b): a read-only overlay, unmounted by the child",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN, before get_fs_type reads the type. With the capability, ovl_get_tree mounts a read-only overlay over two empty lower layers and the child unmounts it; the mount-table snapshot verifies the rollback"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [
+        "mounts"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "mount.fs.fuse",
+    "family": "mount",
+    "status": "committed",
+    "description": "mount(none, /tmp/caliper-mount, fuse): fuse without a descriptor, guaranteed EINVAL past the capability",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "undecidable",
+      "reason": "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN. With it, get_fs_type finds fuse, security_sb_mount runs, and fuse_get_tree rejects a mount with no fd= option with EINVAL: the guarantee is produced after the capability check and the LSM hook, so it proves both were passed, and nothing is mounted"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [
+        "mounts"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.fuse",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/fuse (10:229, typically 0666): read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.net_tun",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/net/tun (10:200, typically 0666): read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.kvm",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/kvm (10:232, typically 0660 root:kvm): DAC-gated read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.kmsg",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/kmsg (1:11, typically 0644): read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.mem",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/mem (1:1, typically 0640 root:kmem): DAC-gated read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": "CAP_SYS_RAWIO",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.port",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/port (1:4, typically 0640 root:kmem): DAC-gated read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": "CAP_SYS_RAWIO",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.null",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/null (1:3, typically 0666): control read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "device.open.sda",
+    "family": "device",
+    "status": "committed",
+    "description": "/dev/sda (8:0, typically 0660 root:disk): DAC-gated read-only nonblocking open",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_kcore",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_keys",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_latency_stats",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_timer_list",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_timer_stats",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_sched_debug",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_acpi",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_asound",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.proc_scsi",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.sys_firmware",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.masked.sys_powercap",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.readonly.proc_bus",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.readonly.proc_fs",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.readonly.proc_irq",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.readonly.proc_sys",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.readonly.proc_sysrq_trigger",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "path.control.proc_self_status",
+    "family": "path",
+    "status": "committed",
+    "description": "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 2
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "openat(O_PATH) and fstatfs inspect the mount without reading or writing: a different filesystem magic is encoded as ENODATA for a runtime mask, ST_RDONLY as EROFS for a read-only mount, and the expected filesystem as reachable"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.invalid",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWUSER | 0x1): an invalid flag set, guaranteed EINVAL",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp",
+      "reason": "ksys_unshare validates the flag set in check_unshare_flags before any namespace is created or capability checked; bit 0 is not an unshare flag, so EINVAL comes before create_user_ns and its LSM hook, and only a filter at syscall entry answers EPERM first"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newuser",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWUSER): user namespace creation without host privilege",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "create_user_ns in ksys_unshare requires no capability; EPERM is seccomp filter or userns policy (e.g. Debian kernel.unprivileged_userns_clone or AppArmor security_create_user_ns hook answering EACCES/EPERM)"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newns",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWNS): mount namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newnet",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWNET): network namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [
+        "net-namespaces"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newpid",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWPID): PID namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newipc",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWIPC): IPC namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newuts",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWUTS): UTS namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newcgroup",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWCGROUP): cgroup namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newtime",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWTIME): time namespace creation, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "create_new_namespaces in ksys_unshare checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "unshare.flags.newuser_newnet",
+    "family": "clone",
+    "status": "committed",
+    "description": "unshare(CLONE_NEWUSER | CLONE_NEWNET): user+net namespace creation escalation path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "CLONE_NEWUSER creates a user namespace first in ksys_unshare, granting CAP_SYS_ADMIN inside it so create_new_namespaces succeeds without host privileges; EPERM is seccomp or userns policy"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [
+        "net-namespaces"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newuser",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWUSER | SIGCHLD): process creation in a new user namespace",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "create_user_ns in copy_process requires no capability; EPERM is seccomp filter or userns policy"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newns",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWNS | SIGCHLD): process creation in a new mount namespace, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newnet",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWNET | SIGCHLD): process creation in a new net namespace, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [
+        "net-namespaces"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newpid",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWPID | SIGCHLD): process creation in a new PID namespace, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newipc",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWIPC | SIGCHLD): process creation in a new IPC namespace, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newuts",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWUTS | SIGCHLD): process creation in a new UTS namespace, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newcgroup",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWCGROUP | SIGCHLD): process creation in a new cgroup namespace, CAP_SYS_ADMIN",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "copy_namespaces in copy_process checks ns_capable(user_ns, CAP_SYS_ADMIN) and answers EPERM itself; nothing separates seccomp from a missing capability"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone.flags.newuser_newnet",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone(CLONE_NEWUSER | CLONE_NEWNET | SIGCHLD): user+net namespace process creation escalation path",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "CLONE_NEWUSER creates a user namespace first in copy_process, granting CAP_SYS_ADMIN inside it so copy_namespaces succeeds without host privileges; EPERM is seccomp or userns policy"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [
+        "net-namespaces"
+      ],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "clone3.args.short",
+    "family": "clone",
+    "status": "committed",
+    "description": "clone3(NULL, 0): a size below CLONE_ARGS_SIZE_VER0, guaranteed EINVAL",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": [
+        5,
+        3
+      ],
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp",
+      "reason": "copy_clone_args_from_user rejects a size below CLONE_ARGS_SIZE_VER0 with EINVAL before reading anything; nothing runs before it. ENOSYS from a kernel at or past 5.3 is a filter answering in the kernel's voice"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.sys_time",
+    "family": "capability",
+    "status": "committed",
+    "description": "settimeofday(NULL, NULL): capability-only time check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "do_sys_settimeofday64 checks CAP_SYS_TIME before the null/no-op update; settimeofday(2) returns EPERM without it"
+    },
+    "capability": "CAP_SYS_TIME",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.sys_boot",
+    "family": "capability",
+    "status": "committed",
+    "description": "reboot(0, 0, LINUX_REBOOT_CMD_CAD_OFF, NULL): capability check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "undecidable",
+      "reason": "SYSCALL_DEFINE4(reboot) checks CAP_SYS_BOOT before the bad magic validation; reboot(2) documents EINVAL for the malformed command"
+    },
+    "capability": "CAP_SYS_BOOT",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.sys_module",
+    "family": "capability",
+    "status": "committed",
+    "description": "finit_module(-1, \"\", 0): module capability check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 9,
+      "isolates": "undecidable",
+      "reason": "finit_module checks CAP_SYS_MODULE and modules_disabled before fdget_raw; finit_module(2) documents EBADF for fd -1"
+    },
+    "capability": "CAP_SYS_MODULE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.mknod",
+    "family": "capability",
+    "status": "committed",
+    "description": "mknodat(AT_FDCWD, missing path, S_IFCHR|0600, makedev(1,3))",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 2,
+      "isolates": "undecidable",
+      "reason": "do_mknodat calls may_mknod and checks CAP_MKNOD before filename_create; mknodat(2) documents ENOENT for the missing parent"
+    },
+    "capability": "CAP_MKNOD",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.sys_ptrace",
+    "family": "capability",
+    "status": "committed",
+    "description": "process_vm_readv(getppid(), NULL, 0, NULL, 0, 0): zero-byte access check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "process_vm_readv calls ptrace_may_access before the zero-iovec transfer; process_vm_readv(2) permits a zero-byte request and CAP_SYS_PTRACE bypasses the dumpable check"
+    },
+    "capability": "CAP_SYS_PTRACE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.net_bind_service",
+    "family": "capability",
+    "status": "committed",
+    "description": "socket(AF_INET) + bind(0.0.0.0:1): privileged-port check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "inet_bind checks the privileged port against CAP_NET_BIND_SERVICE after socket creation; bind(2) documents EACCES without the capability, subject to net.ipv4.ip_unprivileged_port_start"
+    },
+    "capability": "CAP_NET_BIND_SERVICE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.sys_nice",
+    "family": "capability",
+    "status": "committed",
+    "description": "setpriority(PRIO_PROCESS, 0, -1): priority capability check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "set_user_nice checks CAP_SYS_NICE before changing the isolated child's nice value; setpriority(2) documents EACCES without permission"
+    },
+    "capability": "CAP_SYS_NICE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "capability.sys_rawio",
+    "family": "capability",
+    "status": "committed",
+    "description": "iopl(3): x86 I/O privilege capability check",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": {
+      "only": [
+        "x86_64"
+      ]
+    },
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "iopl checks CAP_SYS_RAWIO before changing the child's I/O privilege level; iopl(2) documents EPERM without it"
+    },
+    "capability": "CAP_SYS_RAWIO",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  }
+]

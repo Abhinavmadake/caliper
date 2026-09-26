@@ -38,6 +38,7 @@ use caliper_engine::measurement::{measure, Measurement, Unmeasurable};
 use caliper_engine::residual::{janitor, Snapshot};
 use caliper_engine::{
     Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass, SideEffects,
+    Status,
 };
 use nix::errno::Errno;
 
@@ -46,6 +47,7 @@ fn probe(id: &'static str, effects: SideEffects, run: fn() -> RawResult) -> Prob
     Probe {
         id,
         family: "test",
+        status: Status::Committed,
         description: id,
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,
@@ -119,6 +121,20 @@ fn an_undeclared_probe_is_refused_not_run() {
     assert_eq!(m.unmeasured[0].why, Unmeasurable::Undeclared);
     let v = serde_json::to_value(&m).unwrap();
     assert_eq!(v["unmeasured"][0]["why"], "undeclared");
+}
+
+#[test]
+fn a_deferred_probe_is_recorded_without_forking() {
+    let _serial = serial();
+    let before = Snapshot::take();
+    let mut p = probe("deferred", SideEffects::NONE, || panic!("must not run"));
+    p.status = Status::Deferred;
+    assert_eq!(measure(&p, &cell()), Err(Unmeasurable::Deferred));
+    assert_eq!(Snapshot::take(), before);
+
+    let m = Measurement::run(&[p], "0.1.0", cell());
+    assert!(m.results.is_empty());
+    assert_eq!(m.unmeasured[0].why, Unmeasurable::Deferred);
 }
 
 #[test]

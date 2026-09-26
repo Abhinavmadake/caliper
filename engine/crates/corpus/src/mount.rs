@@ -49,7 +49,7 @@
 
 use caliper_engine::{
     Applicability, Capability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult,
-    ResidualClass, SideEffects,
+    ResidualClass, SideEffects, Status,
 };
 
 use crate::common::{result, ONE_CALL};
@@ -85,6 +85,7 @@ fn reach() -> RawResult {
 pub const REACH: Probe = Probe {
     id: "mount.reach",
     family: "mount",
+    status: Status::Committed,
     description: "mount(NULL, \"/caliper-no-such-dir\", \"proc\", 0, NULL): guaranteed ENOENT",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -161,6 +162,7 @@ macro_rules! fstype {
         pub const $konst: Probe = Probe {
             id: $id,
             family: "mount",
+            status: Status::Committed,
             description: concat!("/proc/filesystems lists ", $name, ": ", $what),
             risk: ONE_CALL,
             arch: Applicability::All,
@@ -464,6 +466,7 @@ macro_rules! mount_probe {
         pub const $konst: Probe = Probe {
             id: $id,
             family: "mount",
+            status: Status::Committed,
             description: $desc,
             risk: ONE_CALL,
             arch: Applicability::All,

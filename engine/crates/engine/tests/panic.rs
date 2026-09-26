@@ -37,7 +37,7 @@ use std::time::Duration;
 use caliper_engine::harness::{Fault, Outcome};
 use caliper_engine::{
     run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
-    SideEffects,
+    SideEffects, Status,
 };
 use nix::sys::signal::Signal;
 
@@ -53,6 +53,7 @@ fn main() {
     let probe = Probe {
         id: "panics",
         family: "test",
+        status: Status::Committed,
         description: "a probe with a bug in it",
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,

@@ -30,7 +30,7 @@ use std::time::Duration;
 
 use caliper_engine::{
     run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
-    SideEffects,
+    SideEffects, Status,
 };
 
 fn getppid() -> RawResult {
@@ -51,6 +51,7 @@ fn main() {
     let probe = Probe {
         id: "trace",
         family: "test",
+        status: Status::Committed,
         description: "getppid in a child",
         risk: RiskClass::new(true, Duration::from_secs(1)),
         arch: Applicability::All,

@@ -25,7 +25,7 @@ use std::ffi::CStr;
 
 use caliper_engine::{
     Applicability, Capability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult,
-    SideEffects,
+    SideEffects, Status,
 };
 
 use crate::common::ONE_CALL;
@@ -63,6 +63,7 @@ macro_rules! define_probe {
         pub const $constant: Probe = Probe {
             id: $id,
             family: "device",
+            status: Status::Committed,
             description: $description,
             risk: ONE_CALL,
             arch: Applicability::All,

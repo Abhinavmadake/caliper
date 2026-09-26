@@ -36,7 +36,7 @@
 //! `socket.rs`.
 
 use caliper_engine::{
-    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects,
+    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects, Status,
 };
 
 use crate::common::{result, ONE_CALL};
@@ -71,6 +71,7 @@ macro_rules! protocol {
         pub const $konst: Probe = Probe {
             id: $id,
             family: "netlink",
+            status: Status::Committed,
             description: $desc,
             risk: ONE_CALL,
             arch: Applicability::All,
@@ -216,6 +217,7 @@ fn out_of_range() -> RawResult {
 pub const OUT_OF_RANGE_PROTOCOL: Probe = Probe {
     id: "netlink.protocol.out_of_range",
     family: "netlink",
+    status: Status::Committed,
     description:
         "socket(AF_NETLINK, SOCK_RAW, 32): a protocol at MAX_LINKS, guaranteed EPROTONOSUPPORT",
     risk: ONE_CALL,

@@ -30,7 +30,7 @@
 use std::ffi::CStr;
 
 use caliper_engine::{
-    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects,
+    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects, Status,
 };
 
 use crate::common::ONE_CALL;
@@ -132,6 +132,7 @@ macro_rules! define_probe {
         pub const $constant: Probe = Probe {
             id: $id,
             family: "path",
+            status: Status::Committed,
             description: "openat(O_PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path",
             risk: ONE_CALL,
             arch: Applicability::All,

@@ -36,3 +36,29 @@ As agreed by all members and documented in `spec/probe.md`, the `ENOSYS` error r
 - **Hook Ordering:** File descriptor resolution (`fdget()`) occurs at the very beginning of the syscall, preceding any LSM hook or io_uring specific checks.
 - **What it proves:**
   - If the probe returns `EPERM` instead of the guaranteed `EBADF`, it proves interception occurred before descriptor resolution. Since `seccomp` acts on the syscall entry before `fd` resolution, this EBADF oracle **isolates seccomp**. Any `EPERM` is definitively from a seccomp filter and not from an LSM or capability check.
+
+## 4. Capability Effects
+
+Capability probes deliberately use `Isolates::Undecidable`: the syscall's
+own missing-capability result is the observation, and the engine correlates it
+with `cell.capabilities` rather than claiming that an `EPERM` came from a
+filter. The argument sets are chosen so the privileged path is harmless and
+the unprivileged path is distinctive:
+
+- `settimeofday(NULL, NULL)` checks `CAP_SYS_TIME` before the no-op update.
+- `reboot(0, 0, LINUX_REBOOT_CMD_CAD_OFF, NULL)` checks `CAP_SYS_BOOT` before
+  malformed-command validation, which guarantees `EINVAL` after the check.
+- `finit_module(-1, "", 0)` checks `CAP_SYS_MODULE` before descriptor lookup,
+  which guarantees `EBADF` after the check.
+- `mknodat` checks `CAP_MKNOD` before resolving the deliberately missing
+  parent, which guarantees `ENOENT` after the check.
+- `process_vm_readv` checks `CAP_SYS_PTRACE` before a zero-byte transfer.
+- Binding an IPv4 socket to port 80 checks `CAP_NET_BIND_SERVICE` and returns
+  `EACCES` without it; the descriptor dies with the child.
+- `setpriority(..., -1)` checks `CAP_SYS_NICE`; only the child's nice value is
+  changed.
+- x86_64 `iopl(3)` checks `CAP_SYS_RAWIO` and is `not-applicable` on other
+  architectures.
+
+The kernel locations and man-page errno contracts are recorded beside each
+probe in `engine/crates/corpus/src/capability.rs`.

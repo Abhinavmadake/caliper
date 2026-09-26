@@ -52,6 +52,11 @@ jobs:
           cargo test --target x86_64-unknown-linux-musl --locked
           cargo clippy --all-targets --target x86_64-unknown-linux-musl --locked -- -D warnings
           cargo fmt --check
+      # The checked-in corpus index is the W8 freeze artefact (#19). Any
+      # probe/status/metadata change must update it in the same reviewed PR.
+      - name: frozen corpus index
+        run: |
+          target/x86_64-unknown-linux-musl/release/caliper-probe --dump-corpus | diff -u - ../corpus/index.json
       - name: no dynamic loader
         run: |
           bin=target/x86_64-unknown-linux-musl/release/caliper-probe
