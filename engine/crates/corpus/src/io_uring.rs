@@ -50,7 +50,7 @@
 //! `unimplemented 38` on that opcode alone.
 
 use caliper_engine::{
-    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects,
+    Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects, Status,
 };
 
 use crate::common::{result, ONE_CALL};
@@ -123,6 +123,7 @@ macro_rules! opcode {
         pub const $konst: Probe = Probe {
             id: $id,
             family: "io_uring",
+            status: Status::Committed,
             description: concat!(
                 "IORING_REGISTER_PROBE reports ", $name, " (", $op, ", since ", $since, "): ",
                 $what
@@ -178,6 +179,7 @@ const CONFIG_GATED: KernelDependency = KernelDependency {
 pub const REGISTER_PROBE: Probe = Probe {
     id: "io_uring.register.probe",
     family: "io_uring",
+    status: Status::Committed,
     description: "io_uring_register(-1, IORING_REGISTER_PROBE, NULL, 0): guaranteed EBADF",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -197,6 +199,7 @@ pub const REGISTER_PROBE: Probe = Probe {
 pub const SETUP_ZERO_ENTRIES: Probe = Probe {
     id: "io_uring.setup.zero_entries",
     family: "io_uring",
+    status: Status::Committed,
     description: "io_uring_setup(0, &params): guaranteed EINVAL, no ring is created",
     risk: ONE_CALL,
     arch: Applicability::All,

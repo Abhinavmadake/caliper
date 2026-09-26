@@ -70,6 +70,8 @@ pub struct Unmeasured {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Unmeasurable {
+    /// The probe is specified but intentionally outside the frozen corpus.
+    Deferred,
     /// The probe's side effects are `Undeclared`; it was not run (#9).
     Undeclared,
     /// The child ended in a way that is not a verdict.
@@ -151,6 +153,9 @@ pub fn measure(probe: &Probe, cell: &Cell) -> Result<Measured, Unmeasurable> {
 
 /// The answer that needs no child, or `None`: the probe runs.
 fn decided_without_running(probe: &Probe, cell: &Cell) -> Option<Result<Measured, Unmeasurable>> {
+    if probe.status == crate::probe::Status::Deferred {
+        return Some(Err(Unmeasurable::Deferred));
+    }
     if !probe.effects.is_declared() {
         return Some(Err(Unmeasurable::Undeclared));
     }

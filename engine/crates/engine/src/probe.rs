@@ -212,6 +212,30 @@ pub enum Capability {
     SysAdmin,
     #[serde(rename = "CAP_SYS_RAWIO")]
     SysRawio,
+    #[serde(rename = "CAP_SYS_TIME")]
+    SysTime,
+    #[serde(rename = "CAP_SYS_BOOT")]
+    SysBoot,
+    #[serde(rename = "CAP_SYS_MODULE")]
+    SysModule,
+    #[serde(rename = "CAP_MKNOD")]
+    Mknod,
+    #[serde(rename = "CAP_SYS_PTRACE")]
+    SysPtrace,
+    #[serde(rename = "CAP_NET_BIND_SERVICE")]
+    NetBindService,
+    #[serde(rename = "CAP_SYS_NICE")]
+    SysNice,
+}
+
+/// Whether a probe belongs to the frozen committed corpus or is specified
+/// for later work. Deferred probes remain visible in the corpus index but are
+/// never executed by the measurement engine (#19).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Status {
+    Committed,
+    Deferred,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -220,6 +244,7 @@ pub struct Probe {
     pub id: &'static str,
     /// Entry family (`socket`, `io_uring`, `mount`, …).
     pub family: &'static str,
+    pub status: Status,
     pub description: &'static str,
     pub risk: RiskClass,
     pub arch: Applicability,

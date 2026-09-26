@@ -52,7 +52,7 @@ pub use measurement::{measure, Measurement, ProbeResult, Unmeasurable, Unmeasure
 pub use nix::errno::Errno;
 pub use probe::{
     Applicability, Capability, Isolates, KernelDependency, Oracle, Probe, ProbeFn, RawResult,
-    RiskClass,
+    RiskClass, Status,
 };
 pub use verdict::{classify, Measured, Verdict};
 

@@ -34,6 +34,7 @@ use caliper_engine::measurement::{measure, Measurement, FORMAT_VERSION};
 use caliper_engine::verdict::{classify, Verdict};
 use caliper_engine::{
     Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass, SideEffects,
+    Status,
 };
 use nix::errno::Errno;
 use seccompiler::{apply_filter, BpfProgram, SeccompAction, SeccompFilter, TargetArch};
@@ -62,6 +63,7 @@ fn probe(id: &'static str, kernel: KernelDependency, run: fn() -> RawResult) -> 
     Probe {
         id,
         family: "test",
+        status: Status::Committed,
         description: id,
         risk: RiskClass::new(true, Duration::from_secs(5)),
         arch: Applicability::All,

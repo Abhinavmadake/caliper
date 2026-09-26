@@ -34,6 +34,7 @@
 //! use caliper_corpus::Probe;
 //! use caliper_engine::{
 //!     Applicability, Errno, Isolates, KernelDependency, Oracle, RawResult, RiskClass, SideEffects,
+//!     Status,
 //! };
 //!
 //! /// `close(2)` on a descriptor that cannot be valid.
@@ -57,6 +58,7 @@
 //! const EXAMPLE: Probe = Probe {
 //!     id: "example.close.bad_fd",
 //!     family: "example",
+//!     status: Status::Committed,
 //!     description: "close(2) on an invalid descriptor",
 //!     // requires_fork is the author's claim about side effects, reviewed in
 //!     // #18; the engine forks for every probe regardless.
@@ -110,6 +112,7 @@
 
 pub use caliper_engine::Probe;
 
+mod capability;
 mod clone;
 mod common;
 mod device;
@@ -304,13 +307,21 @@ pub fn probes() -> &'static [Probe] {
         clone::CLONE_FLAGS_NEWCGROUP,
         clone::CLONE_FLAGS_NEWUSER_NEWNET,
         clone::CLONE3_SHORT_ARGS,
+        capability::SYS_TIME,
+        capability::SYS_BOOT,
+        capability::SYS_MODULE,
+        capability::MKNOD,
+        capability::SYS_PTRACE,
+        capability::NET_BIND_SERVICE,
+        capability::SYS_NICE,
+        capability::SYS_RAWIO,
     ]
 }
 
 #[cfg(test)]
 mod tests {
     use super::probes;
-    use caliper_engine::Isolates;
+    use caliper_engine::{Isolates, Status};
     use std::collections::BTreeSet;
 
     const COMMITTED_FAMILIES: &[&str] = &[
@@ -323,6 +334,24 @@ mod tests {
         "device",
         "capability",
     ];
+
+    /// Counts recorded by the frozen `corpus/index.json` artefact (#19).
+    const FROZEN_COMMITTED_PROBES: usize = 185;
+    const FROZEN_DEFERRED_PROBES: usize = 0;
+
+    #[test]
+    fn frozen_corpus_size_matches_probe_statuses() {
+        let committed = probes()
+            .iter()
+            .filter(|probe| probe.status == Status::Committed)
+            .count();
+        let deferred = probes()
+            .iter()
+            .filter(|probe| probe.status == Status::Deferred)
+            .count();
+        assert_eq!(committed, FROZEN_COMMITTED_PROBES);
+        assert_eq!(deferred, FROZEN_DEFERRED_PROBES);
+    }
 
     /// #10: ten probes across at least three entry families.
     #[test]

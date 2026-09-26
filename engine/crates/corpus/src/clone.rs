@@ -21,7 +21,7 @@
 
 use caliper_engine::{
     Applicability, Capability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult,
-    ResidualClass, SideEffects,
+    ResidualClass, SideEffects, Status,
 };
 
 use crate::common::{result, ONE_CALL};
@@ -127,6 +127,7 @@ fn clone_newuser_newnet() -> RawResult {
 pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
     id: "unshare.flags.invalid",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWUSER | 0x1): an invalid flag set, guaranteed EINVAL",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -149,6 +150,7 @@ pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWUSER: Probe = Probe {
     id: "unshare.flags.newuser",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWUSER): user namespace creation without host privilege",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -168,6 +170,7 @@ pub const UNSHARE_FLAGS_NEWUSER: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWNS: Probe = Probe {
     id: "unshare.flags.newns",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWNS): mount namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -186,6 +189,7 @@ pub const UNSHARE_FLAGS_NEWNS: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWNET: Probe = Probe {
     id: "unshare.flags.newnet",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWNET): network namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -207,6 +211,7 @@ pub const UNSHARE_FLAGS_NEWNET: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWPID: Probe = Probe {
     id: "unshare.flags.newpid",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWPID): PID namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -225,6 +230,7 @@ pub const UNSHARE_FLAGS_NEWPID: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWIPC: Probe = Probe {
     id: "unshare.flags.newipc",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWIPC): IPC namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -243,6 +249,7 @@ pub const UNSHARE_FLAGS_NEWIPC: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWUTS: Probe = Probe {
     id: "unshare.flags.newuts",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWUTS): UTS namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -261,6 +268,7 @@ pub const UNSHARE_FLAGS_NEWUTS: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWCGROUP: Probe = Probe {
     id: "unshare.flags.newcgroup",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWCGROUP): cgroup namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -279,6 +287,7 @@ pub const UNSHARE_FLAGS_NEWCGROUP: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWTIME: Probe = Probe {
     id: "unshare.flags.newtime",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWTIME): time namespace creation, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -297,6 +306,7 @@ pub const UNSHARE_FLAGS_NEWTIME: Probe = Probe {
 pub const UNSHARE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
     id: "unshare.flags.newuser_newnet",
     family: "clone",
+    status: Status::Committed,
     description: "unshare(CLONE_NEWUSER | CLONE_NEWNET): user+net namespace creation escalation path",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -319,6 +329,7 @@ pub const UNSHARE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
 pub const CLONE_FLAGS_NEWUSER: Probe = Probe {
     id: "clone.flags.newuser",
     family: "clone",
+    status: Status::Committed,
     description: "clone(CLONE_NEWUSER | SIGCHLD): process creation in a new user namespace",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -337,6 +348,7 @@ pub const CLONE_FLAGS_NEWUSER: Probe = Probe {
 pub const CLONE_FLAGS_NEWNS: Probe = Probe {
     id: "clone.flags.newns",
     family: "clone",
+    status: Status::Committed,
     description:
         "clone(CLONE_NEWNS | SIGCHLD): process creation in a new mount namespace, CAP_SYS_ADMIN",
     risk: ONE_CALL,
@@ -356,6 +368,7 @@ pub const CLONE_FLAGS_NEWNS: Probe = Probe {
 pub const CLONE_FLAGS_NEWNET: Probe = Probe {
     id: "clone.flags.newnet",
     family: "clone",
+    status: Status::Committed,
     description:
         "clone(CLONE_NEWNET | SIGCHLD): process creation in a new net namespace, CAP_SYS_ADMIN",
     risk: ONE_CALL,
@@ -378,6 +391,7 @@ pub const CLONE_FLAGS_NEWNET: Probe = Probe {
 pub const CLONE_FLAGS_NEWPID: Probe = Probe {
     id: "clone.flags.newpid",
     family: "clone",
+    status: Status::Committed,
     description:
         "clone(CLONE_NEWPID | SIGCHLD): process creation in a new PID namespace, CAP_SYS_ADMIN",
     risk: ONE_CALL,
@@ -397,6 +411,7 @@ pub const CLONE_FLAGS_NEWPID: Probe = Probe {
 pub const CLONE_FLAGS_NEWIPC: Probe = Probe {
     id: "clone.flags.newipc",
     family: "clone",
+    status: Status::Committed,
     description:
         "clone(CLONE_NEWIPC | SIGCHLD): process creation in a new IPC namespace, CAP_SYS_ADMIN",
     risk: ONE_CALL,
@@ -416,6 +431,7 @@ pub const CLONE_FLAGS_NEWIPC: Probe = Probe {
 pub const CLONE_FLAGS_NEWUTS: Probe = Probe {
     id: "clone.flags.newuts",
     family: "clone",
+    status: Status::Committed,
     description:
         "clone(CLONE_NEWUTS | SIGCHLD): process creation in a new UTS namespace, CAP_SYS_ADMIN",
     risk: ONE_CALL,
@@ -435,6 +451,7 @@ pub const CLONE_FLAGS_NEWUTS: Probe = Probe {
 pub const CLONE_FLAGS_NEWCGROUP: Probe = Probe {
     id: "clone.flags.newcgroup",
     family: "clone",
+    status: Status::Committed,
     description: "clone(CLONE_NEWCGROUP | SIGCHLD): process creation in a new cgroup namespace, CAP_SYS_ADMIN",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -453,6 +470,7 @@ pub const CLONE_FLAGS_NEWCGROUP: Probe = Probe {
 pub const CLONE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
     id: "clone.flags.newuser_newnet",
     family: "clone",
+    status: Status::Committed,
     description: "clone(CLONE_NEWUSER | CLONE_NEWNET | SIGCHLD): user+net namespace process creation escalation path",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -478,6 +496,7 @@ pub const CLONE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
 pub const CLONE3_SHORT_ARGS: Probe = Probe {
     id: "clone3.args.short",
     family: "clone",
+    status: Status::Committed,
     description: "clone3(NULL, 0): a size below CLONE_ARGS_SIZE_VER0, guaranteed EINVAL",
     risk: ONE_CALL,
     arch: Applicability::All,

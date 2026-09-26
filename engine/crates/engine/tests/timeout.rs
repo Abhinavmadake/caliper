@@ -24,7 +24,7 @@ use caliper_engine::harness::Outcome;
 use caliper_engine::verdict::{classify, Verdict};
 use caliper_engine::{
     run_isolated, Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass,
-    SideEffects,
+    SideEffects, Status,
 };
 
 /// An oracle for a probe whose call is expected to succeed.
@@ -39,6 +39,7 @@ fn probe(id: &'static str, timeout: Duration, run: fn() -> RawResult) -> Probe {
     Probe {
         id,
         family: "test",
+        status: Status::Committed,
         description: id,
         risk: RiskClass::new(true, timeout),
         arch: Applicability::All,

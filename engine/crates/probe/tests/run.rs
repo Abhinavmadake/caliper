@@ -51,6 +51,15 @@ const PROBED: &[libc::c_long] = &[
     libc::SYS_unshare,
     libc::SYS_clone3,
     libc::SYS_fstatfs,
+    libc::SYS_settimeofday,
+    libc::SYS_reboot,
+    libc::SYS_finit_module,
+    libc::SYS_mknodat,
+    libc::SYS_process_vm_readv,
+    libc::SYS_bind,
+    libc::SYS_setpriority,
+    #[cfg(target_arch = "x86_64")]
+    libc::SYS_iopl,
     #[cfg(target_arch = "x86_64")]
     libc::SYS_clone,
 ];
@@ -239,6 +248,10 @@ fn under_a_kill_filter_reachable_probes_are_killed_and_the_run_survives() {
         }
         #[cfg(target_arch = "aarch64")]
         {
+            if id == "capability.sys_rawio" {
+                assert_eq!(r["verdict"], "not-applicable", "{r}");
+                continue;
+            }
             if id.starts_with("clone.flags.") {
                 assert_ne!(r["verdict"], "killed", "{r}");
                 continue;

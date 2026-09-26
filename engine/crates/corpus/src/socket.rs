@@ -53,7 +53,7 @@
 
 use caliper_engine::{
     Applicability, Capability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult,
-    SideEffects,
+    SideEffects, Status,
 };
 
 use crate::common::{result, ONE_CALL};
@@ -95,6 +95,7 @@ const CONFIG_GATED_FAMILY: KernelDependency = KernelDependency {
 pub const AF_ALG: Probe = Probe {
     id: "socket.family.af_alg",
     family: "socket",
+    status: Status::Committed,
     description: "socket(AF_ALG, SOCK_SEQPACKET, 0): the crypto user API is reachable",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -120,6 +121,7 @@ pub const AF_ALG: Probe = Probe {
 pub const AF_INET: Probe = Probe {
     id: "socket.family.af_inet",
     family: "socket",
+    status: Status::Committed,
     description: "socket(AF_INET, SOCK_STREAM, 0): the family every workload uses",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -140,6 +142,7 @@ pub const AF_INET: Probe = Probe {
 pub const AF_PACKET: Probe = Probe {
     id: "socket.family.af_packet",
     family: "socket",
+    status: Status::Committed,
     description: "socket(AF_PACKET, SOCK_RAW, 0): raw link-layer access, CAP_NET_RAW",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -162,6 +165,7 @@ pub const AF_PACKET: Probe = Probe {
 pub const OUT_OF_RANGE_FAMILY: Probe = Probe {
     id: "socket.family.out_of_range",
     family: "socket",
+    status: Status::Committed,
     description: "socket(1000, SOCK_STREAM, 0): a family beyond NPROTO, guaranteed EAFNOSUPPORT",
     risk: ONE_CALL,
     arch: Applicability::All,
@@ -206,6 +210,7 @@ macro_rules! family {
         pub const $konst: Probe = Probe {
             id: $id,
             family: "socket",
+            status: Status::Committed,
             description: $desc,
             risk: ONE_CALL,
             arch: Applicability::All,
