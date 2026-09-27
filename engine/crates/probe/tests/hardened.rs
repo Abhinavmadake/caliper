@@ -209,6 +209,10 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
                 r["verdict"] == "killed" || r["verdict"] == "unimplemented",
                 "{r}"
             );
+        } else if cfg!(target_arch = "aarch64") && id == "capability.sys_rawio" {
+            // iopl(2) is x86-only, so the corpus records this probe as
+            // not-applicable on aarch64 instead of expecting SIGSYS.
+            assert_eq!(r["verdict"], "not-applicable", "{r}");
         } else {
             assert_eq!(r["verdict"], "killed", "{r}");
         }
