@@ -39,3 +39,22 @@ onto results. Tiers inherit downward: an assertion at `restricted` holds at
 
 Versioning is #23. A change to a shipped version is a new version; findings
 cite the version they were evaluated against.
+
+## Tier definitions (#21)
+
+`posture/v1/posture.yaml` currently defines four named tiers:
+
+- `privileged`: node agents and infrastructure workloads that legitimately
+  need broad host-facing kernel access.
+- `baseline`: ordinary trusted services that need normal application access,
+  but not host administration primitives.
+- `restricted`: services handling untrusted input under a standard hardened
+  deployment.
+- `untrusted-multi-tenant`: operator-untrusted code sharing a node with other
+  tenants, such as pull-request CI and customer plugin sandboxes.
+
+Each tier records the PSS level it is named after, the workload class it
+describes, and why it is deliberately stronger than that PSS level. The
+`untrusted-multi-tenant` tier is named after Restricted because PSS has no
+stronger level; that gap is intentional. Assertions are added in #22 and
+posture revisions are handled in #23.
