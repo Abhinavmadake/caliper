@@ -35,6 +35,9 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
           shellcheck scripts/*.sh
+      - name: validate reference posture
+        run: |
+          python3 -c 'import yaml; d=yaml.safe_load(open("posture/v1/posture.yaml")); assert d["posture_version"] == 1; assert len(d["tiers"]) == 4; assert d["assertions"] == []'
 
   engine:
     runs-on: ubuntu-24.04

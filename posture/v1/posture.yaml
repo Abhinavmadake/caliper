@@ -1,0 +1,52 @@
+posture_version: 1
+
+# Tier definitions are the normative part of #21. Assertions are intentionally
+# empty until issue #22 authors the family-level expectations.
+tiers:
+  - name: privileged
+    named_after: privileged
+    describes: >-
+      Infrastructure workloads that legitimately need broad node access, such
+      as CNI plugins, storage drivers, and node agents. These workloads are
+      trusted to operate the host-facing kernel interfaces they require.
+    stronger_than_pss_because: >-
+      This is the PSS Privileged floor: it deliberately adds no stronger
+      reachability restriction, so the evaluator can identify workloads that
+      were labelled privileged unnecessarily.
+
+  - name: baseline
+    named_after: baseline
+    describes: >-
+      Ordinary services with no adversarial input inside the container, such
+      as internal APIs, batch workers, and monitoring components. They need
+      normal networking and storage, but not host administration primitives.
+    stronger_than_pss_because: >-
+      PSS Baseline constrains privileged mode, host namespaces, and hostPath;
+      this tier additionally models kernel entry families the service should
+      never reach, even when RuntimeDefault happens to permit them.
+
+  - name: restricted
+    named_after: restricted
+    describes: >-
+      Services handling untrusted requests in a standard hardened deployment,
+      such as public web APIs, ingress controllers, and image-processing
+      workers. They run non-root with a minimal capability set.
+    stronger_than_pss_because: >-
+      PSS Restricted adds non-root, drop-ALL, and RuntimeDefault requirements,
+      but RuntimeDefault is runtime-defined. This tier independently asserts
+      a smaller kernel surface, so the expectation remains stable across
+      runtime versions.
+
+  - name: untrusted-multi-tenant
+    named_after: restricted
+    describes: >-
+      Code the operator does not trust while it shares a node with tenants it
+      must not reach, including CI jobs executing pull requests, serverless
+      functions, and SaaS plugin or customer-code sandboxes.
+    stronger_than_pss_because: >-
+      Kubernetes has no PSS level above Restricted. This tier deliberately
+      strengthens Restricted with the full isolation model: no kernel crypto
+      API, module loading, perf events, raw netlink, io_uring, 32-bit ABI,
+      unmasked procfs, or other high-consequence entry families.
+
+assertions: []
