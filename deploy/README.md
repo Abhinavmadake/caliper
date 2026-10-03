@@ -54,7 +54,9 @@ The cells need an amd64 host with hardware virtualisation: the Kata cell
 requires it outright, and the other amd64 cells run on an arm64 laptop only
 under emulation. Confirming that machine is the first D task (week 1).
 
-## Bringing up cells 2 and 4
+## Bringing up the cells
+
+The environment is automated using Lima virtual machines to ensure repeatability across the six required cells. Cells 2 and 4 represent the baseline and the unpatched runtime version, while cells 1, 3, 5, and 6 cover architecture, LSM, and RuntimeClass changes.
 
 Cells 2 and 4 are the same distribution (Ubuntu 24.04) on either side of one change: the release pocket ships containerd 1.7.12, and the updates pocket ships 2.2.1. This demonstrates the change in default confinement.
 
@@ -71,19 +73,20 @@ Cells 2 and 4 are the same distribution (Ubuntu 24.04) on either side of one cha
 
 ```bash
 # Bring up a cell (the yaml provisions it fully on first start)
-limactl start --name caliper-cell2 deploy/cell2-baseline.yaml
-limactl start --name caliper-cell4 deploy/cell4-unpatched.yaml
-
-# Snapshot the clean, provisioned state before running anything
-limactl snapshot create caliper-cell2 --tag clean
-limactl snapshot create caliper-cell4 --tag clean
+for cell in cell1-arm64 cell2-baseline cell3-selinux cell4-unpatched cell5-gvisor cell6-kata; do
+  limactl start --name caliper-${cell%%-*} deploy/${cell}.yaml
+  limactl snapshot create caliper-${cell%%-*} --tag clean
+done
 
 # Roll back after a run
-limactl snapshot apply caliper-cell2 --tag clean
-limactl snapshot apply caliper-cell4 --tag clean
+for cell in cell1 cell2 cell3 cell4 cell5 cell6; do
+  limactl snapshot apply caliper-${cell} --tag clean
+done
 
 # Throw the whole thing away
-limactl delete --force caliper-cell2
+for cell in cell1 cell2 cell3 cell4 cell5 cell6; do
+  limactl delete --force caliper-${cell}
+done
 ```
 
 ### Build-and-import flow
@@ -93,11 +96,18 @@ The cells have no Docker, so the probe must enter through containerd itself. Bui
 ```bash
 # on the amd64 host, from ~/caliper
 docker build -t caliper-probe engine/
-docker save caliper-probe | limactl shell caliper-cell2 -- sudo ctr images import -
-docker save caliper-probe | limactl shell caliper-cell4 -- sudo ctr images import -
+
+# Import into each cell
+for cell in cell1 cell2 cell3 cell4 cell5 cell6; do
+  docker save caliper-probe | limactl shell caliper-${cell} -- sudo ctr images import -
+done
 
 # Verify execution without triggering probes (probes are deferred to #8/#10)
-limactl shell caliper-cell2 -- sudo ctr run --rm --seccomp docker.io/library/caliper-probe:latest probe --noop
-limactl shell caliper-cell4 -- sudo ctr run --rm --seccomp docker.io/library/caliper-probe:latest probe --noop
+for cell in cell1 cell2 cell3 cell4 cell5 cell6; do
+  runtime=""
+  if [ "$cell" = "cell5" ]; then runtime="--runtime io.containerd.runsc.v1"; fi
+  if [ "$cell" = "cell6" ]; then runtime="--runtime io.containerd.kata.v2"; fi
+  limactl shell caliper-${cell} -- sudo ctr run --rm --seccomp $runtime docker.io/library/caliper-probe:latest probe --noop
+done
 ```
 
