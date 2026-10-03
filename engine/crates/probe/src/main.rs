@@ -30,6 +30,8 @@ usage: caliper-probe <mode>
                    module delta and residual-state report (#9). Probes that
                    produced no verdict are listed under `unmeasured` and
                    left out of the results, never recorded as one
+  --reduced        measure: run the alert-safe reduced corpus, omitting probes
+                   that may trigger alerts (e.g., AF_ALG module autoloading)
   --noop           start up, do nothing, exit. Establishes the engine's own
                    syscall footprint under strace (issue #4)
   --dump-corpus    emit the compiled-in corpus as JSON. An output, never an
@@ -49,7 +51,8 @@ fn main() -> ExitCode {
         .collect::<Vec<_>>()
         .as_slice()
     {
-        ["--run"] => run(),
+        ["--run"] => run(false),
+        ["--reduced"] => run(true),
         ["--noop"] => ExitCode::SUCCESS,
         ["--dump-corpus"] => dump_corpus(),
         ["--version"] => {
@@ -63,7 +66,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> ExitCode {
+fn run(reduced: bool) -> ExitCode {
     let cell = match Cell::detect() {
         Ok(cell) => cell,
         Err(e) => {
@@ -71,7 +74,13 @@ fn run() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let m = Measurement::run(caliper_corpus::probes(), caliper_corpus::REVISION, cell);
+    let all_probes = caliper_corpus::probes();
+    let probes: Vec<_> = if reduced {
+        all_probes.iter().filter(|p| !p.effects.may_autoload_module()).cloned().collect()
+    } else {
+        all_probes.to_vec()
+    };
+    let m = Measurement::run(&probes, caliper_corpus::REVISION, cell);
     // Everything below is also in the document; stderr is for the person
     // watching the run, and for a corpus defect to be loud.
     for u in &m.unmeasured {
