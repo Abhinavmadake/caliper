@@ -37,7 +37,35 @@ jobs:
           shellcheck scripts/*.sh
       - name: validate reference posture
         run: |
-          python3 -c 'import yaml; d=yaml.safe_load(open("posture/v1/posture.yaml")); assert d["posture_version"] == 1; assert len(d["tiers"]) == 4; assert isinstance(d["assertions"], list)'
+          python3 - <<'PY'
+          import json
+          import yaml
+
+          with open("posture/v1/posture.yaml") as f:
+              posture = yaml.safe_load(f)
+          with open("corpus/index.json") as f:
+              corpus = json.load(f)
+
+          assert posture["posture_version"] == 1
+          assert {tier["name"] for tier in posture["tiers"]} == {
+              "privileged", "baseline", "restricted", "untrusted-multi-tenant"
+          }
+          measured_families = {probe["family"] for probe in corpus}
+          probe_ids = {probe["id"] for probe in corpus}
+          deferred_families = {
+              "perf_event_open", "bpf", "keyctl", "userfaultfd",
+              "open_by_handle_at",
+          }
+          for assertion in posture["assertions"]:
+              assert assertion["family"] in measured_families | deferred_families
+              assert assertion["expect"] == "unreachable"
+              assert assertion["rationale"].strip()
+              assert assertion["citations"]
+              assert all(citation.get("id") or citation.get("url")
+                         for citation in assertion["citations"])
+              assert all(probe_id in probe_ids
+                         for probe_id in assertion.get("probe_ids", []))
+          PY
 
   engine:
     runs-on: ubuntu-24.04

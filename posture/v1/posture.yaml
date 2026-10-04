@@ -1,7 +1,9 @@
 posture_version: 1
 
-# Tier definitions are the normative part of #21. Assertions are intentionally
-# empty until issue #22 authors the family-level expectations.
+# Assertions inherit downward: an assertion at restricted also applies to
+# untrusted-multi-tenant. Each assertion maps to corpus family/id names or is
+# explicitly marked as a deferred family that the evaluator reports as
+# asserted-but-not-measured.
 tiers:
   - name: privileged
     named_after: privileged
@@ -49,4 +51,193 @@ tiers:
       API, module loading, perf events, raw netlink, io_uring, 32-bit ABI,
       unmasked procfs, or other high-consequence entry families.
 
-assertions: []
+assertions:
+  - tier: untrusted-multi-tenant
+    family: socket
+    probe_ids: [socket.family.af_alg]
+    expect: unreachable
+    rationale: >-
+      AF_ALG exposes the kernel crypto API to an unprivileged process and can
+      autoload algif_* modules. Copy Fail reached algif_aead through this
+      family from a container satisfying RuntimeDefault and PSS Restricted.
+    citations:
+      - id: CVE-2026-31431
+        url: https://nvd.nist.gov/vuln/detail/CVE-2026-31431
+      - id: CVE-2017-2636
+        url: https://nvd.nist.gov/vuln/detail/CVE-2017-2636
+
+  - tier: untrusted-multi-tenant
+    family: netlink
+    probe_ids:
+      - netlink.protocol.netfilter
+      - netlink.protocol.xfrm
+      - netlink.protocol.crypto
+      - netlink.protocol.rdma
+    expect: unreachable
+    rationale: >-
+      Raw netlink families expose control planes used to alter firewall,
+      security-policy, crypto, and RDMA state; these are not appropriate for
+      code sharing a node with unrelated tenants.
+    citations:
+      - id: CVE-2024-1086
+        url: https://nvd.nist.gov/vuln/detail/CVE-2024-1086
+
+  - tier: untrusted-multi-tenant
+    family: io_uring
+    expect: unreachable
+    rationale: >-
+      io_uring provides a broad asynchronous syscall surface and has been a
+      recurring source of kernel exploitation primitives; it should be absent
+      from an untrusted tenant's reachable kernel interface.
+    citations:
+      - title: "io_uring documentation"
+        publisher: Linux kernel documentation
+        url: https://docs.kernel.org/io_uring/index.html
+
+  - tier: untrusted-multi-tenant
+    family: perf_event_open
+    expect: unreachable
+    rationale: >-
+      Performance-event access exposes high-value kernel observations and has
+      historically enabled privilege escalation; the deferred family remains
+      an expectation even before its probes are implemented.
+    citations:
+      - id: CVE-2013-2094
+        url: https://nvd.nist.gov/vuln/detail/CVE-2013-2094
+
+  - tier: untrusted-multi-tenant
+    family: path
+    probe_ids: [path.masked.proc_kcore, path.masked.proc_keys]
+    expect: unreachable
+    rationale: >-
+      Unmasked kernel and key material paths can disclose host information or
+      credentials to code that should be isolated from co-tenants.
+    citations:
+      - title: "Linux filesystem configuration: maskedPaths"
+        publisher: Open Containers Initiative
+        url: https://github.com/opencontainers/runtime-spec/blob/main/config-linux.md#maskedpaths
+
+  - tier: untrusted-multi-tenant
+    family: clone
+    probe_ids: [unshare.flags.newuser, clone.flags.newuser]
+    expect: unreachable
+    rationale: >-
+      User namespaces expand the set of operations available to an otherwise
+      unprivileged process and have repeatedly provided reachability to kernel
+      attack surfaces.
+    citations:
+      - id: CVE-2022-0185
+        url: https://nvd.nist.gov/vuln/detail/CVE-2022-0185
+
+  - tier: untrusted-multi-tenant
+    family: bpf
+    expect: unreachable
+    rationale: >-
+      The deferred BPF family contains verifier and program-loading entry
+      points that are unnecessary for tenant code and historically security
+      sensitive.
+    citations:
+      - id: CVE-2017-16995
+        url: https://nvd.nist.gov/vuln/detail/CVE-2017-16995
+
+  - tier: untrusted-multi-tenant
+    family: keyctl
+    expect: unreachable
+    rationale: >-
+      Kernel keyring operations expose shared credential and key-management
+      state that is not required by customer-supplied code.
+    citations:
+      - id: CVE-2016-0728
+        url: https://nvd.nist.gov/vuln/detail/CVE-2016-0728
+
+  - tier: untrusted-multi-tenant
+    family: userfaultfd
+    expect: unreachable
+    rationale: >-
+      Userfaultfd lets an untrusted process interpose on page faults and has
+      been treated as an exploitation primitive in hardened distributions.
+    citations:
+      - title: "Unprivileged userfaultfd"
+        publisher: Linux kernel documentation
+        url: https://docs.kernel.org/admin-guide/mm/userfaultfd.html
+
+  - tier: untrusted-multi-tenant
+    family: open_by_handle_at
+    expect: unreachable
+    rationale: >-
+      File-handle lookup bypasses ordinary pathname traversal assumptions and
+      is not needed by tenant code.
+    citations:
+      - title: "Shocker: exploiting open_by_handle_at"
+        publisher: Sebastian Krahmer
+        url: https://github.com/earthquake/shocker
+
+  - tier: restricted
+    family: io_uring
+    expect: unreachable
+    rationale: >-
+      A standard hardened service should not need the broad asynchronous
+      kernel interface; keeping it unreachable makes RuntimeDefault drift an
+      expectation violation rather than an invisible runtime difference.
+    citations:
+      - title: "io_uring documentation"
+        publisher: Linux kernel documentation
+        url: https://docs.kernel.org/io_uring/index.html
+
+  - tier: restricted
+    family: capability
+    probe_ids:
+      - capability.sys_module
+      - capability.sys_boot
+      - capability.sys_time
+      - capability.sys_rawio
+      - capability.sys_ptrace
+    expect: unreachable
+    rationale: >-
+      Restricted workloads drop all capabilities and therefore should not
+      reach capability-gated kernel operations, even when a runtime permits
+      the syscall entry point.
+    citations:
+      - title: "capabilities(7)"
+        publisher: Linux man-pages
+        url: https://man7.org/linux/man-pages/man7/capabilities.7.html
+
+  - tier: baseline
+    family: mount
+    expect: unreachable
+    rationale: >-
+      Ordinary services do not need to create or probe mount filesystems;
+      mount reachability is a host-administration surface associated with
+      CAP_SYS_ADMIN.
+    citations:
+      - title: "mount(2)"
+        publisher: Linux man-pages
+        url: https://man7.org/linux/man-pages/man2/mount.2.html
+
+  - tier: baseline
+    family: device
+    probe_ids:
+      - device.open.fuse
+      - device.open.kvm
+      - device.open.mem
+    expect: unreachable
+    rationale: >-
+      Device nodes expose host drivers and hardware interfaces that ordinary
+      services do not need; access is controlled by the device cgroup and DAC.
+    citations:
+      - title: "Linux resources: devices"
+        publisher: Open Containers Initiative
+        url: https://github.com/opencontainers/runtime-spec/blob/main/config-linux.md#linux-resources
+
+  - tier: baseline
+    family: path
+    probe_ids: [path.masked.proc_kcore]
+    expect: unreachable
+    rationale: >-
+      Kernel memory and sensitive procfs paths should remain masked for normal
+      services, independent of whether the runtime's current profile masks
+      them by default.
+    citations:
+      - title: "Linux filesystem configuration: maskedPaths"
+        publisher: Open Containers Initiative
+        url: https://github.com/opencontainers/runtime-spec/blob/main/config-linux.md#maskedpaths
