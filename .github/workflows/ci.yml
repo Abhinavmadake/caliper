@@ -40,7 +40,8 @@ jobs:
           python3 -c 'import yaml; d=yaml.safe_load(open("posture/v1/posture.yaml")); assert d["posture_version"] == 1; assert len(d["tiers"]) == 4; assert isinstance(d["assertions"], list)'
       - name: validate k8s manifests
         run: |
-          kubectl apply --dry-run=client --validate=false -f deploy/k8s/
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar -xz
+          ./kubeconform -strict deploy/k8s/
 
   engine:
     runs-on: ubuntu-24.04
