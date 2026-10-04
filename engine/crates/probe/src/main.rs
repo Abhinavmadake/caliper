@@ -76,18 +76,22 @@ fn run(reduced: bool) -> ExitCode {
     };
     let all_probes = caliper_corpus::probes();
     let probes: Vec<_> = if reduced {
-        all_probes.iter().filter(|p| !p.effects.may_autoload_module()).cloned().collect()
+        all_probes
+            .iter()
+            .filter(|p| !p.effects.may_autoload_module())
+            .cloned()
+            .collect()
     } else {
         all_probes.to_vec()
     };
-    
-    let revision = if reduced {
-        format!("{}-reduced", caliper_corpus::REVISION)
+
+    let revision: &'static str = if reduced {
+        Box::leak(format!("{}-reduced", caliper_corpus::REVISION).into_boxed_str())
     } else {
-        caliper_corpus::REVISION.to_string()
+        caliper_corpus::REVISION
     };
-    
-    let m = Measurement::run(&probes, &revision, cell);
+
+    let m = Measurement::run(&probes, revision, cell);
     // Everything below is also in the document; stderr is for the person
     // watching the run, and for a corpus defect to be loud.
     for u in &m.unmeasured {
