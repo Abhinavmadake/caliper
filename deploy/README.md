@@ -101,16 +101,3 @@ limactl shell caliper-cell2 -- sudo ctr run --rm --seccomp docker.io/library/cal
 limactl shell caliper-cell4 -- sudo ctr run --rm --seccomp docker.io/library/caliper-probe:latest probe --noop
 ```
 
-### Kubernetes Retrieval
-
-The Job writes the fingerprint to stdout. Retrieve it with:
-```bash
-kubectl logs job/caliper-probe > fingerprint.json
-```
-
-For the DaemonSet (which runs per node), retrieve logs from all nodes with:
-```bash
-kubectl logs -l app=caliper-probe --prefix
-```
-(No volume or sidecar is required).
-
