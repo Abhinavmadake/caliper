@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: caliper-probe
+  labels:
+    app: caliper-probe
+spec:
+  selector:
+    matchLabels:
+      app: caliper-probe
+  template:
+    metadata:
+      labels:
+        app: caliper-probe
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: probe
+        image: caliper-probe
+        imagePullPolicy: IfNotPresent
+        args: ["--run"]
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
