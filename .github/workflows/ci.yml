@@ -79,6 +79,9 @@ jobs:
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
           docker run --rm caliper-probe --run > /dev/null
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --run > /dev/null
+      - name: verify alert-safe reduced corpus
+        run: |
+          ../scripts/test-alert-safe.sh
 
   control:
     # Activates once control/go.mod exists (week 2, issue #3).

@@ -6,7 +6,7 @@ To address this, we provide two mechanisms to ensure operators can run the probe
 
 ## 1. Image Signatures
 
-Every published container image for the `caliper-probe` is cryptographically signed using [Cosign](https://github.com/sigstore/cosign). 
+Future published container images for the `caliper-probe` will be cryptographically signed using [Cosign](https://github.com/sigstore/cosign). 
 This allows operators and security teams to verify the authenticity of the probe before execution and deliberately allowlist the image digest in their runtime monitors.
 
 A script is provided at `scripts/sign-image.sh` to illustrate how the image is signed during our release process.
@@ -28,4 +28,4 @@ The probes omitted from the reduced corpus are those that declare the `module_au
 * **`AF_ALG` (Cryptographic API)**: The `AF_ALG` probe attempts to bind to the kernel's cryptographic API. This action is omitted because published Copy Fail detection rules specifically key on `AF_ALG` socket creation as an indicator of compromise (see proposal §12). 
 * **Socket Families and Netlink Protocols**: Attempting to create sockets for uncommon families (like `AF_VSOCK`, `AF_XDP`) or netlink protocols can cause the kernel to autoload modules. This side-effect is un-reclaimable and often triggers module-loading alerts in runtime security tooling.
 
-By omitting these probes, the reduced corpus allows the instrument to evaluate the vast majority of the kernel surface while remaining completely invisible to the monitors that track `AF_ALG` and module loading.
+By omitting these probes, the reduced corpus allows the instrument to evaluate the vast majority of the kernel surface without triggering the specific rules in monitors that track `AF_ALG` and module loading.
