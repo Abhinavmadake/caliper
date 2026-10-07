@@ -32,8 +32,31 @@ const SupportedFormatVersion = 1
 type Fingerprint struct {
 	FormatVersion  int           `json:"format_version"`
 	CorpusRevision string        `json:"corpus_revision"`
+	Cell           Cell          `json:"cell"`
 	Results        []ProbeResult `json:"results"`
 	Unmeasured     []Unmeasured  `json:"unmeasured"`
+}
+
+// Cell contains the environment facts used to explain a divergence. The
+// control plane records more identity fields than these; the classifier reads
+// only architecture, the kernel and RuntimeClass.
+type Cell struct {
+	Architecture string       `json:"architecture"`
+	Kernel       Kernel       `json:"kernel"`
+	RuntimeClass SourcedValue `json:"runtime_class"`
+}
+
+// Kernel is the probe-visible kernel identity. Modules is nil when the probe
+// could not read /proc/modules; nil is unknown and is not the same as empty.
+type Kernel struct {
+	Release string    `json:"release"`
+	Modules *[]string `json:"modules"`
+}
+
+// SourcedValue is a control-plane value and the source that supplied it.
+type SourcedValue struct {
+	Value  string `json:"value"`
+	Source string `json:"source"`
 }
 
 // ProbeResult is a raw observation from one probe. Errno is retained even
