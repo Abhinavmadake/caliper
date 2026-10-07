@@ -32,6 +32,25 @@ func TestClassifyRecordedFixtures(t *testing.T) {
 		assertClass(t, classified, "io_uring.opcode.sendmsg_zc", PolicyExplained)
 	})
 
+	t.Run("architecture and kernel modules explain the arch pair", func(t *testing.T) {
+		arm := loadFixture(t, "aarch64-apparmor.json")
+		classified := mustClassify(t, baseline, arm, corpus)
+		assertClass(t, classified, "capability.sys_rawio", ArchitectureExplained)
+		assertClass(t, classified, "mount.type.9p", KernelVersionExplained)
+		assertClass(t, classified, "mount.type.virtiofs", KernelVersionExplained)
+		if classified.Counts.Policy != 0 {
+			t.Errorf("counts = %#v, want no policy", classified.Counts)
+		}
+	})
+
+	t.Run("seccomp profile change is policy", func(t *testing.T) {
+		hardened := loadFixture(t, "x86_64-apparmor-hardened.json")
+		classified := mustClassify(t, baseline, hardened, corpus)
+		want := DivergenceCounts{Policy: 120}
+		if classified.Counts != want {
+			t.Errorf("counts = %#v, want %#v", classified.Counts, want)
+		}
+	})
 }
 
 func TestClassifyUsesDeclaredArchitectureApplicability(t *testing.T) {
