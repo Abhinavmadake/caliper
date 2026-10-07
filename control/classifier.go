@@ -36,6 +36,8 @@ const (
 // ProbeMetadata is the classifier's view of one entry from --dump-corpus.
 // It deliberately contains only declarations which are valid explanations for
 // a divergence; the classifier never derives applicability from a probe name.
+// The 32-bit compatibility ABI remains deferred until measurements carry its
+// run-time applicability record, as required by spec/probe.md.
 type ProbeMetadata struct {
 	ID     string           `json:"id"`
 	Arch   Applicability    `json:"arch"`
@@ -147,7 +149,10 @@ func Classify(left, right Fingerprint, corpus []ProbeMetadata) (ClassificationRe
 
 	result := ClassificationResult{Diff: diff}
 	for _, divergence := range diff.Divergences {
-		probe := metadata[divergence.ProbeID]
+		probe, exists := metadata[divergence.ProbeID]
+		if !exists {
+			return ClassificationResult{}, fmt.Errorf("no corpus metadata for divergent probe %q", divergence.ProbeID)
+		}
 		class := classifyDivergence(divergence, probe, left.Cell, right.Cell)
 		result.Divergences = append(result.Divergences, ClassifiedDivergence{
 			Divergence: divergence,
@@ -199,12 +204,11 @@ func runtimeClassExplains(d Divergence, leftClass, rightClass string) bool {
 }
 
 func sandboxed(runtimeClass string) bool {
-	switch strings.ToLower(runtimeClass) {
-	case "gvisor", "kata":
+	class := strings.ToLower(strings.TrimSpace(runtimeClass))
+	if class == "gvisor" || class == "kata" {
 		return true
-	default:
-		return false
 	}
+	return strings.HasPrefix(class, "runsc") || strings.HasPrefix(class, "kata-")
 }
 
 func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) bool {

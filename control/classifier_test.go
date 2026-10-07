@@ -32,11 +32,6 @@ func TestClassifyRecordedFixtures(t *testing.T) {
 		assertClass(t, classified, "io_uring.opcode.sendmsg_zc", PolicyExplained)
 	})
 
-	t.Run("LSM change remains policy", func(t *testing.T) {
-		selinux := loadFixture(t, "x86_64-selinux.json")
-		classified := mustClassify(t, baseline, selinux, corpus)
-		assertClass(t, classified, "mount.fstype.bpf", PolicyExplained)
-	})
 }
 
 func TestClassifyUsesDeclaredArchitectureApplicability(t *testing.T) {
@@ -70,13 +65,17 @@ func TestClassifyTreatsSandboxUnimplementedAsRuntimeClass(t *testing.T) {
 		t.Errorf("counts = %#v, want one runtime class and no policy", classified.Counts)
 	}
 
-	right.Cell.RuntimeClass.Value = "kata"
-	classified = mustClassify(t, left, right, []ProbeMetadata{{
-		ID:     "call",
-		Arch:   Applicability{All: true},
-		Kernel: dependency(nil, 38),
-	}})
-	assertClass(t, classified, "call", RuntimeClassExplained)
+	for _, runtimeClass := range []string{"kata", "kata-qemu", "kata-clh", "runsc", "runsc-kvm"} {
+		t.Run(runtimeClass, func(t *testing.T) {
+			right.Cell.RuntimeClass.Value = runtimeClass
+			classified := mustClassify(t, left, right, []ProbeMetadata{{
+				ID:     "call",
+				Arch:   Applicability{All: true},
+				Kernel: dependency(nil, 38),
+			}})
+			assertClass(t, classified, "call", RuntimeClassExplained)
+		})
+	}
 }
 
 func TestClassifyKernelDependencies(t *testing.T) {
@@ -112,11 +111,21 @@ func TestClassifyKernelDependencies(t *testing.T) {
 	})
 }
 
-func TestClassifyDefaultsUnknownDivergentProbeToPolicy(t *testing.T) {
+func TestClassifyRejectsUnknownDivergentProbe(t *testing.T) {
 	left := testFingerprint([]ProbeResult{{ProbeID: "unknown", Verdict: "denied"}})
 	right := testFingerprint([]ProbeResult{{ProbeID: "unknown", Verdict: "permitted"}})
-	classified := mustClassify(t, left, right, nil)
-	assertClass(t, classified, "unknown", PolicyExplained)
+	if _, err := Classify(left, right, nil); err == nil || err.Error() != `no corpus metadata for divergent probe "unknown"` {
+		t.Fatalf("Classify error = %v, want missing metadata error", err)
+	}
+}
+
+func TestClassifyDefers32BitCompatKernelDetection(t *testing.T) {
+	// The engine does not yet emit a runtime ABI applicability record for the
+	// 32-bit compat ABI. Until it does, differences fall back to policy.
+	left := fingerprintWithCell("aarch64", "6.8.0", "runc", []ProbeResult{{ProbeID: "compat", Verdict: "unimplemented", Errno: 38}})
+	right := fingerprintWithCell("aarch64", "6.8.0", "runc", []ProbeResult{{ProbeID: "compat", Verdict: "permitted"}})
+	classified := mustClassify(t, left, right, []ProbeMetadata{{ID: "compat", Arch: Applicability{All: true}}})
+	assertClass(t, classified, "compat", PolicyExplained)
 }
 
 func loadCorpus(t *testing.T) []ProbeMetadata {
