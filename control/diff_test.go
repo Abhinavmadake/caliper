@@ -63,14 +63,14 @@ func TestDiffRecordedFixtures(t *testing.T) {
 }
 
 func TestDiffSeparatesCorpusSkew(t *testing.T) {
-	left := Fingerprint{Results: []ProbeResult{
+	left := testFingerprint([]ProbeResult{
 		{ProbeID: "shared", Verdict: "denied", Errno: 1},
 		{ProbeID: "only-left", Verdict: "permitted"},
-	}}
-	right := Fingerprint{Results: []ProbeResult{
+	})
+	right := testFingerprint([]ProbeResult{
 		{ProbeID: "shared", Verdict: "permitted"},
 		{ProbeID: "only-right", Verdict: "denied", Errno: 13},
-	}}
+	})
 
 	diff := mustDiff(t, left, right)
 	if len(diff.Divergences) != 1 || diff.Divergences[0].ProbeID != "shared" {
@@ -86,8 +86,8 @@ func TestDiffSeparatesCorpusSkew(t *testing.T) {
 
 func TestDiffDoesNotTreatErrnoOnlyChangeAsDivergence(t *testing.T) {
 	diff := mustDiff(t,
-		Fingerprint{Results: []ProbeResult{{ProbeID: "socket.family.af_alg", Verdict: "denied", Errno: 1}}},
-		Fingerprint{Results: []ProbeResult{{ProbeID: "socket.family.af_alg", Verdict: "denied", Errno: 13}}},
+		testFingerprint([]ProbeResult{{ProbeID: "socket.family.af_alg", Verdict: "denied", Errno: 1}}),
+		testFingerprint([]ProbeResult{{ProbeID: "socket.family.af_alg", Verdict: "denied", Errno: 13}}),
 	)
 	if len(diff.Divergences) != 0 {
 		t.Errorf("divergences = %#v, want none", diff.Divergences)
@@ -96,11 +96,53 @@ func TestDiffDoesNotTreatErrnoOnlyChangeAsDivergence(t *testing.T) {
 
 func TestDiffRejectsDuplicateProbeIDs(t *testing.T) {
 	_, err := Diff(
-		Fingerprint{Results: []ProbeResult{{ProbeID: "socket.family.af_alg"}, {ProbeID: "socket.family.af_alg"}}},
-		Fingerprint{},
+		testFingerprint([]ProbeResult{{ProbeID: "socket.family.af_alg"}, {ProbeID: "socket.family.af_alg"}}),
+		testFingerprint(nil),
 	)
 	if err == nil || !strings.Contains(err.Error(), "duplicate probe_id") {
 		t.Fatalf("Diff error = %v, want duplicate probe_id", err)
+	}
+}
+
+func TestDiffSeparatesUnmeasuredProbesFromCorpusSkew(t *testing.T) {
+	left := testFingerprint([]ProbeResult{{ProbeID: "measured", Verdict: "permitted"}})
+	left.Unmeasured = []Unmeasured{{ProbeID: "crashed", Why: json.RawMessage(`{"not-measured":{"crashed":{"signal":11}}}`)}}
+	right := testFingerprint([]ProbeResult{
+		{ProbeID: "measured", Verdict: "denied", Errno: 1},
+		{ProbeID: "crashed", Verdict: "permitted"},
+	})
+
+	diff := mustDiff(t, left, right)
+	if len(diff.CorpusSkew.OnlyLeft) != 0 || len(diff.CorpusSkew.OnlyRight) != 0 {
+		t.Errorf("corpus skew = %#v, want none", diff.CorpusSkew)
+	}
+	if len(diff.Unmeasured) != 1 {
+		t.Fatalf("unmeasured = %#v, want one entry", diff.Unmeasured)
+	}
+	got := diff.Unmeasured[0]
+	if got.ProbeID != "crashed" || got.Left == nil || got.RightResult == nil {
+		t.Errorf("unmeasured = %#v, want crashed with left reason and right result", got)
+	}
+	if len(diff.Divergences) != 1 || diff.Divergences[0].ProbeID != "measured" {
+		t.Errorf("divergences = %#v, want only measured", diff.Divergences)
+	}
+}
+
+func TestDiffRejectsUnsupportedFormatVersion(t *testing.T) {
+	left := testFingerprint(nil)
+	left.FormatVersion = SupportedFormatVersion + 1
+	_, err := Diff(left, testFingerprint(nil))
+	if err == nil || !strings.Contains(err.Error(), "unsupported format_version") {
+		t.Fatalf("Diff error = %v, want unsupported format_version", err)
+	}
+}
+
+func TestDiffRejectsMeasuredUnmeasuredOverlap(t *testing.T) {
+	left := testFingerprint([]ProbeResult{{ProbeID: "socket.family.af_alg", Verdict: "denied", Errno: 1}})
+	left.Unmeasured = []Unmeasured{{ProbeID: "socket.family.af_alg"}}
+	_, err := Diff(left, testFingerprint(nil))
+	if err == nil || !strings.Contains(err.Error(), "both results and unmeasured") {
+		t.Fatalf("Diff error = %v, want measured/unmeasured overlap", err)
 	}
 }
 
@@ -116,6 +158,10 @@ func loadFixture(t *testing.T, name string) Fingerprint {
 		t.Fatalf("parse %s: %v", name, err)
 	}
 	return fingerprint
+}
+
+func testFingerprint(results []ProbeResult) Fingerprint {
+	return Fingerprint{FormatVersion: SupportedFormatVersion, Results: results}
 }
 
 func mustDiff(t *testing.T, left, right Fingerprint) DiffResult {
