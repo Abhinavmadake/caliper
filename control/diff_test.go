@@ -46,18 +46,25 @@ func TestDiffRecordedFixtures(t *testing.T) {
 	})
 
 	t.Run("policy fixture compares individual probes, not families", func(t *testing.T) {
-		selinux := loadFixture(t, "x86_64-selinux.json")
-		diff := mustDiff(t, baseline, selinux)
+		hardened := loadFixture(t, "x86_64-apparmor-hardened.json")
+		diff := mustDiff(t, baseline, hardened)
 
-		if len(diff.Divergences) != 1 {
-			t.Fatalf("divergences = %d, want 1", len(diff.Divergences))
+		if len(diff.Divergences) != 120 {
+			t.Fatalf("divergences = %d, want 120", len(diff.Divergences))
 		}
-		got := diff.Divergences[0]
-		if got.ProbeID != "mount.fstype.bpf" {
-			t.Errorf("probe_id = %q, want mount.fstype.bpf", got.ProbeID)
+		byID := make(map[string]Divergence, len(diff.Divergences))
+		for _, d := range diff.Divergences {
+			byID[d.ProbeID] = d
 		}
-		if got.Left.Errno != 0 || got.Right.Errno != 13 {
-			t.Errorf("errno pair = (%d, %d), want (0, 13)", got.Left.Errno, got.Right.Errno)
+		got, ok := byID["mount.reach"]
+		if !ok {
+			t.Fatal("mount.reach did not diverge")
+		}
+		if got.Left.Verdict != "denied" || got.Left.Errno != 1 || got.Right.Verdict != "killed" {
+			t.Errorf("mount.reach = %#v, want denied errno 1 against killed", got)
+		}
+		if _, ok := byID["mount.type.proc"]; ok {
+			t.Error("mount.type.proc diverged, but its verdict is the same on both sides")
 		}
 	})
 }
