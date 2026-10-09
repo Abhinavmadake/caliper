@@ -149,6 +149,10 @@ settle in #25.
 - Keys are snake_case even where the value is kebab-case. The split is not
   cosmetic: keys are field identifiers, values are members of a fixed
   enumeration named in this document and in the proposal.
+- An enumerated value that carries data is written as a one-key object whose
+  key is the value, so it keeps the value's kebab-case spelling:
+  `{"not-measured": {"crashed": {"signal": 11}}}` in `unmeasured[].why`.
+  That key is a member of an enumeration, not a field identifier (#100).
 - **`errno` is the raw integer**, never a name. `0` where the verdict has no
   errno because the child did not return (`killed`, `timed-out`) or because
   the call succeeded (`permitted`). A `permitted` from a probe whose errno
