@@ -286,12 +286,13 @@ fn the_measurement_carries_verdicts_and_no_interpretation() {
         probe("a.permitted", KernelDependency::NONE, ok),
         probe("b.unimplemented", absent(None), missing_syscall),
     ];
-    let m = Measurement::run(&probes, "0.1.0", Cell::detect().unwrap());
+    let m = Measurement::run(&probes, "0.1.0", "full", Cell::detect().unwrap());
     assert!(m.unmeasured.is_empty());
 
     let v: serde_json::Value = serde_json::to_value(&m).unwrap();
     assert_eq!(v["format_version"], FORMAT_VERSION);
     assert_eq!(v["corpus_revision"], "0.1.0");
+    assert_eq!(v["corpus_set"], "full");
     // The probe-side cell fields, spelled as the spec's example spells them.
     assert!(matches!(
         v["cell"]["architecture"].as_str(),
@@ -340,7 +341,7 @@ fn a_probe_that_produced_no_verdict_is_reported_and_not_recorded() {
         Ok(())
     }
     let probes = [probe("segv", KernelDependency::NONE, crashes)];
-    let m = Measurement::run(&probes, "0.1.0", cell(RUNNING));
+    let m = Measurement::run(&probes, "0.1.0", "full", cell(RUNNING));
     assert!(m.results.is_empty());
     assert_eq!(m.unmeasured.len(), 1);
     assert_eq!(m.unmeasured[0].probe_id, "segv");

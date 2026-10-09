@@ -85,13 +85,9 @@ fn run(reduced: bool) -> ExitCode {
         all_probes.to_vec()
     };
 
-    let revision: &'static str = if reduced {
-        Box::leak(format!("{}-reduced", caliper_corpus::REVISION).into_boxed_str())
-    } else {
-        caliper_corpus::REVISION
-    };
+    let set: &'static str = if reduced { "reduced" } else { "full" };
 
-    let m = Measurement::run(&probes, revision, cell);
+    let m = Measurement::run(&probes, caliper_corpus::REVISION, set, cell);
     // Everything below is also in the document; stderr is for the person
     // watching the run, and for a corpus defect to be loud.
     for u in &m.unmeasured {

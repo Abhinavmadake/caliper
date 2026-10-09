@@ -150,6 +150,7 @@ fn the_run_emits_the_probe_side_of_a_fingerprint() {
     // Identity and cell, the probe-side fields of spec/fingerprint.md.
     assert!(doc["format_version"].is_u64());
     assert!(doc["corpus_revision"].is_string());
+    assert!(doc["corpus_set"].is_string());
     assert!(doc["cell"]["architecture"].is_string());
     assert!(doc["cell"]["kernel"]["release"].is_string());
     assert!(doc["cell"]["lsm"].is_string());
