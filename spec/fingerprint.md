@@ -35,12 +35,16 @@ Every control-plane field records its source. The probe emits a raw
 measurement; the control plane completes it into a fingerprint and computes the
 attribution — the engine stores no interpretation.
 
-Three fields identify the fingerprint itself rather than the cell:
+Four fields identify the fingerprint itself rather than the cell:
 
 - `format_version` — integer. Incremented only by a breaking change to this
   format, per §5. Frozen from the end of week 9
 - `corpus_revision` — which corpus produced the run. Distinct from
   `format_version`: the format can be stable across many corpus revisions
+- `corpus_set`: `"full"` or `"reduced"`. The reduced set is the same
+  revision without the probes that declare a module autoload (#40, §12). A
+  probe it leaves out is absent from `results`, not a divergence. Absent in
+  fingerprints produced before the field existed
 - `digest` — a SHA-256 over the canonical serialisation, for identity and
   deduplication. It is **not** authenticity; see the decision below
 
