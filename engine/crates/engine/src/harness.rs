@@ -137,17 +137,17 @@ pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::R
 
 /// The child. Never returns.
 fn child(f: &dyn Fn() -> RawResult) -> ! {
-    // catch_unwind is a no-op under panic = "abort" (the image profile) and
-    // turns a debug-build panic into a recorded fault rather than an unwind
-    // through the harness. It allocates nothing unless a panic occurs.
-    // AssertUnwindSafe: nothing `f` borrows is used again in this process.
-    let code = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
-        Ok(Ok(())) => 0,
-        Ok(Err(errno)) => match errno as i32 {
+    // The hook runs before any unwind or abort. Under panic = "abort" a
+    // panic would otherwise end in musl's abort(), whose tkill a strict
+    // profile answers with SIGSYS, read as a seccomp kill (#95). The
+    // closure is zero-sized, so the Box does not allocate.
+    std::panic::set_hook(Box::new(|_| unsafe { libc::_exit(EXIT_PANIC) }));
+    let code = match f() {
+        Ok(()) => 0,
+        Err(errno) => match errno as i32 {
             n @ 1..=MAX_ERRNO => n,
             _ => EXIT_ERRNO_RANGE,
         },
-        Err(_) => EXIT_PANIC,
     };
     // SAFETY: _exit is async-signal-safe and runs no destructors, which is
     // the point: the child must not touch parent state on the way out.
