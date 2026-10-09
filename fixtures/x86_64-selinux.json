@@ -1,6 +1,7 @@
 {
   "format_version": 1,
   "corpus_revision": "0.1.0",
+  "corpus_set": "full",
   "cell": {
     "architecture": "x86_64",
     "kernel": {

@@ -41,6 +41,8 @@ Three fields identify the fingerprint itself rather than the cell:
   format, per §5. Frozen from the end of week 9
 - `corpus_revision` — which corpus produced the run. Distinct from
   `format_version`: the format can be stable across many corpus revisions
+- `corpus_set` — `"full"` or `"reduced"`. Identifies whether the run used the
+  alert-safe reduced corpus (issue #40) or the full set
 - `digest` — a SHA-256 over the canonical serialisation, for identity and
   deduplication. It is **not** authenticity; see the decision below
 
