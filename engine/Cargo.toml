@@ -19,8 +19,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 # The probe image is built from this profile. panic = "abort" matters for more
-# than size: a probe child must never unwind through the parent's state, and
-# an aborting panic is a plain SIGABRT the parent can classify.
+# than size: a probe child must never unwind through the parent's state. The
+# child's panic hook exits with the reserved code before the abort (#95).
 [profile.release]
 panic = "abort"
 lto = true
