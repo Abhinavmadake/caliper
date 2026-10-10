@@ -63,9 +63,10 @@ type SourcedValue struct {
 // though a verdict difference, rather than an errno difference, defines a
 // divergence for the project's metric.
 type ProbeResult struct {
-	ProbeID string  `json:"probe_id"`
-	Verdict Verdict `json:"verdict"`
-	Errno   int     `json:"errno"`
+	ProbeID     string       `json:"probe_id"`
+	Verdict     Verdict      `json:"verdict"`
+	Errno       int          `json:"errno"`
+	Attribution *Attribution `json:"attribution,omitempty"`
 }
 
 // Unmeasured is a probe for which the engine produced no verdict, such as a
