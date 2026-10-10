@@ -33,15 +33,26 @@ const (
 	PolicyExplained        DivergenceClass = "policy-explained"
 )
 
-// ProbeMetadata is the classifier's view of one entry from --dump-corpus.
-// It deliberately contains only declarations which are valid explanations for
-// a divergence; the classifier never derives applicability from a probe name.
+// ProbeMetadata is the control plane's view of one entry from --dump-corpus.
+// The classifier reads only the declarations which are valid explanations for
+// a divergence and never derives applicability from a probe name; the oracle
+// and capability are for attribution (#30).
 // The 32-bit compatibility ABI remains deferred until measurements carry its
 // run-time applicability record, as required by spec/probe.md.
 type ProbeMetadata struct {
-	ID     string           `json:"id"`
-	Arch   Applicability    `json:"arch"`
-	Kernel KernelDependency `json:"kernel"`
+	ID         string           `json:"id"`
+	Family     string           `json:"family"`
+	Arch       Applicability    `json:"arch"`
+	Kernel     KernelDependency `json:"kernel"`
+	Oracle     Oracle           `json:"oracle"`
+	Capability string           `json:"capability"`
+}
+
+// Oracle is the probe's errno oracle as the corpus declares it.
+type Oracle struct {
+	Guarantees *int   `json:"guarantees"`
+	Isolates   string `json:"isolates"`
+	Reason     string `json:"reason"`
 }
 
 // Applicability is the corpus architecture declaration. The corpus represents
