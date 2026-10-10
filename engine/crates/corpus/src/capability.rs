@@ -58,7 +58,7 @@ fn sys_ptrace() -> RawResult {
     let remote_iov = libc::iovec {
         // A non-null, invalid address makes the privileged path fail safely
         // with EFAULT after ptrace_may_access has been evaluated.
-        iov_base: 1usize as *mut libc::c_void,
+        iov_base: std::ptr::dangling::<libc::c_void>().cast_mut(),
         iov_len: 1,
     };
     result(unsafe {
