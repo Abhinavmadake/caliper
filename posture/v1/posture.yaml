@@ -1,4 +1,6 @@
-posture_version: 1
+# Immutable public identifier carried by every control-plane finding.
+posture_revision: v1
+status: draft
 
 # Assertions inherit downward: an assertion at restricted also applies to
 # untrusted-multi-tenant. Each assertion maps to corpus family/id names or is

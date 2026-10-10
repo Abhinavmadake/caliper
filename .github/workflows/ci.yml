@@ -46,7 +46,8 @@ jobs:
           with open("corpus/index.json") as f:
               corpus = json.load(f)
 
-          assert posture["posture_version"] == 1
+          assert posture["posture_revision"] == "v1"
+          assert posture["status"] == "draft"
           assert {tier["name"] for tier in posture["tiers"]} == {
               "privileged", "baseline", "restricted", "untrusted-multi-tenant"
           }
@@ -66,6 +67,8 @@ jobs:
               assert all(probe_id in probe_ids
                          for probe_id in assertion.get("probe_ids", []))
           PY
+          test -f posture/CHANGELOG.md
+          grep -q '^## v1 — draft — ' posture/CHANGELOG.md
 
   engine:
     runs-on: ubuntu-24.04
