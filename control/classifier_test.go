@@ -165,7 +165,7 @@ func fingerprintWithCell(architecture, release, runtimeClass string, results []P
 	fingerprint.Cell = Cell{
 		Architecture: architecture,
 		Kernel:       Kernel{Release: release},
-		RuntimeClass: SourcedValue{Value: runtimeClass, Source: "test"},
+		RuntimeClass: &SourcedValue{Value: runtimeClass, Source: "test"},
 	}
 	return fingerprint
 }
