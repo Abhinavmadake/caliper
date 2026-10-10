@@ -23,6 +23,108 @@ import (
 	"testing"
 )
 
+func TestCompleteFingerprintEnrichesProbeMeasurement(t *testing.T) {
+	const raw = `{
+		"format_version": 1,
+		"corpus_revision": "0.1.0",
+		"cell": {
+			"architecture": "x86_64",
+			"kernel": {"release": "6.8.0", "version": {"major": 6, "minor": 8}, "modules": null},
+			"lsm": "apparmor",
+			"capabilities": {"effective": "0000000000000000"}
+		},
+		"results": [{"probe_id": "socket.test", "verdict": "permitted", "errno": 0}],
+		"unmeasured": [],
+		"module_delta": {"before": ["nf_tables"], "after": ["nf_tables"]},
+		"residual": {"leaks": [], "audit": []}
+	}`
+
+	var probe ProbeMeasurement
+	if err := json.Unmarshal([]byte(raw), &probe); err != nil {
+		t.Fatalf("decode probe measurement: %v", err)
+	}
+	completed := CompleteFingerprint(probe, CellMetadata{
+		Distribution:      &SourcedValue{Value: "Ubuntu 24.04", Source: "node-object"},
+		Runtime:           &SourcedValue{Value: "containerd", Source: "node-object"},
+		RuntimeVersion:    &SourcedValue{Value: "2.2.0", Source: "node-object"},
+		RuntimeClass:      &SourcedValue{Value: "runc", Source: "pod-spec"},
+		NodeKernelVersion: "6.8.0-node",
+	})
+
+	if completed.Cell.Architecture != "x86_64" || completed.Cell.LSM != "apparmor" {
+		t.Errorf("probe cell facts = %#v", completed.Cell)
+	}
+	if completed.Cell.Distribution.Value != "Ubuntu 24.04" || completed.Cell.Runtime.Value != "containerd" || completed.Cell.RuntimeVersion.Value != "2.2.0" {
+		t.Errorf("control-plane facts = %#v", completed.Cell)
+	}
+	if completed.Cell.RuntimeClass.Source != "pod-spec" || completed.Cell.Kernel.SandboxClaimed == nil || !*completed.Cell.Kernel.SandboxClaimed {
+		t.Errorf("Node kernel comparison = %#v", completed.Cell)
+	}
+	if len(completed.Results) != 1 || completed.Results[0].ProbeID != "socket.test" {
+		t.Errorf("results = %#v", completed.Results)
+	}
+
+	data, err := json.Marshal(completed)
+	if err != nil {
+		t.Fatalf("encode completed fingerprint: %v", err)
+	}
+	var output map[string]any
+	if err := json.Unmarshal(data, &output); err != nil {
+		t.Fatalf("decode completed fingerprint: %v", err)
+	}
+	cell := output["cell"].(map[string]any)
+	kernel := cell["kernel"].(map[string]any)
+	if cell["capabilities"] == nil || kernel["version"].(map[string]any)["major"] != float64(6) {
+		t.Errorf("probe cell fields were dropped: %s", data)
+	}
+	if output["module_delta"] == nil || output["residual"] == nil {
+		t.Errorf("engine fields were dropped: %s", data)
+	}
+}
+
+func TestCompleteCellDerivesSandboxClaimFromNodeKernel(t *testing.T) {
+	probe := ProbeCell{Kernel: Kernel{Release: "6.8.0-sandbox"}}
+
+	claimed := CompleteCell(probe, CellMetadata{NodeKernelVersion: "6.8.0-node"})
+	if claimed.Kernel.SandboxClaimed == nil || !*claimed.Kernel.SandboxClaimed {
+		t.Errorf("sandbox_claimed = %v, want true for differing kernel releases", claimed.Kernel.SandboxClaimed)
+	}
+
+	notClaimed := CompleteCell(probe, CellMetadata{NodeKernelVersion: "6.8.0-sandbox"})
+	if notClaimed.Kernel.SandboxClaimed == nil || *notClaimed.Kernel.SandboxClaimed {
+		t.Errorf("sandbox_claimed = %v, want false for matching kernel releases", notClaimed.Kernel.SandboxClaimed)
+	}
+
+	unknown := CompleteCell(probe, CellMetadata{})
+	if unknown.Kernel.SandboxClaimed != nil {
+		t.Errorf("sandbox_claimed = %v, want unset without Node kernelVersion", *unknown.Kernel.SandboxClaimed)
+	}
+}
+
+func TestCompleteFingerprintOmitsUnavailableMetadata(t *testing.T) {
+	completed := CompleteFingerprint(ProbeMeasurement{
+		Cell: ProbeCell{Architecture: "x86_64", Kernel: Kernel{Release: "6.8.0"}},
+	}, CellMetadata{})
+	data, err := json.Marshal(completed)
+	if err != nil {
+		t.Fatalf("encode completed fingerprint: %v", err)
+	}
+	var output map[string]any
+	if err := json.Unmarshal(data, &output); err != nil {
+		t.Fatalf("decode completed fingerprint: %v", err)
+	}
+	cell := output["cell"].(map[string]any)
+	for _, key := range []string{"distribution", "runtime", "runtime_version", "runtime_class"} {
+		if _, exists := cell[key]; exists {
+			t.Errorf("cell unexpectedly contains unavailable %q: %s", key, data)
+		}
+	}
+	kernel := cell["kernel"].(map[string]any)
+	if _, exists := kernel["sandbox_claimed"]; exists {
+		t.Errorf("kernel unexpectedly contains sandbox_claimed without Node kernelVersion: %s", data)
+	}
+}
+
 func TestDiffRecordedFixtures(t *testing.T) {
 	baseline := loadFixture(t, "x86_64-apparmor.json")
 
