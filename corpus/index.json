@@ -4535,7 +4535,7 @@
     "oracle": {
       "guarantees": null,
       "isolates": "undecidable",
-      "reason": "filename_create resolves the existing /tmp parent before vfs_mknod checks CAP_MKNOD; without it mknodat returns EPERM, while a capable child creates and immediately unlinks the node"
+      "reason": "filename_create resolves the existing /tmp parent before vfs_mknod checks CAP_MKNOD; without it mknodat returns EPERM, while a capable child creates and then unlinks the node. If the child is killed before cleanup, /tmp/caliper-mknod can remain"
     },
     "capability": "CAP_MKNOD",
     "effects": {
@@ -4560,7 +4560,7 @@
     "oracle": {
       "guarantees": null,
       "isolates": "undecidable",
-      "reason": "a non-zero iovec forces process_vm_readv through ptrace_may_access before the remote copy; the non-dumpable probe parent therefore returns EPERM without CAP_SYS_PTRACE, while a capable path reaches the deliberate EFAULT"
+      "reason": "a non-zero iovec forces process_vm_readv through ptrace_may_access before the remote copy; the non-dumpable probe parent therefore returns EPERM without CAP_SYS_PTRACE, including Yama and AppArmor ptrace policy denials, while a capable path reaches the deliberate EFAULT"
     },
     "capability": "CAP_SYS_PTRACE",
     "effects": {

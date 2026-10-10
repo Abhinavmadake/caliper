@@ -54,10 +54,12 @@ the unprivileged path is distinctive:
   which guarantees `EBADF` after the check.
 - `mknodat` resolves the existing `/tmp` parent in `filename_create` before
   `vfs_mknod` checks `CAP_MKNOD`; the no-capability path is `EPERM`, and a
-  capable child removes the newly created node before exit.
+  capable child removes the newly created node before exit. If the child is
+  killed before cleanup, `/tmp/caliper-mknod` can remain.
 - `process_vm_readv` uses a non-zero local iovec and an invalid remote address,
   so `ptrace_may_access` runs before the deliberate `EFAULT`; the non-dumpable
-  probe parent makes the no-capability path `EPERM`.
+  probe parent makes the no-capability path `EPERM`, including Yama and
+  AppArmor ptrace policy denials.
 - Binding an IPv4 socket to port 1 checks `CAP_NET_BIND_SERVICE` and returns
   `EACCES` without it; the descriptor dies with the child.
 - `setpriority(..., -1)` checks `CAP_SYS_NICE`; only the child's nice value is

@@ -7,9 +7,11 @@
 //
 //     http://www.apache.org/licenses/LICENSE-2.0
 
-//! Capability-effect probes. Each call reaches the kernel's capability check
-//! without changing persistent state; successful descriptors and namespace
-//! state die with the isolated child. The oracle is intentionally
+//! Capability-effect probes. Each call reaches the kernel's capability check;
+//! successful descriptors and namespace state die with the isolated child.
+//! The mknod probe also creates a temporary `/tmp` node on the capable path
+//! and removes it before returning when the child is not killed. The oracle
+//! is intentionally
 //! `Undecidable`: an EPERM/EACCES answer is the syscall's own missing-
 //! capability result, which is correlated with `Cell::capabilities`.
 
@@ -39,8 +41,7 @@ fn mknod() -> RawResult {
     let path = c"/tmp/caliper-mknod";
     // Keep the parent valid so filename_create succeeds and vfs_mknod reaches
     // the CAP_MKNOD check. A capable child may create the node; remove it
-    // before returning so the probe has no persistent filesystem effect.
-    unsafe { libc::unlink(path.as_ptr()) };
+    // before returning when the child is not killed.
     let outcome = result(unsafe {
         libc::syscall(libc::SYS_mknodat, libc::AT_FDCWD, path.as_ptr(), mode, dev)
     });
@@ -182,7 +183,7 @@ pub const MKNOD: Probe = Probe {
     oracle: Oracle {
         guarantees: None,
         isolates: UNDECIDABLE,
-        reason: "filename_create resolves the existing /tmp parent before vfs_mknod checks CAP_MKNOD; without it mknodat returns EPERM, while a capable child creates and immediately unlinks the node",
+        reason: "filename_create resolves the existing /tmp parent before vfs_mknod checks CAP_MKNOD; without it mknodat returns EPERM, while a capable child creates and then unlinks the node. If the child is killed before cleanup, /tmp/caliper-mknod can remain",
     },
     capability: Some(Capability::Mknod),
     effects: SideEffects::NONE,
@@ -200,7 +201,7 @@ pub const SYS_PTRACE: Probe = Probe {
     oracle: Oracle {
         guarantees: None,
         isolates: UNDECIDABLE,
-        reason: "a non-zero iovec forces process_vm_readv through ptrace_may_access before the remote copy; the non-dumpable probe parent therefore returns EPERM without CAP_SYS_PTRACE, while a capable path reaches the deliberate EFAULT",
+        reason: "a non-zero iovec forces process_vm_readv through ptrace_may_access before the remote copy; the non-dumpable probe parent therefore returns EPERM without CAP_SYS_PTRACE, including Yama and AppArmor ptrace policy denials, while a capable path reaches the deliberate EFAULT",
     },
     capability: Some(Capability::SysPtrace),
     effects: SideEffects::NONE,
