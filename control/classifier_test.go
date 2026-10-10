@@ -136,7 +136,7 @@ func TestClassifyKernelDependencies(t *testing.T) {
 		for _, verdict := range []string{"denied", "killed", "timed-out"} {
 			t.Run(verdict, func(t *testing.T) {
 				left := fingerprintWithCell("x86_64", "5.2.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "unimplemented", Errno: 38}})
-				right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: verdict}})
+				right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: Verdict(verdict)}})
 				classified := mustClassify(t, left, right, []ProbeMetadata{{
 					ID:     "new-call",
 					Arch:   Applicability{All: true},
