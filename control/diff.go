@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 )
 
 // SupportedFormatVersion is the sole fingerprint format version understood by
@@ -31,22 +30,26 @@ const SupportedFormatVersion = 1
 // needs. Other fingerprint fields are deliberately preserved by consumers that
 // need them; a diff compares only per-probe verdicts.
 type Fingerprint struct {
-	FormatVersion  int           `json:"format_version"`
-	CorpusRevision string        `json:"corpus_revision"`
-	Cell           Cell          `json:"cell"`
-	Results        []ProbeResult `json:"results"`
-	Unmeasured     []Unmeasured  `json:"unmeasured"`
+	FormatVersion  int             `json:"format_version"`
+	CorpusRevision string          `json:"corpus_revision"`
+	Cell           Cell            `json:"cell"`
+	Results        []ProbeResult   `json:"results"`
+	Unmeasured     []Unmeasured    `json:"unmeasured"`
+	ModuleDelta    json.RawMessage `json:"module_delta,omitempty"`
+	Residual       json.RawMessage `json:"residual,omitempty"`
 }
 
 // ProbeMeasurement is the engine's JSON output before control-plane
-// enrichment. encoding/json ignores its additional engine-only fields (such
-// as residual and module_delta) when decoding this type.
+// enrichment. Engine-specific fields are retained so completion adds
+// control-plane facts without discarding measurement data.
 type ProbeMeasurement struct {
-	FormatVersion  int           `json:"format_version"`
-	CorpusRevision string        `json:"corpus_revision"`
-	Cell           ProbeCell     `json:"cell"`
-	Results        []ProbeResult `json:"results"`
-	Unmeasured     []Unmeasured  `json:"unmeasured"`
+	FormatVersion  int             `json:"format_version"`
+	CorpusRevision string          `json:"corpus_revision"`
+	Cell           ProbeCell       `json:"cell"`
+	Results        []ProbeResult   `json:"results"`
+	Unmeasured     []Unmeasured    `json:"unmeasured"`
+	ModuleDelta    json.RawMessage `json:"module_delta,omitempty"`
+	Residual       json.RawMessage `json:"residual,omitempty"`
 }
 
 // CompleteFingerprint turns decoded engine output into the control plane's
@@ -59,6 +62,8 @@ func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) Fingerpr
 		Cell:           CompleteCell(probe.Cell, metadata),
 		Results:        probe.Results,
 		Unmeasured:     probe.Unmeasured,
+		ModuleDelta:    probe.ModuleDelta,
+		Residual:       probe.Residual,
 	}
 }
 
@@ -66,42 +71,50 @@ func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) Fingerpr
 // control plane records more identity fields than these; the classifier reads
 // only architecture, the kernel and RuntimeClass.
 type Cell struct {
-	Architecture   string       `json:"architecture"`
-	Kernel         Kernel       `json:"kernel"`
-	Distribution   SourcedValue `json:"distribution"`
-	Runtime        SourcedValue `json:"runtime"`
-	RuntimeVersion SourcedValue `json:"runtime_version"`
-	LSM            string       `json:"lsm"`
-	RuntimeClass   SourcedValue `json:"runtime_class"`
+	Architecture   string          `json:"architecture"`
+	Kernel         Kernel          `json:"kernel"`
+	Distribution   *SourcedValue   `json:"distribution,omitempty"`
+	Runtime        *SourcedValue   `json:"runtime,omitempty"`
+	RuntimeVersion *SourcedValue   `json:"runtime_version,omitempty"`
+	LSM            string          `json:"lsm"`
+	RuntimeClass   *SourcedValue   `json:"runtime_class,omitempty"`
+	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
 }
 
 // ProbeCell contains the identity measured inside the workload. Runtime,
 // distribution and RuntimeClass are intentionally absent: the probe cannot
 // observe them reliably and the control plane supplies them.
 type ProbeCell struct {
-	Architecture string `json:"architecture"`
-	Kernel       Kernel `json:"kernel"`
-	LSM          string `json:"lsm"`
+	Architecture string          `json:"architecture"`
+	Kernel       Kernel          `json:"kernel"`
+	LSM          string          `json:"lsm"`
+	Capabilities json.RawMessage `json:"capabilities,omitempty"`
 }
 
 // CellMetadata contains identity supplied by the control plane. Values that
-// cannot be determined should be represented explicitly as {value:"unknown",
-// source:"unknown"}; the source records whether each fact came from a node,
-// pod specification, or operator input.
+// cannot be determined should be nil so the corresponding field is omitted.
+// The source records whether each supplied fact came from a node, pod
+// specification, or operator input. NodeKernelVersion is used only to
+// identify whether the probe reports a synthetic kernel release.
 type CellMetadata struct {
-	Distribution   SourcedValue
-	Runtime        SourcedValue
-	RuntimeVersion SourcedValue
-	RuntimeClass   SourcedValue
+	Distribution      *SourcedValue
+	Runtime           *SourcedValue
+	RuntimeVersion    *SourcedValue
+	RuntimeClass      *SourcedValue
+	NodeKernelVersion string
 }
 
-// CompleteCell combines probe-visible identity with the control-plane facts
-// that complete an environment cell. The sandbox claim is derived from the
-// RuntimeClass, since only that context can tell whether the reported kernel
-// release is synthetic.
+// CompleteCell combines probe-visible identity with available control-plane
+// facts. The sandbox claim is true when the probe's kernel release differs
+// from the Node's kernelVersion; it is omitted if either value is unavailable.
 func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
 	kernel := probe.Kernel
-	kernel.SandboxClaimed = sandboxClaim(metadata.RuntimeClass.Value)
+	if probe.Kernel.Release != "" && metadata.NodeKernelVersion != "" {
+		claimed := probe.Kernel.Release != metadata.NodeKernelVersion
+		kernel.SandboxClaimed = &claimed
+	} else {
+		kernel.SandboxClaimed = nil
+	}
 	return Cell{
 		Architecture:   probe.Architecture,
 		Kernel:         kernel,
@@ -110,30 +123,17 @@ func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
 		RuntimeVersion: metadata.RuntimeVersion,
 		LSM:            probe.LSM,
 		RuntimeClass:   metadata.RuntimeClass,
+		Capabilities:   probe.Capabilities,
 	}
 }
 
 // Kernel is the probe-visible kernel identity. Modules is nil when the probe
 // could not read /proc/modules; nil is unknown and is not the same as empty.
 type Kernel struct {
-	Release        string    `json:"release"`
-	SandboxClaimed *bool     `json:"sandbox_claimed,omitempty"`
-	Modules        *[]string `json:"modules"`
-}
-
-func sandboxClaim(runtimeClass string) *bool {
-	class := strings.ToLower(strings.TrimSpace(runtimeClass))
-	var claimed bool
-	switch {
-	case class == "runc" || strings.HasPrefix(class, "runc-"):
-		claimed = false
-	case class == "gvisor" || strings.HasPrefix(class, "runsc") ||
-		class == "kata" || strings.HasPrefix(class, "kata-"):
-		claimed = true
-	default:
-		return nil
-	}
-	return &claimed
+	Release        string          `json:"release"`
+	Version        json.RawMessage `json:"version,omitempty"`
+	SandboxClaimed *bool           `json:"sandbox_claimed,omitempty"`
+	Modules        *[]string       `json:"modules"`
 }
 
 // SourcedValue is a control-plane value and the source that supplied it.
