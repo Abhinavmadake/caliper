@@ -192,13 +192,20 @@ func classifyDivergence(divergence Divergence, probe ProbeMetadata, left, right 
 	if architectureExplains(divergence, probe.Arch, left.Architecture, right.Architecture) {
 		return ArchitectureExplained
 	}
-	if runtimeClassExplains(divergence, left.RuntimeClass.Value, right.RuntimeClass.Value) {
+	if runtimeClassExplains(divergence, runtimeClassValue(left), runtimeClassValue(right)) {
 		return RuntimeClassExplained
 	}
 	if kernelExplains(divergence, probe.Kernel, left.Kernel, right.Kernel) {
 		return KernelVersionExplained
 	}
 	return PolicyExplained
+}
+
+func runtimeClassValue(cell Cell) string {
+	if cell.RuntimeClass == nil {
+		return ""
+	}
+	return cell.RuntimeClass.Value
 }
 
 func architectureExplains(d Divergence, applicability Applicability, leftArch, rightArch string) bool {
