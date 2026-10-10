@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // SupportedFormatVersion is the sole fingerprint format version understood by
@@ -37,20 +38,102 @@ type Fingerprint struct {
 	Unmeasured     []Unmeasured  `json:"unmeasured"`
 }
 
+// ProbeMeasurement is the engine's JSON output before control-plane
+// enrichment. encoding/json ignores its additional engine-only fields (such
+// as residual and module_delta) when decoding this type.
+type ProbeMeasurement struct {
+	FormatVersion  int           `json:"format_version"`
+	CorpusRevision string        `json:"corpus_revision"`
+	Cell           ProbeCell     `json:"cell"`
+	Results        []ProbeResult `json:"results"`
+	Unmeasured     []Unmeasured  `json:"unmeasured"`
+}
+
+// CompleteFingerprint turns decoded engine output into the control plane's
+// fingerprint by adding the cell facts that only the node, pod spec, or
+// operator can supply.
+func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) Fingerprint {
+	return Fingerprint{
+		FormatVersion:  probe.FormatVersion,
+		CorpusRevision: probe.CorpusRevision,
+		Cell:           CompleteCell(probe.Cell, metadata),
+		Results:        probe.Results,
+		Unmeasured:     probe.Unmeasured,
+	}
+}
+
 // Cell contains the environment facts used to explain a divergence. The
 // control plane records more identity fields than these; the classifier reads
 // only architecture, the kernel and RuntimeClass.
 type Cell struct {
-	Architecture string       `json:"architecture"`
-	Kernel       Kernel       `json:"kernel"`
-	RuntimeClass SourcedValue `json:"runtime_class"`
+	Architecture   string       `json:"architecture"`
+	Kernel         Kernel       `json:"kernel"`
+	Distribution   SourcedValue `json:"distribution"`
+	Runtime        SourcedValue `json:"runtime"`
+	RuntimeVersion SourcedValue `json:"runtime_version"`
+	LSM            string       `json:"lsm"`
+	RuntimeClass   SourcedValue `json:"runtime_class"`
+}
+
+// ProbeCell contains the identity measured inside the workload. Runtime,
+// distribution and RuntimeClass are intentionally absent: the probe cannot
+// observe them reliably and the control plane supplies them.
+type ProbeCell struct {
+	Architecture string `json:"architecture"`
+	Kernel       Kernel `json:"kernel"`
+	LSM          string `json:"lsm"`
+}
+
+// CellMetadata contains identity supplied by the control plane. Values that
+// cannot be determined should be represented explicitly as {value:"unknown",
+// source:"unknown"}; the source records whether each fact came from a node,
+// pod specification, or operator input.
+type CellMetadata struct {
+	Distribution   SourcedValue
+	Runtime        SourcedValue
+	RuntimeVersion SourcedValue
+	RuntimeClass   SourcedValue
+}
+
+// CompleteCell combines probe-visible identity with the control-plane facts
+// that complete an environment cell. The sandbox claim is derived from the
+// RuntimeClass, since only that context can tell whether the reported kernel
+// release is synthetic.
+func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
+	kernel := probe.Kernel
+	kernel.SandboxClaimed = sandboxClaim(metadata.RuntimeClass.Value)
+	return Cell{
+		Architecture:   probe.Architecture,
+		Kernel:         kernel,
+		Distribution:   metadata.Distribution,
+		Runtime:        metadata.Runtime,
+		RuntimeVersion: metadata.RuntimeVersion,
+		LSM:            probe.LSM,
+		RuntimeClass:   metadata.RuntimeClass,
+	}
 }
 
 // Kernel is the probe-visible kernel identity. Modules is nil when the probe
 // could not read /proc/modules; nil is unknown and is not the same as empty.
 type Kernel struct {
-	Release string    `json:"release"`
-	Modules *[]string `json:"modules"`
+	Release        string    `json:"release"`
+	SandboxClaimed *bool     `json:"sandbox_claimed,omitempty"`
+	Modules        *[]string `json:"modules"`
+}
+
+func sandboxClaim(runtimeClass string) *bool {
+	class := strings.ToLower(strings.TrimSpace(runtimeClass))
+	var claimed bool
+	switch {
+	case class == "runc" || strings.HasPrefix(class, "runc-"):
+		claimed = false
+	case class == "gvisor" || strings.HasPrefix(class, "runsc") ||
+		class == "kata" || strings.HasPrefix(class, "kata-"):
+		claimed = true
+	default:
+		return nil
+	}
+	return &claimed
 }
 
 // SourcedValue is a control-plane value and the source that supplied it.

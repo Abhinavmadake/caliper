@@ -23,6 +23,56 @@ import (
 	"testing"
 )
 
+func TestCompleteFingerprintEnrichesProbeMeasurement(t *testing.T) {
+	const raw = `{
+		"format_version": 1,
+		"corpus_revision": "0.1.0",
+		"cell": {
+			"architecture": "x86_64",
+			"kernel": {"release": "6.8.0", "version": {"major": 6, "minor": 8}, "modules": null},
+			"lsm": "apparmor",
+			"capabilities": {"effective": "0000000000000000"}
+		},
+		"results": [{"probe_id": "socket.test", "verdict": "permitted", "errno": 0}],
+		"unmeasured": [],
+		"module_delta": {},
+		"residual": {}
+	}`
+
+	var probe ProbeMeasurement
+	if err := json.Unmarshal([]byte(raw), &probe); err != nil {
+		t.Fatalf("decode probe measurement: %v", err)
+	}
+	completed := CompleteFingerprint(probe, CellMetadata{
+		Distribution:   SourcedValue{Value: "Ubuntu 24.04", Source: "node-object"},
+		Runtime:        SourcedValue{Value: "containerd", Source: "node-object"},
+		RuntimeVersion: SourcedValue{Value: "2.2.0", Source: "node-object"},
+		RuntimeClass:   SourcedValue{Value: "runsc", Source: "pod-spec"},
+	})
+
+	if completed.Cell.Architecture != "x86_64" || completed.Cell.LSM != "apparmor" {
+		t.Errorf("probe cell facts = %#v", completed.Cell)
+	}
+	if completed.Cell.Distribution.Value != "Ubuntu 24.04" || completed.Cell.Runtime.Value != "containerd" || completed.Cell.RuntimeVersion.Value != "2.2.0" {
+		t.Errorf("control-plane facts = %#v", completed.Cell)
+	}
+	if completed.Cell.RuntimeClass.Source != "pod-spec" || completed.Cell.Kernel.SandboxClaimed == nil || !*completed.Cell.Kernel.SandboxClaimed {
+		t.Errorf("RuntimeClass enrichment = %#v", completed.Cell)
+	}
+	if len(completed.Results) != 1 || completed.Results[0].ProbeID != "socket.test" {
+		t.Errorf("results = %#v", completed.Results)
+	}
+}
+
+func TestCompleteCellLeavesUnknownSandboxClaimUnset(t *testing.T) {
+	cell := CompleteCell(ProbeCell{}, CellMetadata{
+		RuntimeClass: SourcedValue{Value: "unknown", Source: "unknown"},
+	})
+	if cell.Kernel.SandboxClaimed != nil {
+		t.Errorf("sandbox_claimed = %v, want unset for unknown RuntimeClass", *cell.Kernel.SandboxClaimed)
+	}
+}
+
 func TestDiffRecordedFixtures(t *testing.T) {
 	baseline := loadFixture(t, "x86_64-apparmor.json")
 
