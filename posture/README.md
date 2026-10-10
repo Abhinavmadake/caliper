@@ -24,12 +24,13 @@ for it is prose beside it:
 ```
 posture/
   README.md          this file
+  CHANGELOG.md       revision history and release notes
   v1/
     posture.yaml     normative: tiers, assertions, citations (#21, #22)
     RATIONALE.md     the argument, per tier and per assertion
 ```
 
-`posture.yaml` carries `posture_version`, `tiers[]` (name, `named_after` PSS
+`posture.yaml` carries `posture_revision`, `status`, `tiers[]` (name, `named_after` PSS
 level, the workload class it describes, how it is stronger than that level)
 and `assertions[]` (tier, `family`, optional `probe_ids`, `expect`,
 `rationale`, `citations[]`). Families and probe ids are the corpus's, exactly
@@ -37,8 +38,36 @@ as `caliper-probe --dump-corpus` spells them, so an assertion maps one to one
 onto results. Tiers inherit downward: an assertion at `restricted` holds at
 `untrusted-multi-tenant` too, and is written once.
 
-Versioning is #23. A change to a shipped version is a new version; findings
-cite the version they were evaluated against.
+### Revisions and findings (#23)
+
+`posture_revision` is the single public identifier for the policy (currently
+`v1`). Keeping one identifier avoids a schema-version/policy-version drift. A
+change to a shipped policy is a new `posture/vN/` directory, a new
+`posture_revision`, and a `CHANGELOG.md` entry; released revisions are never
+edited in place.
+
+The current `v1` document is marked `status: draft` while the corrections
+tracked by issue #94 are pending. It must be marked released only after those
+assertions are fixed and reviewed.
+
+Every finding emitted by the control plane records the exact
+`posture_revision` used for evaluation. The field is provenance, not a claim
+that the finding came from a trusted signer, and is distinct from the
+fingerprint's `format_version` and `corpus_revision`:
+
+```json
+{
+  "kind": "expectation-violation",
+  "posture_revision": "v1",
+  "tier": "untrusted-multi-tenant",
+  "family": "socket",
+  "probe_id": "socket.family.af_alg"
+}
+```
+
+The posture directory is part of the instrument release. A release therefore
+ships the posture revision and its changelog alongside the engine and control
+plane, so a finding can always be reproduced against the declared policy.
 
 ## Tier definitions (#21)
 
