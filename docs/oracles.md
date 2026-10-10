@@ -52,9 +52,14 @@ the unprivileged path is distinctive:
   malformed-command validation, which guarantees `EINVAL` after the check.
 - `finit_module(-1, "", 0)` checks `CAP_SYS_MODULE` before descriptor lookup,
   which guarantees `EBADF` after the check.
-- `mknodat` checks `CAP_MKNOD` before resolving the deliberately missing
-  parent, which guarantees `ENOENT` after the check.
-- `process_vm_readv` checks `CAP_SYS_PTRACE` before a zero-byte transfer.
+- `mknodat` resolves the existing `/tmp` parent in `filename_create` before
+  `vfs_mknod` checks `CAP_MKNOD`; the no-capability path is `EPERM`, and a
+  capable child removes the newly created node before exit. If the child is
+  killed before cleanup, `/tmp/caliper-mknod` can remain.
+- `process_vm_readv` uses a non-zero local iovec and an invalid remote address,
+  so `ptrace_may_access` runs before the deliberate `EFAULT`; the non-dumpable
+  probe parent makes the no-capability path `EPERM`, including Yama and
+  AppArmor ptrace policy denials.
 - Binding an IPv4 socket to port 1 checks `CAP_NET_BIND_SERVICE` and returns
   `EACCES` without it; the descriptor dies with the child.
 - `setpriority(..., -1)` checks `CAP_SYS_NICE`; only the child's nice value is

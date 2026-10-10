@@ -103,6 +103,65 @@ fn run(mode: &str, filter: Option<BpfProgram>) -> Value {
     serde_json::from_slice(&out.stdout).expect("output is JSON")
 }
 
+#[repr(C)]
+struct CapHeader {
+    version: u32,
+    pid: libc::pid_t,
+}
+
+#[repr(C)]
+struct CapData {
+    effective: u32,
+    permitted: u32,
+    inheritable: u32,
+}
+
+/// Drop every effective, permitted, and inheritable capability before exec.
+/// The test then exercises the same no-capability posture regardless of the
+/// capabilities granted to the CI container itself.
+unsafe fn drop_all_capabilities() -> io::Result<()> {
+    let mut header = CapHeader {
+        version: 0x2008_0522,
+        pid: 0,
+    };
+    let data = [
+        CapData {
+            effective: 0,
+            permitted: 0,
+            inheritable: 0,
+        },
+        CapData {
+            effective: 0,
+            permitted: 0,
+            inheritable: 0,
+        },
+    ];
+    if libc::syscall(libc::SYS_capset, &mut header, data.as_ptr()) == -1 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+fn run_without_capabilities() -> Value {
+    let mut cmd = Command::new(PROBE);
+    cmd.arg("--run")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit());
+    // SAFETY: capset is the only operation before exec and does not allocate.
+    unsafe {
+        cmd.pre_exec(|| drop_all_capabilities());
+    }
+    let out = cmd
+        .output()
+        .expect("spawn caliper-probe without capabilities");
+    assert!(
+        out.status.success(),
+        "caliper-probe --run without capabilities failed: {:?}",
+        out.status
+    );
+    serde_json::from_slice(&out.stdout).expect("output is JSON")
+}
+
 const VERDICTS: &[&str] = &[
     "permitted",
     "denied",
@@ -215,6 +274,20 @@ fn the_run_emits_the_probe_side_of_a_fingerprint() {
     // residual snapshots included, whose keys are the classes' snake_case
     // spelling.
     check_keys(&doc, "$");
+}
+
+#[test]
+fn capability_probes_are_denied_without_capabilities() {
+    let doc = run_without_capabilities();
+    let results = doc["results"].as_array().unwrap();
+    for id in ["capability.sys_ptrace", "capability.mknod"] {
+        let result = results
+            .iter()
+            .find(|result| result["probe_id"] == id)
+            .unwrap_or_else(|| panic!("missing {id} result"));
+        assert_eq!(result["verdict"], "denied", "{result}");
+        assert_eq!(result["errno"], libc::EPERM as u64, "{result}");
+    }
 }
 
 #[test]
