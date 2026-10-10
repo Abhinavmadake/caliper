@@ -230,6 +230,12 @@ func sandboxed(runtimeClass string) bool {
 }
 
 func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) bool {
+	// A killed verdict means the call reached a seccomp filter that terminated
+	// the child. A kernel version difference cannot explain that policy action,
+	// even when the other cell reports the entry point as unimplemented.
+	if d.Left.Verdict == "killed" || d.Right.Verdict == "killed" {
+		return false
+	}
 	if dependency.AbsentErrno == nil {
 		return false
 	}

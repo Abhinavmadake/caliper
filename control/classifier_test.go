@@ -109,6 +109,27 @@ func TestClassifyKernelDependencies(t *testing.T) {
 		assertClass(t, classified, "new-call", KernelVersionExplained)
 	})
 
+	t.Run("seccomp kill remains policy across a kernel version gate", func(t *testing.T) {
+		olderUnimplemented := fingerprintWithCell("x86_64", "5.2.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "unimplemented", Errno: 38}})
+		newerKilled := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "killed"}})
+		for _, pair := range []struct {
+			name        string
+			left, right Fingerprint
+		}{
+			{name: "older first", left: olderUnimplemented, right: newerKilled},
+			{name: "newer first", left: newerKilled, right: olderUnimplemented},
+		} {
+			t.Run(pair.name, func(t *testing.T) {
+				classified := mustClassify(t, pair.left, pair.right, []ProbeMetadata{{
+					ID:     "new-call",
+					Arch:   Applicability{All: true},
+					Kernel: dependency(&KernelVersion{5, 3}, 38),
+				}})
+				assertClass(t, classified, "new-call", PolicyExplained)
+			})
+		}
+	})
+
 	t.Run("module-gated dependency", func(t *testing.T) {
 		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
 		left.Cell.Kernel.Modules = modules("nf_tables")
