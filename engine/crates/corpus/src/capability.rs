@@ -36,20 +36,42 @@ fn sys_module() -> RawResult {
 fn mknod() -> RawResult {
     let mode = libc::S_IFCHR | 0o600;
     let dev = libc::makedev(1, 3);
-    result(unsafe {
-        libc::syscall(
-            libc::SYS_mknodat,
-            libc::AT_FDCWD,
-            c"/caliper-no-such-dir/n".as_ptr(),
-            mode,
-            dev,
-        )
-    })
+    let path = c"/tmp/caliper-mknod";
+    // Keep the parent valid so filename_create succeeds and vfs_mknod reaches
+    // the CAP_MKNOD check. A capable child may create the node; remove it
+    // before returning so the probe has no persistent filesystem effect.
+    unsafe { libc::unlink(path.as_ptr()) };
+    let outcome = result(unsafe {
+        libc::syscall(libc::SYS_mknodat, libc::AT_FDCWD, path.as_ptr(), mode, dev)
+    });
+    unsafe { libc::unlink(path.as_ptr()) };
+    outcome
 }
 
 fn sys_ptrace() -> RawResult {
     let parent = unsafe { libc::syscall(libc::SYS_getppid) };
-    result(unsafe { libc::syscall(libc::SYS_process_vm_readv, parent, 0, 0, 0, 0, 0) })
+    let mut local = 0u8;
+    let local_iov = libc::iovec {
+        iov_base: (&mut local as *mut u8).cast(),
+        iov_len: 1,
+    };
+    let remote_iov = libc::iovec {
+        // A non-null, invalid address makes the privileged path fail safely
+        // with EFAULT after ptrace_may_access has been evaluated.
+        iov_base: 1usize as *mut libc::c_void,
+        iov_len: 1,
+    };
+    result(unsafe {
+        libc::syscall(
+            libc::SYS_process_vm_readv,
+            parent,
+            &local_iov,
+            1,
+            &remote_iov,
+            1,
+            0,
+        )
+    })
 }
 
 fn net_bind_service() -> RawResult {
@@ -153,14 +175,14 @@ pub const MKNOD: Probe = Probe {
     id: "capability.mknod",
     family: "capability",
     status: Status::Committed,
-    description: "mknodat(AT_FDCWD, missing path, S_IFCHR|0600, makedev(1,3))",
+    description: "mknodat(AT_FDCWD, /tmp/caliper-mknod, S_IFCHR|0600, makedev(1,3))",
     risk: ONE_CALL,
     arch: Applicability::All,
     kernel: KernelDependency::NONE,
     oracle: Oracle {
-        guarantees: Some(Errno::ENOENT),
+        guarantees: None,
         isolates: UNDECIDABLE,
-        reason: "do_mknodat calls may_mknod and checks CAP_MKNOD before filename_create; mknodat(2) documents ENOENT for the missing parent",
+        reason: "filename_create resolves the existing /tmp parent before vfs_mknod checks CAP_MKNOD; without it mknodat returns EPERM, while a capable child creates and immediately unlinks the node",
     },
     capability: Some(Capability::Mknod),
     effects: SideEffects::NONE,
@@ -171,14 +193,14 @@ pub const SYS_PTRACE: Probe = Probe {
     id: "capability.sys_ptrace",
     family: "capability",
     status: Status::Committed,
-    description: "process_vm_readv(getppid(), NULL, 0, NULL, 0, 0): zero-byte access check",
+    description: "process_vm_readv(getppid(), valid local iovec, invalid remote iovec): access check",
     risk: ONE_CALL,
     arch: Applicability::All,
     kernel: KernelDependency::NONE,
     oracle: Oracle {
         guarantees: None,
         isolates: UNDECIDABLE,
-        reason: "process_vm_readv calls ptrace_may_access before the zero-iovec transfer; process_vm_readv(2) permits a zero-byte request and CAP_SYS_PTRACE bypasses the dumpable check",
+        reason: "a non-zero iovec forces process_vm_readv through ptrace_may_access before the remote copy; the non-dumpable probe parent therefore returns EPERM without CAP_SYS_PTRACE, while a capable path reaches the deliberate EFAULT",
     },
     capability: Some(Capability::SysPtrace),
     effects: SideEffects::NONE,
