@@ -30,27 +30,41 @@ echo "Starting Tracee in the background..."
 docker run -d --name tracee --privileged --pid=host --cgroupns=host \
   -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro -v /tmp/tracee:/tmp/tracee \
   aquasec/tracee:0.24.1 \
-  --output json
+  --output json \
+  --events init_module,finit_module,module_load,security_socket_create
 
 # Wait for Tracee to initialize
 sleep 15
 
+# Mark log baseline before full run
+BEFORE_FULL=$(docker logs tracee 2>&1 | wc -l)
+
 echo "Running full corpus (should trigger alerts)..."
 docker run --rm caliper-probe --run > /dev/null || true
 
-# Mark the log position
-BEFORE_LINES=$(docker logs tracee 2>&1 | wc -l)
+# Capture only the events emitted during the full corpus run
+BEFORE_REDUCED=$(docker logs tracee 2>&1 | wc -l)
+docker logs tracee 2>&1 | head -n "$BEFORE_REDUCED" | tail -n +"$((BEFORE_FULL + 1))" > /tmp/tracee_full.log
+
+echo "Checking Tracee logs for full run..."
+if ! grep -qE '"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_module|module_load)"' /tmp/tracee_full.log && \
+   ! grep -qE 'AF_ALG|"family"[[:space:]]*:[[:space:]]*38' /tmp/tracee_full.log; then
+    echo "FAIL: The full corpus did not trigger any module-load or AF_ALG events in Tracee."
+    cat /tmp/tracee_full.log
+    exit 1
+fi
+echo "Confirmed: Full corpus triggered expected alert events."
 
 echo "Running reduced corpus (should be alert-safe)..."
 docker run --rm caliper-probe --reduced > /dev/null
 
 # Capture only the new events emitted during the reduced corpus run
-docker logs tracee 2>&1 | tail -n +"$((BEFORE_LINES + 1))" > /tmp/tracee_reduced.log
+docker logs tracee 2>&1 | tail -n +"$((BEFORE_REDUCED + 1))" > /tmp/tracee_reduced.log
 
 echo "Stopping Tracee..."
 docker rm -f tracee
 
-echo "Checking Tracee logs for module-load or AF_ALG events..."
+echo "Checking Tracee logs for reduced run..."
 if grep -qE '"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_module|module_load)"' /tmp/tracee_reduced.log || \
    grep -qE 'AF_ALG|"family"[[:space:]]*:[[:space:]]*38' /tmp/tracee_reduced.log; then
     echo "FAIL: The reduced corpus triggered module-load or AF_ALG events."
@@ -58,5 +72,5 @@ if grep -qE '"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_module|modu
     exit 1
 fi
 
-echo "Test passed! No AF_ALG or module-load events detected."
+echo "Test passed! Full corpus raised alerts and reduced corpus was alert-safe."
 
