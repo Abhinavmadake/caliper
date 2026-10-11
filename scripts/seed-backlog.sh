@@ -129,7 +129,10 @@ echo "Milestones"
 mkmilestone "$M2"  "2026-09-11" "Probe and fingerprint formats agreed and fixed. Every other workstream develops against these rather than against the engine."
 mkmilestone "$M3"  "2026-09-18" "Probe engine with fork isolation, SIGSYS survival, timeout handling and verdict classification, plus a ten-probe reference corpus end to end. The critical path."
 mkmilestone "$M8"  "2026-09-27" "Committed corpus complete and frozen, every probe carrying its errno oracle. Reference posture drafted with citations."
-mkmilestone "$M9"  "2026-10-04" "Fingerprint format frozen. The system is independently defensible from this point: it measures, classifies and diffs confinement across environments."
+# W9 moved on 2026-10-09 from 2026-10-04 to 2026-10-11, after a repo review
+# found measurement bugs (#88-#103) to fix before the format freeze. Later
+# gates are unchanged.
+mkmilestone "$M9"  "2026-10-11" "Fingerprint format frozen. The system is independently defensible from this point: it measures, classifies and diffs confinement across environments."
 mkmilestone "$M12" "2026-10-25" "Attribution confidence model, evaluator against manifest and posture, and minimal remediation with closure verification."
 mkmilestone "$M15" "2026-11-15" "Environment matrix measured across six cells. Every success criterion in §11.2 reported."
 mkmilestone "$M16" "2026-11-22" "Held deliberately empty. A compressed schedule with no slack fails on its first surprise, and the surprises here are kernel-level. No issues belong in this milestone."
