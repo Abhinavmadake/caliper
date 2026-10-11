@@ -1029,13 +1029,13 @@
     },
     {
       "probe_id": "capability.mknod",
-      "verdict": "permitted",
-      "errno": 2
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "capability.sys_ptrace",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "capability.net_bind_service",
@@ -1300,5 +1300,5 @@
     "audit": [],
     "janitor": []
   },
-  "digest": "sha256:1f067d5f79f8ce77b42aeeb0dbb63a9a09b83362d03d61d5d9d0f21813d96731"
+  "digest": "sha256:abaece1101cd6de63b364eda790780ec89b2a2a2aa70ecf7cbab49d207d27a6e"
 }
