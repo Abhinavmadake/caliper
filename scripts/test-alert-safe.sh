@@ -31,10 +31,17 @@ docker run -d --name tracee --privileged --pid=host --cgroupns=host \
   -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro -v /tmp/tracee:/tmp/tracee \
   aquasec/tracee:0.24.1 \
   --output json \
-  --events init_module,finit_module,module_load,security_socket_create
+  --events init_module,finit_module,module_load,security_socket_create,socket
 
 # Wait for Tracee to initialize
 sleep 15
+
+# Verify Tracee is running
+if ! docker ps -q --filter "name=tracee" | grep -q .; then
+    echo "ERROR: Tracee container failed to start."
+    docker logs tracee
+    exit 1
+fi
 
 # Mark log baseline before full run
 BEFORE_FULL=$(docker logs tracee 2>&1 | wc -l)
@@ -42,21 +49,30 @@ BEFORE_FULL=$(docker logs tracee 2>&1 | wc -l)
 echo "Running full corpus (should trigger alerts)..."
 docker run --rm caliper-probe --run > /dev/null || true
 
+# Allow Tracee to flush events
+sleep 3
+
 # Capture only the events emitted during the full corpus run
 BEFORE_REDUCED=$(docker logs tracee 2>&1 | wc -l)
 docker logs tracee 2>&1 | head -n "$BEFORE_REDUCED" | tail -n +"$((BEFORE_FULL + 1))" > /tmp/tracee_full.log
 
 echo "Checking Tracee logs for full run..."
-if ! grep -qE '"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_module|module_load)"' /tmp/tracee_full.log && \
-   ! grep -qE 'AF_ALG|"family"[[:space:]]*:[[:space:]]*38' /tmp/tracee_full.log; then
+ALERT_PATTERN='AF_ALG|"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_module|module_load)"|("eventName"[[:space:]]*:[[:space:]]*"(security_socket_create|socket)".*(domain|family).*:[[:space:]]*38)'
+if ! grep -qE "$ALERT_PATTERN" /tmp/tracee_full.log; then
     echo "FAIL: The full corpus did not trigger any module-load or AF_ALG events in Tracee."
+    echo "=== Full run Tracee logs ==="
     cat /tmp/tracee_full.log
+    echo "=== All Tracee logs ==="
+    docker logs tracee
     exit 1
 fi
 echo "Confirmed: Full corpus triggered expected alert events."
 
 echo "Running reduced corpus (should be alert-safe)..."
 docker run --rm caliper-probe --reduced > /dev/null
+
+# Allow Tracee to flush events
+sleep 3
 
 # Capture only the new events emitted during the reduced corpus run
 docker logs tracee 2>&1 | tail -n +"$((BEFORE_REDUCED + 1))" > /tmp/tracee_reduced.log
@@ -65,8 +81,7 @@ echo "Stopping Tracee..."
 docker rm -f tracee
 
 echo "Checking Tracee logs for reduced run..."
-if grep -qE '"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_module|module_load)"' /tmp/tracee_reduced.log || \
-   grep -qE 'AF_ALG|"family"[[:space:]]*:[[:space:]]*38' /tmp/tracee_reduced.log; then
+if grep -qE "$ALERT_PATTERN" /tmp/tracee_reduced.log; then
     echo "FAIL: The reduced corpus triggered module-load or AF_ALG events."
     cat /tmp/tracee_reduced.log
     exit 1
