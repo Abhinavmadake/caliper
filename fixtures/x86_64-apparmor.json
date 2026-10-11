@@ -4,141 +4,1301 @@
   "cell": {
     "architecture": "x86_64",
     "kernel": {
-      "release": "6.8.0-51-generic",
-      "sandbox_claimed": false,
+      "release": "6.8.0-142-generic",
+      "version": {
+        "major": 6,
+        "minor": 8
+      },
       "modules": [
+        "9p",
+        "9pnet",
+        "9pnet_virtio",
+        "aesni_intel",
+        "ahci",
+        "async_memcpy",
+        "async_pq",
+        "async_raid6_recov",
+        "async_tx",
+        "async_xor",
+        "autofs4",
+        "binfmt_misc",
+        "blake2b_generic",
+        "bridge",
+        "btrfs",
+        "ccp",
+        "crc32_pclmul",
+        "crct10dif_pclmul",
+        "cryptd",
+        "crypto_simd",
+        "dm_multipath",
+        "dmi_sysfs",
+        "efi_pstore",
+        "ghash_clmulni_intel",
+        "inet_diag",
+        "input_leds",
+        "ip6_tables",
+        "ip6_udp_tunnel",
+        "ip6table_filter",
+        "ip6table_nat",
+        "ip_set",
+        "ip_tables",
+        "iptable_filter",
+        "iptable_nat",
+        "irqbypass",
+        "isofs",
+        "kvm",
+        "kvm_amd",
+        "libahci",
+        "libcrc32c",
+        "llc",
+        "msr",
+        "netfs",
+        "nf_conntrack",
+        "nf_conntrack_netlink",
+        "nf_defrag_ipv4",
+        "nf_defrag_ipv6",
+        "nf_nat",
+        "nf_tables",
+        "nfnetlink",
+        "nft_chain_nat",
+        "nft_compat",
+        "nls_iso8859_1",
         "overlay",
-        "br_netfilter",
-        "nf_tables"
-      ]
+        "polyval_clmulni",
+        "polyval_generic",
+        "psmouse",
+        "raid0",
+        "raid1",
+        "raid10",
+        "raid456",
+        "raid6_pq",
+        "sch_fq_codel",
+        "serio_raw",
+        "sha1_ssse3",
+        "sha256_ssse3",
+        "stp",
+        "tap",
+        "tcp_diag",
+        "udp_diag",
+        "udp_tunnel",
+        "veth",
+        "virtio_rng",
+        "vxlan",
+        "x_tables",
+        "xfrm_algo",
+        "xfrm_user",
+        "xhci_pci",
+        "xhci_pci_renesas",
+        "xor",
+        "xt_MASQUERADE",
+        "xt_addrtype",
+        "xt_comment",
+        "xt_conntrack",
+        "xt_mark",
+        "xt_multiport",
+        "xt_nat",
+        "xt_set",
+        "xt_tcpudp"
+      ],
+      "sandbox_claimed": false
     },
     "distribution": {
-      "value": "Ubuntu 24.04.1 LTS",
-      "source": "node-object"
+      "value": "Ubuntu 24.04.4 LTS",
+      "source": "operator"
     },
     "runtime": {
-      "value": "containerd",
-      "source": "node-object"
+      "value": "docker",
+      "source": "operator"
     },
     "runtime_version": {
-      "value": "2.2.0",
-      "source": "node-object"
+      "value": "29.1.3",
+      "source": "operator"
     },
     "lsm": "apparmor",
     "runtime_class": {
       "value": "runc",
-      "source": "pod-spec"
+      "source": "operator"
+    },
+    "capabilities": {
+      "effective": "0000000000000000",
+      "permitted": "0000000000000000",
+      "bounding": "00000000a80425fb",
+      "ambient": "0000000000000000"
     }
   },
   "results": [
     {
       "probe_id": "socket.family.af_inet",
       "verdict": "permitted",
-      "errno": 0,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "high",
-        "undecidable": false
-      }
-    },
-    {
-      "probe_id": "mount.fstype.proc",
-      "verdict": "killed",
-      "errno": 0,
-      "attribution": {
-        "mechanism": "seccomp",
-        "confidence": "high",
-        "undecidable": false,
-        "reason": "terminated by SIGSYS, which only a KILL_PROCESS or KILL_THREAD filter produces"
-      }
-    },
-    {
-      "probe_id": "keyctl.op.join_session",
-      "verdict": "denied",
-      "errno": 1,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "low",
-        "undecidable": true,
-        "reason": "EPERM is the oracle's guaranteed errno here, so interception cannot be separated from a dropped capability without privilege"
-      }
-    },
-    {
-      "probe_id": "netlink.protocol.nf_tables",
-      "verdict": "unimplemented",
-      "errno": 93,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "high",
-        "undecidable": false,
-        "reason": "EPROTONOSUPPORT from a kernel whose config does not build this netlink family; not a denial"
-      }
-    },
-    {
-      "probe_id": "userfaultfd.create",
-      "verdict": "timed-out",
-      "errno": 0,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "low",
-        "undecidable": true,
-        "reason": "exceeded the risk class's 1000 ms deadline; hung and slow are not distinguished"
-      }
-    },
-    {
-      "probe_id": "io_uring.opcode.sendmsg_zc",
-      "verdict": "denied",
-      "errno": 1,
-      "attribution": {
-        "mechanism": "seccomp",
-        "confidence": "high",
-        "undecidable": false,
-        "reason": "oracle guaranteed EBADF; EPERM proves interception"
-      }
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_alg",
       "verdict": "permitted",
-      "errno": 0,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "high",
-        "undecidable": false
-      }
+      "errno": 0
     },
     {
-      "probe_id": "arch.modify_ldt",
-      "verdict": "permitted",
-      "errno": 0,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "high",
-        "undecidable": false
-      }
+      "probe_id": "socket.family.af_packet",
+      "verdict": "denied",
+      "errno": 1
     },
     {
-      "probe_id": "mount.fstype.bpf",
+      "probe_id": "socket.family.out_of_range",
       "verdict": "permitted",
-      "errno": 0,
-      "attribution": {
-        "mechanism": null,
-        "confidence": "high",
-        "undecidable": false
-      }
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_unix",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "socket.family.af_inet6",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "socket.family.af_key",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "socket.family.af_bluetooth",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_can",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "socket.family.af_tipc",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_rds",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_xdp",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "socket.family.af_rxrpc",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "socket.family.af_phonet",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "socket.family.af_ieee802154",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_nfc",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_vsock",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "socket.family.af_kcm",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_qipcrtr",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_smc",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_mctp",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "socket.family.af_ax25",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_appletalk",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "socket.family.af_x25",
+      "verdict": "unimplemented",
+      "errno": 97
+    },
+    {
+      "probe_id": "netlink.protocol.route",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.usersock",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.sock_diag",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.nflog",
+      "verdict": "unimplemented",
+      "errno": 93
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.selinux",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.iscsi",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.audit",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.fib_lookup",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.connector",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.kobject_uevent",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.generic",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.scsitransport",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.rdma",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.crypto",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "netlink.protocol.smc",
+      "verdict": "unimplemented",
+      "errno": 93
+    },
+    {
+      "probe_id": "netlink.protocol.out_of_range",
+      "verdict": "permitted",
+      "errno": 93
+    },
+    {
+      "probe_id": "io_uring.register.probe",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.setup.zero_entries",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.nop",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.readv",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.writev",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.fsync",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.read_fixed",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.write_fixed",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.poll_add",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.recvmsg",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.timeout",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.accept",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.connect",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.fallocate",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.openat",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.close",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.statx",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.read",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.write",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.fadvise",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.madvise",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.send",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.recv",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.openat2",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.splice",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.tee",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.shutdown",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.renameat",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.unlinkat",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.mkdirat",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.symlinkat",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.linkat",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.msg_ring",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.setxattr",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.getxattr",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.socket",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.send_zc",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.read_multishot",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.waitid",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wait",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wake",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.ftruncate",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.bind",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "io_uring.opcode.listen",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "mount.reach",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "mount.type.proc",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.sysfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.tmpfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.devtmpfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.devpts",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.overlay",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.fuse",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.fusectl",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.cgroup2",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.cgroup",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.bpf",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.debugfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.tracefs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.configfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.securityfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.efivarfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.pstore",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.binfmt_misc",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.hugetlbfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.mqueue",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.autofs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.ecryptfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.squashfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.iso9660",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.vfat",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.ext4",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.btrfs",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.xfs",
+      "verdict": "unimplemented",
+      "errno": 19
+    },
+    {
+      "probe_id": "mount.type.nfs",
+      "verdict": "unimplemented",
+      "errno": 19
+    },
+    {
+      "probe_id": "mount.type.nfs4",
+      "verdict": "unimplemented",
+      "errno": 19
+    },
+    {
+      "probe_id": "mount.type.cifs",
+      "verdict": "unimplemented",
+      "errno": 19
+    },
+    {
+      "probe_id": "mount.type.9p",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "mount.type.virtiofs",
+      "verdict": "unimplemented",
+      "errno": 19
+    },
+    {
+      "probe_id": "mount.type.ntfs3",
+      "verdict": "unimplemented",
+      "errno": 19
+    },
+    {
+      "probe_id": "mount.fs.proc",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "mount.fs.overlay",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "mount.fs.fuse",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "device.open.fuse",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "device.open.net_tun",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "device.open.kvm",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "device.open.kmsg",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "device.open.mem",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "device.open.port",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "device.open.null",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "device.open.sda",
+      "verdict": "denied",
+      "errno": 2
+    },
+    {
+      "probe_id": "path.masked.proc_kcore",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.proc_keys",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.proc_latency_stats",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.proc_timer_list",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.proc_timer_stats",
+      "verdict": "unimplemented",
+      "errno": 2
+    },
+    {
+      "probe_id": "path.masked.proc_sched_debug",
+      "verdict": "unimplemented",
+      "errno": 2
+    },
+    {
+      "probe_id": "path.masked.proc_acpi",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.proc_asound",
+      "verdict": "unimplemented",
+      "errno": 2
+    },
+    {
+      "probe_id": "path.masked.proc_scsi",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.sys_firmware",
+      "verdict": "denied",
+      "errno": 61
+    },
+    {
+      "probe_id": "path.masked.sys_powercap",
+      "verdict": "unimplemented",
+      "errno": 2
+    },
+    {
+      "probe_id": "path.readonly.proc_bus",
+      "verdict": "denied",
+      "errno": 30
+    },
+    {
+      "probe_id": "path.readonly.proc_fs",
+      "verdict": "denied",
+      "errno": 30
+    },
+    {
+      "probe_id": "path.readonly.proc_irq",
+      "verdict": "denied",
+      "errno": 30
+    },
+    {
+      "probe_id": "path.readonly.proc_sys",
+      "verdict": "denied",
+      "errno": 30
+    },
+    {
+      "probe_id": "path.readonly.proc_sysrq_trigger",
+      "verdict": "denied",
+      "errno": 30
+    },
+    {
+      "probe_id": "path.control.proc_self_status",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "unshare.flags.invalid",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newuser",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newns",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newnet",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newpid",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newipc",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newuts",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newcgroup",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newtime",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "unshare.flags.newuser_newnet",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newuser",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newns",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newnet",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newpid",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newipc",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newuts",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newcgroup",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone.flags.newuser_newnet",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "clone3.args.short",
+      "verdict": "denied",
+      "errno": 38
+    },
+    {
+      "probe_id": "capability.sys_time",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "capability.sys_boot",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "capability.sys_module",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "capability.mknod",
+      "verdict": "permitted",
+      "errno": 2
+    },
+    {
+      "probe_id": "capability.sys_ptrace",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "capability.net_bind_service",
+      "verdict": "permitted",
+      "errno": 0
+    },
+    {
+      "probe_id": "capability.sys_nice",
+      "verdict": "denied",
+      "errno": 13
+    },
+    {
+      "probe_id": "capability.sys_rawio",
+      "verdict": "denied",
+      "errno": 1
     }
   ],
+  "unmeasured": [],
   "module_delta": {
     "before": [
+      "9p",
+      "9pnet",
+      "9pnet_virtio",
+      "aesni_intel",
+      "ahci",
+      "async_memcpy",
+      "async_pq",
+      "async_raid6_recov",
+      "async_tx",
+      "async_xor",
+      "autofs4",
+      "binfmt_misc",
+      "blake2b_generic",
+      "bridge",
+      "btrfs",
+      "ccp",
+      "crc32_pclmul",
+      "crct10dif_pclmul",
+      "cryptd",
+      "crypto_simd",
+      "dm_multipath",
+      "dmi_sysfs",
+      "efi_pstore",
+      "ghash_clmulni_intel",
+      "inet_diag",
+      "input_leds",
+      "ip6_tables",
+      "ip6_udp_tunnel",
+      "ip6table_filter",
+      "ip6table_nat",
+      "ip_set",
+      "ip_tables",
+      "iptable_filter",
+      "iptable_nat",
+      "irqbypass",
+      "isofs",
+      "kvm",
+      "kvm_amd",
+      "libahci",
+      "libcrc32c",
+      "llc",
+      "msr",
+      "netfs",
+      "nf_conntrack",
+      "nf_conntrack_netlink",
+      "nf_defrag_ipv4",
+      "nf_defrag_ipv6",
+      "nf_nat",
+      "nf_tables",
+      "nfnetlink",
+      "nft_chain_nat",
+      "nft_compat",
+      "nls_iso8859_1",
       "overlay",
-      "br_netfilter",
-      "nf_tables"
+      "polyval_clmulni",
+      "polyval_generic",
+      "psmouse",
+      "raid0",
+      "raid1",
+      "raid10",
+      "raid456",
+      "raid6_pq",
+      "sch_fq_codel",
+      "serio_raw",
+      "sha1_ssse3",
+      "sha256_ssse3",
+      "stp",
+      "tap",
+      "tcp_diag",
+      "udp_diag",
+      "udp_tunnel",
+      "veth",
+      "virtio_rng",
+      "vxlan",
+      "x_tables",
+      "xfrm_algo",
+      "xfrm_user",
+      "xhci_pci",
+      "xhci_pci_renesas",
+      "xor",
+      "xt_MASQUERADE",
+      "xt_addrtype",
+      "xt_comment",
+      "xt_conntrack",
+      "xt_mark",
+      "xt_multiport",
+      "xt_nat",
+      "xt_set",
+      "xt_tcpudp"
     ],
     "after": [
+      "9p",
+      "9pnet",
+      "9pnet_virtio",
+      "aesni_intel",
+      "af_alg",
+      "af_key",
+      "ahci",
+      "appletalk",
+      "async_memcpy",
+      "async_pq",
+      "async_raid6_recov",
+      "async_tx",
+      "async_xor",
+      "autofs4",
+      "binfmt_misc",
+      "blake2b_generic",
+      "bridge",
+      "btrfs",
+      "can",
+      "can_raw",
+      "ccp",
+      "crc32_pclmul",
+      "crct10dif_pclmul",
+      "cryptd",
+      "crypto_simd",
+      "crypto_user",
+      "dm_multipath",
+      "dmi_sysfs",
+      "efi_pstore",
+      "fcrypt",
+      "ghash_clmulni_intel",
+      "ib_core",
+      "inet_diag",
+      "input_leds",
+      "ip6_tables",
+      "ip6_udp_tunnel",
+      "ip6table_filter",
+      "ip6table_nat",
+      "ip_set",
+      "ip_tables",
+      "iptable_filter",
+      "iptable_nat",
+      "irqbypass",
+      "isofs",
+      "kvm",
+      "kvm_amd",
+      "libahci",
+      "libcrc32c",
+      "llc",
+      "msr",
+      "netfs",
+      "nf_conntrack",
+      "nf_conntrack_netlink",
+      "nf_defrag_ipv4",
+      "nf_defrag_ipv6",
+      "nf_nat",
+      "nf_tables",
+      "nfnetlink",
+      "nft_chain_nat",
+      "nft_compat",
+      "nls_iso8859_1",
       "overlay",
-      "br_netfilter",
-      "nf_tables"
+      "pcbc",
+      "phonet",
+      "polyval_clmulni",
+      "polyval_generic",
+      "psmouse",
+      "psnap",
+      "raid0",
+      "raid1",
+      "raid10",
+      "raid456",
+      "raid6_pq",
+      "rxrpc",
+      "sch_fq_codel",
+      "scsi_transport_iscsi",
+      "serio_raw",
+      "sha1_ssse3",
+      "sha256_ssse3",
+      "stp",
+      "tap",
+      "tcp_diag",
+      "udp_diag",
+      "udp_tunnel",
+      "veth",
+      "virtio_rng",
+      "vxlan",
+      "x_tables",
+      "xfrm_algo",
+      "xfrm_user",
+      "xhci_pci",
+      "xhci_pci_renesas",
+      "xor",
+      "xt_MASQUERADE",
+      "xt_addrtype",
+      "xt_comment",
+      "xt_conntrack",
+      "xt_mark",
+      "xt_multiport",
+      "xt_nat",
+      "xt_set",
+      "xt_tcpudp"
     ],
-    "loaded_by_run": []
+    "loaded_by_run": [
+      "af_alg",
+      "af_key",
+      "appletalk",
+      "can",
+      "can_raw",
+      "crypto_user",
+      "fcrypt",
+      "ib_core",
+      "pcbc",
+      "phonet",
+      "psnap",
+      "rxrpc",
+      "scsi_transport_iscsi"
+    ]
   },
-  "digest": "sha256:5024f762d491b99196f42f2a83a5716e512f37b312542940d352a7b7771bd5a9"
+  "residual": {
+    "observability": {
+      "mounts": "observed",
+      "keyrings": {
+        "unobservable": {
+          "reason": "masked"
+        }
+      },
+      "cgroups": "observed",
+      "sysv_ipc": "observed",
+      "posix_ipc": "observed",
+      "net_namespaces": "observed"
+    },
+    "before": {
+      "mounts": 24,
+      "keyrings": null,
+      "cgroups": 0,
+      "sysv_ipc": 0,
+      "posix_ipc": 0,
+      "net_namespaces": 1
+    },
+    "after": {
+      "mounts": 24,
+      "keyrings": null,
+      "cgroups": 0,
+      "sysv_ipc": 0,
+      "posix_ipc": 0,
+      "net_namespaces": 1
+    },
+    "leaks": [],
+    "unverifiable": [],
+    "audit": [],
+    "janitor": []
+  },
+  "digest": "sha256:1f067d5f79f8ce77b42aeeb0dbb63a9a09b83362d03d61d5d9d0f21813d96731"
 }

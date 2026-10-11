@@ -113,15 +113,23 @@ pub enum Lsm {
 }
 
 impl Lsm {
-    /// Which LSM labels this process. Each LSM that supports labels exposes
-    /// its own `/proc/self/attr/<lsm>/current` (kernel 5.1 and later, so
-    /// every supported kernel); the one that answers is the one that is
-    /// active. The generic `/proc/self/attr/current` is not used: it belongs
-    /// to whichever LSM registered first and does not say which.
+    /// Which LSM labels this process. Only AppArmor and Smack have their own
+    /// `/proc/self/attr/<lsm>/current`; SELinux answers only through the
+    /// generic `/proc/self/attr/current` (#89).
     pub fn detect() -> Lsm {
-        if label("apparmor") {
+        Lsm::from_labels(label)
+    }
+
+    /// `has_label(dir)` says whether `/proc/self/attr/<dir>/current` is
+    /// non-empty, `""` meaning the generic file. With AppArmor and Smack
+    /// ruled out, SELinux is the only in-tree LSM left that labels it.
+    /// Smack is not in the cell's enumeration and is recorded as none.
+    fn from_labels(has_label: impl Fn(&str) -> bool) -> Lsm {
+        if has_label("apparmor") {
             Lsm::Apparmor
-        } else if label("selinux") {
+        } else if has_label("smack") {
+            Lsm::None
+        } else if has_label("") {
             Lsm::Selinux
         } else {
             Lsm::None
@@ -129,14 +137,19 @@ impl Lsm {
     }
 }
 
-/// Whether `/proc/self/attr/<lsm>/current` exists and is non-empty. Raw
+/// Whether `/proc/self/attr/<lsm>/current` exists and is non-empty, or the
+/// generic `/proc/self/attr/current` when `lsm` is empty. Raw
 /// syscalls rather than `std::fs::read`, which adds `fstat` and `fcntl` of
 /// its own — and a raw `openat` rather than musl's `open()`, which follows
 /// `O_CLOEXEC` with an `fcntl` for kernels that ignored the flag. The run
 /// path's footprint is meant to be the three named in the module comment
 /// and nothing else.
 fn label(lsm: &str) -> bool {
-    let path = std::ffi::CString::new(format!("/proc/self/attr/{lsm}/current")).unwrap();
+    let path = if lsm.is_empty() {
+        c"/proc/self/attr/current".to_owned()
+    } else {
+        std::ffi::CString::new(format!("/proc/self/attr/{lsm}/current")).unwrap()
+    };
     // SAFETY: a NUL-terminated path and constant flags.
     let fd = unsafe {
         libc::syscall(
@@ -343,6 +356,16 @@ mod tests {
             "\"aarch64\""
         );
         assert_eq!(serde_json::to_string(&Lsm::None).unwrap(), "\"none\"");
+    }
+
+    #[test]
+    fn lsm_is_read_from_the_attr_files_that_exist() {
+        let only = |dirs: &'static [&'static str]| move |d: &str| dirs.contains(&d);
+        // AppArmor is the major LSM, so it also answers the generic file.
+        assert_eq!(Lsm::from_labels(only(&["apparmor", ""])), Lsm::Apparmor);
+        assert_eq!(Lsm::from_labels(only(&[""])), Lsm::Selinux);
+        assert_eq!(Lsm::from_labels(only(&["smack", ""])), Lsm::None);
+        assert_eq!(Lsm::from_labels(only(&[])), Lsm::None);
     }
 
     #[test]
