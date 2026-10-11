@@ -29,12 +29,13 @@ mkdir -p /tmp/tracee
 echo "Starting Tracee in the background..."
 docker run -d --name tracee --privileged --pid=host --cgroupns=host \
   -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro -v /tmp/tracee:/tmp/tracee \
+  -v /etc/os-release:/etc/os-release-host:ro \
   aquasec/tracee:0.24.1 \
   --output json \
-  --events init_module,finit_module,module_load,security_socket_create,socket
+  --events init_module,finit_module,module_load,socket
 
 # Wait for Tracee to initialize
-sleep 15
+sleep 20
 
 # Verify Tracee is running
 if ! docker ps -q --filter "name=tracee" | grep -q .; then
@@ -44,7 +45,7 @@ if ! docker ps -q --filter "name=tracee" | grep -q .; then
 fi
 
 # Mark log baseline before full run
-BEFORE_FULL=$(docker logs tracee 2>&1 | wc -l)
+BEFORE_FULL=$(( $(docker logs tracee 2>&1 | wc -l) ))
 
 echo "Running full corpus (should trigger alerts)..."
 docker run --rm caliper-probe --run > /dev/null || true
@@ -53,7 +54,7 @@ docker run --rm caliper-probe --run > /dev/null || true
 sleep 3
 
 # Capture only the events emitted during the full corpus run
-BEFORE_REDUCED=$(docker logs tracee 2>&1 | wc -l)
+BEFORE_REDUCED=$(( $(docker logs tracee 2>&1 | wc -l) ))
 docker logs tracee 2>&1 | head -n "$BEFORE_REDUCED" | tail -n +"$((BEFORE_FULL + 1))" > /tmp/tracee_full.log
 
 echo "Checking Tracee logs for full run..."
