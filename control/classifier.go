@@ -233,13 +233,18 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 	if dependency.AbsentErrno == nil {
 		return false
 	}
-	if d.Left.Verdict == "unimplemented" && d.Left.Errno != *dependency.AbsentErrno {
-		return false
-	}
-	if d.Right.Verdict == "unimplemented" && d.Right.Errno != *dependency.AbsentErrno {
-		return false
-	}
-	if d.Left.Verdict != "unimplemented" && d.Right.Verdict != "unimplemented" {
+	// A kernel dependency explains absence only when the other environment
+	// permits the probe. Denied, killed, and timed-out results indicate a policy
+	// or execution difference, not a kernel-version boundary.
+	if d.Left.Verdict == "unimplemented" {
+		if d.Left.Errno != *dependency.AbsentErrno || d.Right.Verdict != "permitted" {
+			return false
+		}
+	} else if d.Right.Verdict == "unimplemented" {
+		if d.Right.Errno != *dependency.AbsentErrno || d.Left.Verdict != "permitted" {
+			return false
+		}
+	} else {
 		return false
 	}
 	if dependency.Since != nil {

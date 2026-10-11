@@ -43,6 +43,29 @@ func TestClassifyRecordedFixtures(t *testing.T) {
 		}
 	})
 
+	t.Run("architecture against hardened policy keeps socket and netlink probes as policy", func(t *testing.T) {
+		arm := loadFixture(t, "aarch64-apparmor.json")
+		hardened := loadFixture(t, "x86_64-apparmor-hardened.json")
+		classified := mustClassify(t, arm, hardened, corpus)
+		for _, id := range []string{
+			"netlink.protocol.nflog",
+			"netlink.protocol.smc",
+			"socket.family.af_appletalk",
+			"socket.family.af_ax25",
+			"socket.family.af_bluetooth",
+			"socket.family.af_ieee802154",
+			"socket.family.af_kcm",
+			"socket.family.af_nfc",
+			"socket.family.af_qipcrtr",
+			"socket.family.af_rds",
+			"socket.family.af_smc",
+			"socket.family.af_tipc",
+			"socket.family.af_x25",
+		} {
+			assertClass(t, classified, id, PolicyExplained)
+		}
+	})
+
 	t.Run("seccomp profile change is policy", func(t *testing.T) {
 		hardened := loadFixture(t, "x86_64-apparmor-hardened.json")
 		classified := mustClassify(t, baseline, hardened, corpus)
@@ -107,6 +130,42 @@ func TestClassifyKernelDependencies(t *testing.T) {
 			Kernel: dependency(&KernelVersion{5, 3}, 38),
 		}})
 		assertClass(t, classified, "new-call", KernelVersionExplained)
+	})
+
+	t.Run("unimplemented is kernel-explained only against permitted", func(t *testing.T) {
+		for _, verdict := range []string{"denied", "killed", "timed-out"} {
+			t.Run(verdict, func(t *testing.T) {
+				left := fingerprintWithCell("x86_64", "5.2.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "unimplemented", Errno: 38}})
+				right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: Verdict(verdict)}})
+				classified := mustClassify(t, left, right, []ProbeMetadata{{
+					ID:     "new-call",
+					Arch:   Applicability{All: true},
+					Kernel: dependency(&KernelVersion{5, 3}, 38),
+				}})
+				assertClass(t, classified, "new-call", PolicyExplained)
+			})
+		}
+	})
+
+	t.Run("seccomp kill remains policy across a kernel version gate", func(t *testing.T) {
+		olderUnimplemented := fingerprintWithCell("x86_64", "5.2.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "unimplemented", Errno: 38}})
+		newerKilled := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "killed"}})
+		for _, pair := range []struct {
+			name        string
+			left, right Fingerprint
+		}{
+			{name: "older first", left: olderUnimplemented, right: newerKilled},
+			{name: "newer first", left: newerKilled, right: olderUnimplemented},
+		} {
+			t.Run(pair.name, func(t *testing.T) {
+				classified := mustClassify(t, pair.left, pair.right, []ProbeMetadata{{
+					ID:     "new-call",
+					Arch:   Applicability{All: true},
+					Kernel: dependency(&KernelVersion{5, 3}, 38),
+				}})
+				assertClass(t, classified, "new-call", PolicyExplained)
+			})
+		}
 	})
 
 	t.Run("module-gated dependency", func(t *testing.T) {
