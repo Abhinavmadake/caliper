@@ -25,11 +25,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p /tmp/tracee
 echo "Starting Tracee in the background..."
 docker run -d --name tracee --privileged --pid=host --cgroupns=host \
-  -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro -v /tmp/tracee:/tmp/tracee \
+  -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro \
   -v /etc/os-release:/etc/os-release-host:ro \
+  -v /boot:/boot:ro \
   aquasec/tracee:0.24.1 \
   --output json \
   --events init_module,finit_module,module_load,socket
