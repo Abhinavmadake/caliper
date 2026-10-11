@@ -184,7 +184,7 @@ Generated from `corpus/index.json` (185 probes) for the pre-freeze review. `guar
 | capability.sys_time | capability | null | undecidable | null |
 | capability.sys_boot | capability | 22 | undecidable | null |
 | capability.sys_module | capability | 9 | undecidable | null |
-| capability.mknod | capability | 2 | undecidable | null |
+| capability.mknod | capability | null | undecidable | null |
 | capability.sys_ptrace | capability | null | undecidable | null |
 | capability.net_bind_service | capability | null | undecidable | null |
 | capability.sys_nice | capability | null | undecidable | null |
