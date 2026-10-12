@@ -116,7 +116,7 @@ fn an_undeclared_probe_is_refused_not_run() {
     assert_eq!(Snapshot::take(), before);
 
     // And the run records it as unmeasured, with the reason.
-    let m = Measurement::run(&[p], "0.1.0", cell());
+    let m = Measurement::run(&[p], "0.1.0", "full", cell());
     assert!(m.results.is_empty());
     assert_eq!(m.unmeasured[0].why, Unmeasurable::Undeclared);
     let v = serde_json::to_value(&m).unwrap();
@@ -132,7 +132,7 @@ fn a_deferred_probe_is_recorded_without_forking() {
     assert_eq!(measure(&p, &cell()), Err(Unmeasurable::Deferred));
     assert_eq!(Snapshot::take(), before);
 
-    let m = Measurement::run(&[p], "0.1.0", cell());
+    let m = Measurement::run(&[p], "0.1.0", "full", cell());
     assert!(m.results.is_empty());
     assert_eq!(m.unmeasured[0].why, Unmeasurable::Deferred);
 }
@@ -156,7 +156,7 @@ fn a_leak_is_attributed_to_its_probe_and_checked_against_its_declaration() {
         probe("leaks.declared", DECLARED_SYSV, leak_sysv_shm),
         probe("clean.again", SideEffects::NONE, ok),
     ];
-    let m = Measurement::run(&probes, "0.1.0", cell());
+    let m = Measurement::run(&probes, "0.1.0", "full", cell());
     assert_eq!(m.results.len(), 3);
 
     let sysv: Vec<_> = m
@@ -184,7 +184,7 @@ fn a_leak_is_attributed_to_its_probe_and_checked_against_its_declaration() {
 fn an_undeclared_leak_is_a_finding_against_the_probe() {
     let _serial = serial();
     let probes = [probe("leaks.undeclared", SideEffects::NONE, leak_posix_shm)];
-    let m = Measurement::run(&probes, "0.1.0", cell());
+    let m = Measurement::run(&probes, "0.1.0", "full", cell());
     let posix: Vec<_> = m
         .residual
         .leaks
@@ -229,7 +229,7 @@ fn a_declared_class_that_cannot_be_observed_here_is_reported_as_unverifiable() {
         },
         ok,
     )];
-    let m = Measurement::run(&probes, "0.1.0", cell());
+    let m = Measurement::run(&probes, "0.1.0", "full", cell());
     let reported: Vec<_> = m.residual.unverifiable.iter().map(|u| u.class).collect();
     assert_eq!(reported, blind);
     // And the observability map says the same, once, for the run.
@@ -248,7 +248,12 @@ fn a_declared_class_that_cannot_be_observed_here_is_reported_as_unverifiable() {
 #[test]
 fn modules_are_snapshotted_before_and_after_and_the_cell_carries_the_before() {
     let _serial = serial();
-    let m = Measurement::run(&[probe("noop", SideEffects::NONE, ok)], "0.1.0", cell());
+    let m = Measurement::run(
+        &[probe("noop", SideEffects::NONE, ok)],
+        "0.1.0",
+        "full",
+        cell(),
+    );
     match (&m.cell.kernel.modules, &m.module_delta) {
         (Some(before), Some(delta)) => {
             assert_eq!(&delta.before, before);

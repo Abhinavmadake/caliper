@@ -1,6 +1,7 @@
 {
   "format_version": 1,
   "corpus_revision": "0.1.0",
+  "corpus_set": "full",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -139,5 +140,5 @@
     ],
     "loaded_by_run": []
   },
-  "digest": "sha256:4e7ae3683580898fd2aa2f3416eae39dd92196b1ede9f3ca02a74a3cfcefcb82"
+  "digest": "sha256:04b47c3866c993673675e7835d239d67ee1865f717240fc2f38f3c4119eb42c1"
 }

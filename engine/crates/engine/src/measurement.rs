@@ -135,6 +135,7 @@ pub struct Measurement {
     pub format_version: u32,
     /// Which corpus produced the run: the corpus crate's version.
     pub corpus_revision: &'static str,
+    pub corpus_set: &'static str,
     pub cell: Cell,
     pub results: Vec<ProbeResult>,
     pub unmeasured: Vec<Unmeasured>,
@@ -177,7 +178,12 @@ fn run_and_classify(probe: &Probe, cell: &Cell) -> Result<Measured, Unmeasurable
 impl Measurement {
     /// Run every probe, sequentially and in corpus order — the snapshots
     /// depend on probes not overlapping.
-    pub fn run(probes: &[Probe], corpus_revision: &'static str, mut cell: Cell) -> Measurement {
+    pub fn run(
+        probes: &[Probe],
+        corpus_revision: &'static str,
+        corpus_set: &'static str,
+        mut cell: Cell,
+    ) -> Measurement {
         let modules_before = loaded_modules();
         cell.kernel.modules = modules_before.clone();
         let run_before = Snapshot::take();
@@ -265,6 +271,7 @@ impl Measurement {
         Measurement {
             format_version: FORMAT_VERSION,
             corpus_revision,
+            corpus_set,
             cell,
             results,
             unmeasured,
