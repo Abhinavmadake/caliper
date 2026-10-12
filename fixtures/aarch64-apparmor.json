@@ -1,6 +1,7 @@
 {
   "format_version": 1,
   "corpus_revision": "0.1.0",
+  "corpus_set": "full",
   "cell": {
     "architecture": "aarch64",
     "kernel": {
@@ -1300,5 +1301,5 @@
     "audit": [],
     "janitor": []
   },
-  "digest": "sha256:1fce8f09254417558e19c18856d0d0bfe066c8fac5e4d69a159e69f4867e0d45"
+  "digest": "sha256:efdf97013ce4e3b8d8bce8b67aef8ac6bbe66ad9cd8ed1a33dc1e8372b4a44bf"
 }
