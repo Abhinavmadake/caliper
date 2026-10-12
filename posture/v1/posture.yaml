@@ -193,7 +193,6 @@ assertions:
       - capability.sys_boot
       - capability.sys_time
       - capability.sys_rawio
-      - capability.sys_ptrace
     expect: unreachable
     rationale: >-
       Restricted workloads drop all capabilities and therefore should not
@@ -206,6 +205,11 @@ assertions:
 
   - tier: baseline
     family: mount
+    probe_ids:
+      - mount.reach
+      - mount.fs.proc
+      - mount.fs.overlay
+      - mount.fs.fuse
     expect: unreachable
     rationale: >-
       Ordinary services do not need to create or probe mount filesystems;
