@@ -69,6 +69,11 @@ jobs:
           PY
           test -f posture/CHANGELOG.md
           grep -q '^## v1 — draft — ' posture/CHANGELOG.md
+      - name: validate k8s manifests
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar -xz
+          ./kubeconform -strict deploy/k8s/
+
 
   engine:
     runs-on: ubuntu-24.04
