@@ -206,6 +206,11 @@ assertions:
 
   - tier: baseline
     family: mount
+    probe_ids:
+      - mount.reach
+      - mount.fs.proc
+      - mount.fs.overlay
+      - mount.fs.fuse
     expect: unreachable
     rationale: >-
       Ordinary services do not need to create or probe mount filesystems;
