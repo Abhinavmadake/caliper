@@ -193,6 +193,7 @@ assertions:
       - capability.sys_boot
       - capability.sys_time
       - capability.sys_rawio
+      - capability.sys_ptrace
     expect: unreachable
     rationale: >-
       Restricted workloads drop all capabilities and therefore should not
