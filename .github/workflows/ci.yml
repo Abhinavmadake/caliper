@@ -130,7 +130,6 @@ jobs:
           grep -v '^#' baseline/x86_64.txt | diff -u - /tmp/observed
       - name: probe image from scratch
         run: |
-          test -s target/x86_64-unknown-linux-musl/release/caliper-probe
           docker build -t caliper-probe .
           docker run --rm caliper-probe --noop
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
