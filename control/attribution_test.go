@@ -74,6 +74,29 @@ func TestAttributeRules(t *testing.T) {
 	}
 }
 
+func TestAttributeRecomputesFingerprintDigest(t *testing.T) {
+	fingerprint := testFingerprint([]ProbeResult{{ProbeID: "p", Verdict: "denied", Errno: 1}})
+	fingerprint.Digest = "sha256:stale"
+
+	attributed, err := Attribute(fingerprint, []ProbeMetadata{{
+		ID:     "p",
+		Oracle: Oracle{Isolates: "seccomp"},
+	}})
+	if err != nil {
+		t.Fatalf("Attribute: %v", err)
+	}
+	want, err := ComputeFingerprintDigest(attributed)
+	if err != nil {
+		t.Fatalf("ComputeFingerprintDigest: %v", err)
+	}
+	if attributed.Digest != want {
+		t.Errorf("digest = %q, want recomputed %q", attributed.Digest, want)
+	}
+	if attributed.Digest == "sha256:stale" {
+		t.Error("Attribute retained the stale digest")
+	}
+}
+
 func TestAttributeRecordedFixtures(t *testing.T) {
 	corpus := loadCorpus(t)
 	attributed := func(name string) map[string]Attribution {

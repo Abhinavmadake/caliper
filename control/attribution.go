@@ -77,6 +77,11 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 		results[i] = r
 	}
 	fp.Results = results
+	digest, err := ComputeFingerprintDigest(fp)
+	if err != nil {
+		return Fingerprint{}, err
+	}
+	fp.Digest = digest
 	return fp, nil
 }
 
