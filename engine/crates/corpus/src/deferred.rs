@@ -41,6 +41,7 @@ fn deferred() -> RawResult {
 const CONFIG_GATED: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENOSYS),
+    module: None,
 };
 
 const fn probe(

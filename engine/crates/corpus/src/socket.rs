@@ -89,6 +89,7 @@ fn out_of_range() -> RawResult {
 const CONFIG_GATED_FAMILY: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::EAFNOSUPPORT),
+    module: None,
 };
 
 /// The motivating case (CVE-2026-31431): `RuntimeDefault` permits this.

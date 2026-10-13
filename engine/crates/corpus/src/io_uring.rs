@@ -174,6 +174,7 @@ fn setup_zero_entries() -> RawResult {
 const CONFIG_GATED: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENOSYS),
+    module: None,
 };
 
 pub const REGISTER_PROBE: Probe = Probe {

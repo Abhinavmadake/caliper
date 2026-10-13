@@ -115,6 +115,7 @@ fn absent(since: Option<(u32, u32)>) -> KernelDependency {
     KernelDependency {
         since,
         absent_errno: Some(Errno::ENOSYS),
+        module: None,
     }
 }
 

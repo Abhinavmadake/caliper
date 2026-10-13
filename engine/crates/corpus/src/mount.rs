@@ -152,10 +152,14 @@ fn registered(name: &[u8]) -> RawResult {
 const TYPE_GATED: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENODEV),
+    module: None,
 };
 
 macro_rules! fstype {
     ($konst:ident, $f:ident, $id:literal, $name:literal, $what:literal) => {
+        fstype!($konst, $f, $id, $name, $what, TYPE_GATED);
+    };
+    ($konst:ident, $f:ident, $id:literal, $name:literal, $what:literal, $kernel:expr) => {
         fn $f() -> RawResult {
             registered($name.as_bytes())
         }
@@ -166,7 +170,7 @@ macro_rules! fstype {
             description: concat!("/proc/filesystems lists ", $name, ": ", $what),
             risk: ONE_CALL,
             arch: Applicability::All,
-            kernel: TYPE_GATED,
+            kernel: $kernel,
             oracle: Oracle {
                 guarantees: None,
                 isolates: Isolates::Undecidable,
@@ -351,14 +355,24 @@ fstype!(
     type_9p,
     "mount.type.9p",
     "9p",
-    "Plan 9 transport (virtio-9p)"
+    "Plan 9 transport (virtio-9p)",
+    KernelDependency {
+        since: None,
+        absent_errno: Some(Errno::ENODEV),
+        module: Some("9p"),
+    }
 );
 fstype!(
     TYPE_VIRTIOFS,
     type_virtiofs,
     "mount.type.virtiofs",
     "virtiofs",
-    "virtio-fs"
+    "virtio-fs",
+    KernelDependency {
+        since: None,
+        absent_errno: Some(Errno::ENODEV),
+        module: Some("virtiofs"),
+    }
 );
 fstype!(
     TYPE_NTFS3,

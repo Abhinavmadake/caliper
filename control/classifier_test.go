@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -170,15 +171,39 @@ func TestClassifyKernelDependencies(t *testing.T) {
 
 	t.Run("module-gated dependency", func(t *testing.T) {
 		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
-		left.Cell.Kernel.Modules = modules("nf_tables")
+		left.Cell.Kernel.Modules = modules("nf_tables", "netlink_diag")
 		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
-		right.Cell.Kernel.Modules = modules("nf_tables", "netlink_diag")
+		right.Cell.Kernel.Modules = modules("nf_tables")
 		classified := mustClassify(t, left, right, []ProbeMetadata{{
 			ID:     "module-call",
 			Arch:   Applicability{All: true},
-			Kernel: dependency(nil, 93),
+			Kernel: KernelDependency{AbsentErrno: intPointer(93), Module: "netlink_diag"},
 		}})
 		assertClass(t, classified, "module-call", KernelVersionExplained)
+	})
+
+	t.Run("unrelated module changes do not explain a probe", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
+		left.Cell.Kernel.Modules = modules("nf_tables")
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
+		right.Cell.Kernel.Modules = modules("netlink_diag")
+		classified := mustClassify(t, left, right, []ProbeMetadata{{
+			ID: "module-call", Arch: Applicability{All: true}, Kernel: dependency(nil, 93),
+		}})
+		assertClass(t, classified, "module-call", PolicyExplained)
+	})
+
+	t.Run("declared module dependency requires known module lists", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
+		right.Cell.Kernel.Modules = modules("netlink_diag")
+		_, err := Classify(left, right, []ProbeMetadata{{
+			ID: "module-call", Arch: Applicability{All: true},
+			Kernel: KernelDependency{AbsentErrno: intPointer(93), Module: "netlink_diag"},
+		}})
+		if err == nil || !strings.Contains(err.Error(), "no kernel module list") {
+			t.Fatalf("Classify error = %v, want missing module list error", err)
+		}
 	})
 
 	t.Run("release alone does not explain a probe without a dependency", func(t *testing.T) {
@@ -190,10 +215,24 @@ func TestClassifyKernelDependencies(t *testing.T) {
 }
 
 func TestClassifyRejectsUnknownDivergentProbe(t *testing.T) {
-	left := testFingerprint([]ProbeResult{{ProbeID: "unknown", Verdict: "denied"}})
-	right := testFingerprint([]ProbeResult{{ProbeID: "unknown", Verdict: "permitted"}})
+	left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "unknown", Verdict: "denied"}})
+	right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "unknown", Verdict: "permitted"}})
 	if _, err := Classify(left, right, nil); err == nil || err.Error() != `no corpus metadata for divergent probe "unknown"` {
 		t.Fatalf("Classify error = %v, want missing metadata error", err)
+	}
+}
+
+func TestClassifyRejectsMissingRuntimeClass(t *testing.T) {
+	left := fingerprintWithCell("x86_64", "6.8.0", "runc", nil)
+	right := fingerprintWithCell("x86_64", "6.8.0", "runc", nil)
+	right.Cell.RuntimeClass = nil
+	if _, err := Classify(left, right, nil); err == nil || !strings.Contains(err.Error(), "right fingerprint is missing cell.runtime_class") {
+		t.Fatalf("Classify error = %v, want missing RuntimeClass error", err)
+	}
+
+	right.Cell.RuntimeClass = &SourcedValue{Value: "  ", Source: "test"}
+	if _, err := Classify(left, right, nil); err == nil || !strings.Contains(err.Error(), "right fingerprint is missing cell.runtime_class") {
+		t.Fatalf("Classify error = %v, want blank RuntimeClass error", err)
 	}
 }
 
@@ -231,6 +270,10 @@ func fingerprintWithCell(architecture, release, runtimeClass string, results []P
 
 func dependency(since *KernelVersion, absentErrno int) KernelDependency {
 	return KernelDependency{Since: since, AbsentErrno: &absentErrno}
+}
+
+func intPointer(value int) *int {
+	return &value
 }
 
 func modules(names ...string) *[]string {

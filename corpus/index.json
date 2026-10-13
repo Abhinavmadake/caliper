@@ -3188,7 +3188,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 19
+      "absent_errno": 19,
+      "module": "9p"
     },
     "oracle": {
       "guarantees": null,
@@ -3213,7 +3214,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 19
+      "absent_errno": 19,
+      "module": "virtiofs"
     },
     "oracle": {
       "guarantees": null,

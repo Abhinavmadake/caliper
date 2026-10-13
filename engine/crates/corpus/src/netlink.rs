@@ -58,6 +58,7 @@ fn netlink(protocol: libc::c_int) -> RawResult {
 const CONFIG_GATED_PROTOCOL: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::EPROTONOSUPPORT),
+    module: None,
 };
 
 /// A netlink protocol probe. `$autoload` is whether the handler lives in a
