@@ -16,6 +16,9 @@
 package control
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -30,15 +33,52 @@ const SupportedFormatVersion = 1
 // needs. Other fingerprint fields are deliberately preserved by consumers that
 // need them; a diff compares only per-probe verdicts.
 type Fingerprint struct {
-	FormatVersion  int             `json:"format_version"`
-	CorpusRevision string          `json:"corpus_revision"`
-	CorpusSet      string          `json:"corpus_set,omitempty"`
-	Digest         string          `json:"digest,omitempty"`
-	Cell           Cell            `json:"cell"`
-	Results        []ProbeResult   `json:"results"`
-	Unmeasured     []Unmeasured    `json:"unmeasured"`
-	ModuleDelta    json.RawMessage `json:"module_delta,omitempty"`
-	Residual       json.RawMessage `json:"residual,omitempty"`
+	FormatVersion     int             `json:"format_version"`
+	CorpusRevision    string          `json:"corpus_revision"`
+	CorpusSet         string          `json:"corpus_set,omitempty"`
+	Digest            string          `json:"digest,omitempty"`
+	Cell              Cell            `json:"cell"`
+	Results           []ProbeResult   `json:"results"`
+	Unmeasured        []Unmeasured    `json:"unmeasured"`
+	ModuleDelta       json.RawMessage `json:"module_delta,omitempty"`
+	Residual          json.RawMessage `json:"residual,omitempty"`
+	unmeasuredPresent bool
+}
+
+// UnmarshalJSON records whether the optional unmeasured field was present so
+// older fingerprints retain their exact canonical shape when re-encoded.
+func (f *Fingerprint) UnmarshalJSON(data []byte) error {
+	type fingerprintAlias Fingerprint
+	var decoded fingerprintAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	*f = Fingerprint(decoded)
+	_, f.unmeasuredPresent = fields["unmeasured"]
+	return nil
+}
+
+// MarshalJSON omits unmeasured only when the source fingerprint omitted it;
+// an explicit empty array remains distinct and stable.
+func (f Fingerprint) MarshalJSON() ([]byte, error) {
+	type fingerprintAlias Fingerprint
+	data, err := json.Marshal(fingerprintAlias(f))
+	if err != nil {
+		return nil, err
+	}
+	if f.unmeasuredPresent || f.Unmeasured != nil {
+		return data, nil
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return nil, err
+	}
+	delete(fields, "unmeasured")
+	return json.Marshal(fields)
 }
 
 // ProbeMeasurement is the engine's JSON output before control-plane
@@ -81,6 +121,34 @@ func EncodeFingerprint(fingerprint Fingerprint) ([]byte, error) {
 	return data, nil
 }
 
+// ComputeFingerprintDigest returns the SHA-256 identity digest of a fingerprint
+// without its digest field. Object keys are sorted by encoding/json's map
+// encoding, output is compact, and HTML characters are not escaped.
+func ComputeFingerprintDigest(fingerprint Fingerprint) (string, error) {
+	fingerprint.Digest = ""
+	data, err := json.Marshal(fingerprint)
+	if err != nil {
+		return "", fmt.Errorf("marshal fingerprint for digest: %w", err)
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	var value any
+	if err := decoder.Decode(&value); err != nil {
+		return "", fmt.Errorf("decode fingerprint for digest: %w", err)
+	}
+
+	var canonical bytes.Buffer
+	encoder := json.NewEncoder(&canonical)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(value); err != nil {
+		return "", fmt.Errorf("encode canonical fingerprint for digest: %w", err)
+	}
+	canonicalJSON := bytes.TrimSuffix(canonical.Bytes(), []byte("\n"))
+	digest := sha256.Sum256(canonicalJSON)
+	return "sha256:" + hex.EncodeToString(digest[:]), nil
+}
+
 // ValidateFormatVersion refuses an unknown or missing schema version rather
 // than interpreting the fingerprint on a best-effort basis.
 func (f Fingerprint) ValidateFormatVersion() error {
@@ -93,8 +161,8 @@ func (f Fingerprint) ValidateFormatVersion() error {
 // CompleteFingerprint turns decoded engine output into the control plane's
 // fingerprint by adding the cell facts that only the node, pod spec, or
 // operator can supply.
-func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) Fingerprint {
-	return Fingerprint{
+func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) (Fingerprint, error) {
+	completed := Fingerprint{
 		FormatVersion:  probe.FormatVersion,
 		CorpusRevision: probe.CorpusRevision,
 		CorpusSet:      probe.CorpusSet,
@@ -104,6 +172,12 @@ func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) Fingerpr
 		ModuleDelta:    probe.ModuleDelta,
 		Residual:       probe.Residual,
 	}
+	digest, err := ComputeFingerprintDigest(completed)
+	if err != nil {
+		return Fingerprint{}, err
+	}
+	completed.Digest = digest
+	return completed, nil
 }
 
 // Cell contains the environment facts used to explain a divergence. The
@@ -233,9 +307,16 @@ type UnmeasuredProbe struct {
 // DiffResult separates comparable verdict changes from corpus skew.
 type DiffResult struct {
 	CorpusRevisions CorpusRevisions   `json:"corpus_revisions"`
+	CorpusSets      CorpusSets        `json:"corpus_sets"`
 	Divergences     []Divergence      `json:"divergences"`
 	CorpusSkew      CorpusSkew        `json:"corpus_skew"`
 	Unmeasured      []UnmeasuredProbe `json:"unmeasured"`
+}
+
+// CorpusSets makes it explicit which probe-set variant produced each side.
+type CorpusSets struct {
+	Left  string `json:"left"`
+	Right string `json:"right"`
 }
 
 // CorpusRevisions makes it explicit which corpus versions produced each side
@@ -298,10 +379,10 @@ func Diff(left, right Fingerprint) (DiffResult, error) {
 	}
 	sort.Strings(sortedIDs)
 
-	result := DiffResult{CorpusRevisions: CorpusRevisions{
-		Left:  left.CorpusRevision,
-		Right: right.CorpusRevision,
-	}}
+	result := DiffResult{
+		CorpusRevisions: CorpusRevisions{Left: left.CorpusRevision, Right: right.CorpusRevision},
+		CorpusSets:      CorpusSets{Left: left.CorpusSet, Right: right.CorpusSet},
+	}
 	for _, id := range sortedIDs {
 		leftResult, inLeft := leftByID[id]
 		rightResult, inRight := rightByID[id]

@@ -70,6 +70,37 @@ func TestFixturesParse(t *testing.T) {
 	}
 }
 
+func TestRecordedFixtureDigestsMatchCanonicalFingerprint(t *testing.T) {
+	fixturesDir := filepath.Join("..", "fixtures")
+	entries, err := os.ReadDir(fixturesDir)
+	if err != nil {
+		t.Fatalf("failed to read fixtures directory: %v", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		t.Run(entry.Name(), func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join(fixturesDir, entry.Name()))
+			if err != nil {
+				t.Fatalf("failed to read fixture: %v", err)
+			}
+			fingerprint, err := control.DecodeFingerprint(data)
+			if err != nil {
+				t.Fatalf("decode fixture: %v", err)
+			}
+			got, err := control.ComputeFingerprintDigest(fingerprint)
+			if err != nil {
+				t.Fatalf("compute digest: %v", err)
+			}
+			if got != fingerprint.Digest {
+				t.Errorf("digest = %q, recomputed %q", fingerprint.Digest, got)
+			}
+		})
+	}
+}
+
 func TestDecodeFingerprintAllowsUnknownFieldsAndRejectsUnknownVersion(t *testing.T) {
 	const additive = `{"format_version":1,"corpus_revision":"0.1.0","cell":{},"results":[],"unmeasured":[],"future_field":{"value":true}}`
 	if _, err := control.DecodeFingerprint([]byte(additive)); err != nil {

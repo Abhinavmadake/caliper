@@ -43,13 +43,16 @@ func TestCompleteFingerprintEnrichesProbeMeasurement(t *testing.T) {
 	if err := json.Unmarshal([]byte(raw), &probe); err != nil {
 		t.Fatalf("decode probe measurement: %v", err)
 	}
-	completed := CompleteFingerprint(probe, CellMetadata{
+	completed, err := CompleteFingerprint(probe, CellMetadata{
 		Distribution:      &SourcedValue{Value: "Ubuntu 24.04", Source: "node-object"},
 		Runtime:           &SourcedValue{Value: "containerd", Source: "node-object"},
 		RuntimeVersion:    &SourcedValue{Value: "2.2.0", Source: "node-object"},
 		RuntimeClass:      &SourcedValue{Value: "runc", Source: "pod-spec"},
 		NodeKernelVersion: "6.8.0-node",
 	})
+	if err != nil {
+		t.Fatalf("complete fingerprint: %v", err)
+	}
 
 	if completed.Cell.Architecture != "x86_64" || completed.Cell.LSM != "apparmor" {
 		t.Errorf("probe cell facts = %#v", completed.Cell)
@@ -62,6 +65,13 @@ func TestCompleteFingerprintEnrichesProbeMeasurement(t *testing.T) {
 	}
 	if len(completed.Results) != 1 || completed.Results[0].ProbeID != "socket.test" {
 		t.Errorf("results = %#v", completed.Results)
+	}
+	wantDigest, err := ComputeFingerprintDigest(completed)
+	if err != nil {
+		t.Fatalf("compute completed fingerprint digest: %v", err)
+	}
+	if completed.Digest != wantDigest {
+		t.Errorf("digest = %q, want %q", completed.Digest, wantDigest)
 	}
 
 	data, err := json.Marshal(completed)
@@ -102,9 +112,12 @@ func TestCompleteCellDerivesSandboxClaimFromNodeKernel(t *testing.T) {
 }
 
 func TestCompleteFingerprintOmitsUnavailableMetadata(t *testing.T) {
-	completed := CompleteFingerprint(ProbeMeasurement{
+	completed, err := CompleteFingerprint(ProbeMeasurement{
 		Cell: ProbeCell{Architecture: "x86_64", Kernel: Kernel{Release: "6.8.0"}},
 	}, CellMetadata{})
+	if err != nil {
+		t.Fatalf("complete fingerprint: %v", err)
+	}
 	data, err := json.Marshal(completed)
 	if err != nil {
 		t.Fatalf("encode completed fingerprint: %v", err)
@@ -177,15 +190,20 @@ func TestDiffSeparatesCorpusSkew(t *testing.T) {
 		{ProbeID: "only-left", Verdict: "permitted"},
 	})
 	left.CorpusRevision = "0.1.0"
+	left.CorpusSet = "full"
 	right := testFingerprint([]ProbeResult{
 		{ProbeID: "shared", Verdict: "permitted"},
 		{ProbeID: "only-right", Verdict: "denied", Errno: 13},
 	})
 	right.CorpusRevision = "0.2.0"
+	right.CorpusSet = "reduced"
 
 	diff := mustDiff(t, left, right)
 	if diff.CorpusRevisions.Left != "0.1.0" || diff.CorpusRevisions.Right != "0.2.0" {
 		t.Errorf("corpus revisions = %#v, want left 0.1.0 and right 0.2.0", diff.CorpusRevisions)
+	}
+	if diff.CorpusSets.Left != "full" || diff.CorpusSets.Right != "reduced" {
+		t.Errorf("corpus sets = %#v, want left full and right reduced", diff.CorpusSets)
 	}
 	if len(diff.Divergences) != 1 || diff.Divergences[0].ProbeID != "shared" {
 		t.Errorf("divergences = %#v, want only shared", diff.Divergences)
