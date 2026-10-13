@@ -48,30 +48,25 @@ jobs:
 
           assert posture["posture_revision"] == "v1"
           assert posture["status"] == "released"
-          assert {tier["name"] for tier in posture["tiers"]} == {
+          tier_names = {tier["name"] for tier in posture["tiers"]}
+          assert tier_names == {
               "privileged", "baseline", "restricted", "untrusted-multi-tenant"
           }
           probes_by_family = {}
           for probe in corpus:
-              probes_by_family.setdefault(probe["family"], set()).add(probe["id"])
-          measured_families = set(probes_by_family)
+              assert probe["status"] in {"committed", "deferred"}
+              if probe["status"] == "committed":
+                  probes_by_family.setdefault(probe["family"], set()).add(probe["id"])
+          measured_families = {
+              probe["family"] for probe in corpus if probe["status"] == "committed"
+          }
           deferred_families = {
-              # The nine families specified by issue #20.  They are deliberately
-              # kept separate from the measured corpus until implementation work
-              # promotes them into the committed set.
-              "ioctl",
-              "bpf",
-              "keyctl",
-              "prctl",
-              "perf_event_open",
-              "userfaultfd",
-              "open_by_handle_at",
-              "module_loading",
-              "seccomp_user_notification",
+              probe["family"] for probe in corpus if probe["status"] == "deferred"
           }
           assert measured_families.isdisjoint(deferred_families)
           for assertion in posture["assertions"]:
               assert assertion["family"] in measured_families | deferred_families
+              assert assertion["tier"] in tier_names
               assert assertion["expect"] == "unreachable"
               assert assertion["rationale"].strip()
               assert assertion["citations"]
