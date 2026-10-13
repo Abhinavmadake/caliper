@@ -50,6 +50,39 @@ GKE on COS); and Talos, the platform the motivating result was published on.
 - The remediation generator itself is Go and lives in `control/`; closure
   verification by re-probing is driven from here.
 
+## Pull request target-cluster evaluation
+
+`.github/workflows/cluster-evaluation.yml` runs the reduced corpus on a named
+Kubernetes context and posts the measured cell's posture evaluation to the
+pull request. It deliberately does not measure the GitHub runner's container.
+The workflow builds the PR's probe image for amd64 and arm64, runs the Job
+under the same unprivileged security context as `deploy/k8s/job.yaml`, and
+uses the PR's corpus and posture when producing the report.
+
+Configure these repository settings before enabling the workflow:
+
+- Repository variable `CALIPER_TARGET_CONTEXT`: exact kubeconfig context name
+  for the cluster to measure.
+- Repository secret `CALIPER_KUBECONFIG`: the kubeconfig contents for a
+  service account limited to the evaluation namespace.
+- Optional repository variable `CALIPER_NAMESPACE`: pre-created namespace for
+  measurement Jobs; defaults to `default`.
+- Make the published `ghcr.io/<owner>/caliper` package public, or add a
+  pull secret to the selected namespace and adapt the Job template for that
+  secret.
+
+The service account needs permission to create, read, wait for, read logs
+from, and delete Jobs and their pods in the selected namespace. The workflow
+skips fork-originated pull requests because they must not receive cluster
+credentials. Its report comment is updated in place on later pushes to the
+same pull request. The Go reporter uses `go-github` for GitHub API calls and
+`yaml.v3` to read the reference posture.
+
+The local CI job separately enforces the proposal's under-five-second
+measurement budget with `scripts/check-reduced-runtime.sh` against the
+release binary. Kubernetes scheduling and image-pull time are outside that
+measurement budget.
+
 The cells need an amd64 host with hardware virtualisation: the Kata cell
 requires it outright, and the other amd64 cells run on an arm64 laptop only
 under emulation. Confirming that machine is the first D task (week 1).

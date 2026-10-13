@@ -1,0 +1,118 @@
+# Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
+# Ritesh Aresh Saindane, Yogesh Babaji Palve
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: cluster evaluation
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - "engine/**"
+      - "control/**"
+      - "corpus/**"
+      - "posture/**"
+      - "deploy/k8s/**"
+      - "scripts/check-reduced-runtime.sh"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+  packages: write
+  issues: write
+
+concurrency:
+  group: caliper-cell-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    # A fork cannot receive the cluster credentials or publish a pull-request
+    # comment with this token. The named target is configured in repository
+    # variable CALIPER_TARGET_CONTEXT.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    env:
+      JOB_NAME: caliper-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+      KUBECONFIG: ${{ runner.temp }}/caliper-kubeconfig
+      CALIPER_TARGET_CONTEXT: ${{ vars.CALIPER_TARGET_CONTEXT }}
+      CALIPER_NAMESPACE: ${{ vars.CALIPER_NAMESPACE || 'default' }}
+      CALIPER_KUBECONFIG: ${{ secrets.CALIPER_KUBECONFIG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: check cluster configuration
+        run: |
+          test -n "$CALIPER_TARGET_CONTEXT" || { echo "Set repository variable CALIPER_TARGET_CONTEXT to the named target cluster context." >&2; exit 1; }
+          test -n "$CALIPER_KUBECONFIG" || { echo "Set repository secret CALIPER_KUBECONFIG to a kubeconfig authorized for the target cluster." >&2; exit 1; }
+      - name: derive immutable image reference
+        env:
+          REPOSITORY: ${{ github.repository }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: echo "IMAGE=ghcr.io/${REPOSITORY,,}:pr-${PR_HEAD_SHA}" >> "$GITHUB_ENV"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: build and publish PR probe image
+        run: |
+          docker buildx build --pull --platform linux/amd64,linux/arm64 --push -t "$IMAGE" engine/
+      - uses: azure/setup-kubectl@v4
+      - name: select named target cluster
+        run: |
+          install -m 600 /dev/null "$KUBECONFIG"
+          printf '%s' "$CALIPER_KUBECONFIG" > "$KUBECONFIG"
+          kubectl config get-contexts -o name | grep -Fx "$CALIPER_TARGET_CONTEXT"
+          kubectl config use-context "$CALIPER_TARGET_CONTEXT"
+      - name: run reduced corpus Job on target cluster
+        run: |
+          kubectl delete job "$JOB_NAME" -n "$CALIPER_NAMESPACE" --ignore-not-found --wait=true
+          kubectl create --dry-run=client -f deploy/k8s/job.yaml -o json \
+            | jq --arg name "$JOB_NAME" --arg image "$IMAGE" \
+                '.metadata.name = $name
+                 | .spec.template.spec.containers[0].image = $image
+                 | .spec.template.spec.containers[0].args = ["--reduced"]' \
+            | kubectl apply -n "$CALIPER_NAMESPACE" -f -
+          if ! kubectl wait -n "$CALIPER_NAMESPACE" --for=condition=complete "job/$JOB_NAME" --timeout=120s; then
+            kubectl describe job "$JOB_NAME" -n "$CALIPER_NAMESPACE" || true
+            kubectl logs "job/$JOB_NAME" -n "$CALIPER_NAMESPACE" --all-containers=true || true
+            exit 1
+          fi
+          kubectl logs "job/$JOB_NAME" -n "$CALIPER_NAMESPACE" --all-containers=true > "$RUNNER_TEMP/fingerprint.json"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - name: evaluate cell and post pull-request report
+        working-directory: control
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          go run ./cmd/caliper-ci-report \
+            -fingerprint "$RUNNER_TEMP/fingerprint.json" \
+            -posture ../posture/v1/posture.yaml \
+            -corpus ../corpus/index.json \
+            -cluster "$CALIPER_TARGET_CONTEXT" \
+            -repository "$GITHUB_REPOSITORY" \
+            -pr "$PULL_REQUEST_NUMBER"
+      - name: remove completed or failed Job
+        if: always()
+        run: |
+          if [ -f "$KUBECONFIG" ] && [ -n "$CALIPER_TARGET_CONTEXT" ]; then
+            kubectl delete job "$JOB_NAME" -n "$CALIPER_NAMESPACE" --ignore-not-found --wait=false
+          fi
