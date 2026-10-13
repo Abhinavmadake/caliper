@@ -1,1 +1,6 @@
-target/
+# Keep the CI-built binary available to the packaging-only Docker build while
+# excluding the rest of Cargo's target tree from the context.
+target/*
+!target/x86_64-unknown-linux-musl/
+!target/x86_64-unknown-linux-musl/release/
+!target/x86_64-unknown-linux-musl/release/caliper-probe
