@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	nodev1 "k8s.io/api/node/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -41,27 +42,40 @@ func ReadKubernetesCellMetadata(ctx context.Context, client kubernetes.Interface
 		return CellMetadata{}, fmt.Errorf("read pod %s/%s: %w", namespace, podName, err)
 	}
 
-	metadata := CellMetadata{}
+	var runtimeClass *nodev1.RuntimeClass
 	if pod.Spec.RuntimeClassName != nil && strings.TrimSpace(*pod.Spec.RuntimeClassName) != "" {
-		metadata.RuntimeClass = sourcedValue(*pod.Spec.RuntimeClassName, "pod-spec")
+		name := strings.TrimSpace(*pod.Spec.RuntimeClassName)
+		runtimeClass, err = client.NodeV1().RuntimeClasses().Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return CellMetadata{}, fmt.Errorf("read RuntimeClass %s for pod %s/%s: %w", name, namespace, podName, err)
+		}
 	}
 	if pod.Spec.NodeName == "" {
-		return metadata, nil
+		return CellMetadataFromKubernetesObjects(nil, pod, runtimeClass), nil
 	}
 
 	node, err := client.CoreV1().Nodes().Get(ctx, pod.Spec.NodeName, metav1.GetOptions{})
 	if err != nil {
 		return CellMetadata{}, fmt.Errorf("read node %s for pod %s/%s: %w", pod.Spec.NodeName, namespace, podName, err)
 	}
-	return completeMetadataFromNode(metadata, node), nil
+	return CellMetadataFromKubernetesObjects(node, pod, runtimeClass), nil
 }
 
 // CellMetadataFromKubernetesObjects extracts cell metadata from already-read
-// Kubernetes objects. A nil object or an unavailable field remains unknown.
-func CellMetadataFromKubernetesObjects(node *corev1.Node, pod *corev1.Pod) CellMetadata {
+// Node, Pod and RuntimeClass objects. A nil object or an unavailable field
+// remains unknown.
+func CellMetadataFromKubernetesObjects(node *corev1.Node, pod *corev1.Pod, runtimeClasses ...*nodev1.RuntimeClass) CellMetadata {
 	metadata := CellMetadata{}
 	if pod != nil && pod.Spec.RuntimeClassName != nil && strings.TrimSpace(*pod.Spec.RuntimeClassName) != "" {
-		metadata.RuntimeClass = sourcedValue(*pod.Spec.RuntimeClassName, "pod-spec")
+		name := strings.TrimSpace(*pod.Spec.RuntimeClassName)
+		for _, runtimeClass := range runtimeClasses {
+			if runtimeClass != nil && runtimeClass.Name == name {
+				if handler := strings.TrimSpace(runtimeClass.Handler); handler != "" {
+					metadata.RuntimeClass = sourcedValue(handler, "runtime-class")
+				}
+				break
+			}
+		}
 	}
 	return completeMetadataFromNode(metadata, node)
 }
