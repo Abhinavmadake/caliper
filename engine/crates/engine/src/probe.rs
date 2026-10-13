@@ -226,6 +226,14 @@ pub enum Capability {
     NetBindService,
     #[serde(rename = "CAP_SYS_NICE")]
     SysNice,
+    #[serde(rename = "CAP_SYS_RESOURCE")]
+    SysResource,
+    #[serde(rename = "CAP_DAC_READ_SEARCH")]
+    DacReadSearch,
+    #[serde(rename = "CAP_BPF")]
+    Bpf,
+    #[serde(rename = "CAP_PERFMON")]
+    Perfmon,
 }
 
 /// Whether a probe belongs to the frozen committed corpus or is specified
