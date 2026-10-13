@@ -4646,5 +4646,705 @@
       "residual": [],
       "module_autoload": false
     }
+  },
+  {
+    "id": "ioctl.request.fioclex",
+    "family": "ioctl",
+    "status": "deferred",
+    "description": "ioctl(-1, FIOCLEX, 0): the request every workload issues",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 9,
+      "isolates": "seccomp",
+      "reason": "SYSCALL_DEFINE3(ioctl) resolves the descriptor with fdget before security_file_ioctl, so EBADF comes before any LSM hook; only a filter at entry answers EPERM first"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "ioctl.request.tiocsti",
+    "family": "ioctl",
+    "status": "deferred",
+    "description": "ioctl(-1, TIOCSTI, NULL): terminal input injection",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 9,
+      "isolates": "seccomp",
+      "reason": "fdget fails before security_file_ioctl and before tiocsti checks CAP_SYS_ADMIN (dev.tty.legacy_tiocsti=0, 6.2+), so EPERM can only be a filter matching the request code"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "ioctl.request.tioclinux",
+    "family": "ioctl",
+    "status": "deferred",
+    "description": "ioctl(-1, TIOCLINUX, NULL): virtual console control",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 9,
+      "isolates": "seccomp",
+      "reason": "fdget fails before security_file_ioctl and before tioclinux reaches its per-subcode CAP_SYS_ADMIN checks, so EPERM can only be a filter matching the request code"
+    },
+    "capability": "CAP_SYS_ADMIN",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "bpf.cmd.map_create",
+    "family": "bpf",
+    "status": "deferred",
+    "description": "bpf(BPF_MAP_CREATE, attr, sizeof(union bpf_attr) + 8) with a non-zero byte past the union",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 7,
+      "isolates": "undecidable",
+      "reason": "__sys_bpf runs bpf_check_uarg_tail_zero before security_bpf, so E2BIG precedes every LSM hook; before 6.3, __sys_bpf also refused BPF_MAP_CREATE with EPERM under kernel.unprivileged_bpf_disabled ahead of that check, which a filter cannot be separated from"
+    },
+    "capability": "CAP_BPF",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "bpf.cmd.prog_load",
+    "family": "bpf",
+    "status": "deferred",
+    "description": "bpf(BPF_PROG_LOAD, attr, sizeof(union bpf_attr) + 8) with a non-zero byte past the union",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 7,
+      "isolates": "undecidable",
+      "reason": "bpf_check_uarg_tail_zero answers E2BIG before security_bpf; before 6.3 the unprivileged_bpf_disabled EPERM for BPF_PROG_LOAD in __sys_bpf comes first, as for map_create"
+    },
+    "capability": "CAP_BPF",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "bpf.cmd.btf_load",
+    "family": "bpf",
+    "status": "deferred",
+    "description": "bpf(BPF_BTF_LOAD, attr, sizeof(union bpf_attr) + 8) with a non-zero byte past the union",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 7,
+      "isolates": "seccomp",
+      "reason": "bpf_check_uarg_tail_zero runs before security_bpf and before bpf_btf_load checks bpf_capable, on every supported kernel, so only a filter answers EPERM first"
+    },
+    "capability": "CAP_BPF",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "bpf.prog_type.socket_filter",
+    "family": "bpf",
+    "status": "deferred",
+    "description": "bpf(BPF_PROG_LOAD, {prog_type: SOCKET_FILTER, insn_cnt: 1, insns: NULL}, sizeof(union bpf_attr)): the type unprivileged loaders may use",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 14,
+      "isolates": "undecidable",
+      "reason": "bpf_prog_load copies the instructions with copy_from_bpfptr after its type and unprivileged_bpf_disabled checks, so a reached load answers EFAULT; EPERM is security_bpf, a filter, or the sysctl"
+    },
+    "capability": "CAP_BPF",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "bpf.prog_type.kprobe",
+    "family": "bpf",
+    "status": "deferred",
+    "description": "bpf(BPF_PROG_LOAD, {prog_type: KPROBE, insn_cnt: 1, insns: NULL}, sizeof(union bpf_attr)): a tracing type",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 14,
+      "isolates": "undecidable",
+      "reason": "bpf_prog_load refuses a perfmon program type without CAP_PERFMON and CAP_BPF with EPERM before copy_from_bpfptr reads the instructions, so EPERM is the capability, security_bpf or a filter"
+    },
+    "capability": "CAP_PERFMON",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "keyctl.op.read",
+    "family": "keyctl",
+    "status": "deferred",
+    "description": "keyctl(KEYCTL_READ, 0x7fffffff, NULL, 0)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 126,
+      "isolates": "seccomp",
+      "reason": "lookup_user_key fails in key_lookup before key_task_permission calls security_key_permission, so ENOKEY comes before any LSM hook"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "keyctl.op.out_of_range",
+    "family": "keyctl",
+    "status": "deferred",
+    "description": "keyctl(0x7fffffff, 0, 0, 0, 0): an operation no kernel defines",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 95,
+      "isolates": "seccomp",
+      "reason": "SYSCALL_DEFINE5(keyctl) dispatches on the option with no hook before its default case, so EOPNOTSUPP comes before anything but a filter"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "keyctl.add_key",
+    "family": "keyctl",
+    "status": "deferred",
+    "description": "add_key(\"user\", \"caliper\", NULL, 0, 0x7fffffff)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 126,
+      "isolates": "seccomp",
+      "reason": "add_key resolves the destination with lookup_user_key, which fails in key_lookup before any permission hook and before key_create_or_update, so nothing is created"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "keyctl.request_key",
+    "family": "keyctl",
+    "status": "deferred",
+    "description": "request_key(\"user\", \"caliper\", NULL, 0x7fffffff)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 126,
+      "isolates": "seccomp",
+      "reason": "request_key looks up the destination keyring with lookup_user_key before request_key_and_link, so a missing serial answers ENOKEY before any hook or upcall"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "prctl.option.out_of_range",
+    "family": "prctl",
+    "status": "deferred",
+    "description": "prctl(0x7fffffff, 0, 0, 0, 0): an option no kernel defines",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp-or-lsm",
+      "reason": "SYSCALL_DEFINE5(prctl) calls security_task_prctl first and reaches its default EINVAL only when every module returns ENOSYS"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "prctl.option.set_mm",
+    "family": "prctl",
+    "status": "deferred",
+    "description": "prctl(PR_SET_MM, PR_SET_MM_START_CODE, 0, 0, 1): a non-zero arg5",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp-or-lsm",
+      "reason": "prctl_set_mm rejects a non-zero arg5 with EINVAL before it checks CAP_SYS_RESOURCE, but after security_task_prctl"
+    },
+    "capability": "CAP_SYS_RESOURCE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "prctl.option.set_dumpable",
+    "family": "prctl",
+    "status": "deferred",
+    "description": "prctl(PR_SET_DUMPABLE, 2, 0, 0, 0): SUID_DUMP_ROOT, which prctl refuses",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": null
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp-or-lsm",
+      "reason": "the PR_SET_DUMPABLE case accepts only SUID_DUMP_DISABLE and SUID_DUMP_USER, after security_task_prctl, so nothing changes"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "perf_event_open.flags.invalid",
+    "family": "perf_event_open",
+    "status": "deferred",
+    "description": "perf_event_open(&attr, 0, -1, -1, ~0UL)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp",
+      "reason": "SYSCALL_DEFINE5(perf_event_open) rejects flags outside PERF_FLAG_ALL before perf_copy_attr and before security_perf_event_open"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "perf_event_open.attr.bad_size",
+    "family": "perf_event_open",
+    "status": "deferred",
+    "description": "perf_event_open({size: 1}, 0, -1, -1, 0)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 7,
+      "isolates": "seccomp",
+      "reason": "perf_copy_attr answers E2BIG for a size below PERF_ATTR_SIZE_VER0 before security_perf_event_open runs"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "perf_event_open.cpu_wide",
+    "family": "perf_event_open",
+    "status": "deferred",
+    "description": "perf_event_open({type: SOFTWARE, config: CPU_CLOCK}, -1, 0, -1, PERF_FLAG_FD_CLOEXEC): every task on CPU 0",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "security_perf_event_open runs after perf_copy_attr, then perf_allow_cpu answers EACCES under perf_event_paranoid > 0 without CAP_PERFMON; a reached call returns a descriptor the child's exit closes"
+    },
+    "capability": "CAP_PERFMON",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "userfaultfd.flags.invalid",
+    "family": "userfaultfd",
+    "status": "deferred",
+    "description": "userfaultfd(UFFD_USER_MODE_ONLY | 2)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp",
+      "reason": "userfaultfd_syscall_allowed passes UFFD_USER_MODE_ONLY, then new_userfaultfd rejects the unknown bit before anon_inode_create_getfd reaches any LSM hook"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "userfaultfd.user_mode_only",
+    "family": "userfaultfd",
+    "status": "deferred",
+    "description": "userfaultfd(UFFD_USER_MODE_ONLY | O_CLOEXEC)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "seccomp-or-lsm",
+      "reason": "no capability gates user-mode-only; anon_inode_create_getfd calls security_inode_init_security_anon, so EPERM is a filter or an LSM; a reached call returns a descriptor the child's exit closes"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "userfaultfd.kernel_faults",
+    "family": "userfaultfd",
+    "status": "deferred",
+    "description": "userfaultfd(O_CLOEXEC): kernel-mode faults",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": null,
+      "isolates": "undecidable",
+      "reason": "userfaultfd_syscall_allowed answers EPERM without vm.unprivileged_userfaultfd or CAP_SYS_PTRACE, the same answer a filter gives"
+    },
+    "capability": "CAP_SYS_PTRACE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "open_by_handle_at.open",
+    "family": "open_by_handle_at",
+    "status": "deferred",
+    "description": "open_by_handle_at(AT_FDCWD, NULL, O_RDONLY)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 14,
+      "isolates": "undecidable",
+      "reason": "before 6.10 handle_to_path checks CAP_DAC_READ_SEARCH before copy_from_user reads the handle; from 6.10 the copy comes first and may_decode_fh decides later, so EFAULT is guaranteed only to a capable caller on older kernels"
+    },
+    "capability": "CAP_DAC_READ_SEARCH",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "open_by_handle_at.name_to_handle_at",
+    "family": "open_by_handle_at",
+    "status": "deferred",
+    "description": "name_to_handle_at(AT_FDCWD, \"/\", NULL, NULL, ~0)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 22,
+      "isolates": "seccomp",
+      "reason": "SYSCALL_DEFINE5(name_to_handle_at) rejects unknown flags before user_path_at resolves the path, so EINVAL comes before any LSM hook"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "module.init_module",
+    "family": "module",
+    "status": "deferred",
+    "description": "init_module(NULL, 0, \"\")",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 8,
+      "isolates": "undecidable",
+      "reason": "may_init_module checks CAP_SYS_MODULE and modules_disabled first; copy_module_from_user then answers ENOEXEC for a length below the ELF header, before security_kernel_load_data"
+    },
+    "capability": "CAP_SYS_MODULE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "module.delete_module",
+    "family": "module",
+    "status": "deferred",
+    "description": "delete_module(\"caliper_absent\", O_NONBLOCK)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 2,
+      "isolates": "undecidable",
+      "reason": "SYSCALL_DEFINE2(delete_module) checks CAP_SYS_MODULE and modules_disabled before find_module, which answers ENOENT for a name no module has"
+    },
+    "capability": "CAP_SYS_MODULE",
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "seccomp_notify.new_listener",
+    "family": "seccomp_notify",
+    "status": "deferred",
+    "description": "seccomp(SECCOMP_SET_MODE_FILTER, SECCOMP_FILTER_FLAG_NEW_LISTENER, NULL)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 14,
+      "isolates": "seccomp",
+      "reason": "seccomp_set_mode_filter validates the flags, then seccomp_prepare_user_filter copies the program with copy_from_user before any check that installs anything, so EFAULT comes before any filter is added"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "seccomp_notify.get_notif_sizes",
+    "family": "seccomp_notify",
+    "status": "deferred",
+    "description": "seccomp(SECCOMP_GET_NOTIF_SIZES, 0, NULL)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 14,
+      "isolates": "seccomp",
+      "reason": "do_seccomp passes straight to seccomp_get_notif_sizes, whose copy_to_user faults on NULL, with no hook before it"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
+  },
+  {
+    "id": "seccomp_notify.ioctl_recv",
+    "family": "seccomp_notify",
+    "status": "deferred",
+    "description": "ioctl(-1, SECCOMP_IOCTL_NOTIF_RECV, NULL)",
+    "risk": {
+      "requires_fork": true,
+      "timeout_ms": 1000
+    },
+    "arch": "all",
+    "kernel": {
+      "since": null,
+      "absent_errno": 38
+    },
+    "oracle": {
+      "guarantees": 9,
+      "isolates": "seccomp",
+      "reason": "SYSCALL_DEFINE3(ioctl) fails fdget before security_file_ioctl, so EBADF comes before any LSM hook"
+    },
+    "capability": null,
+    "effects": {
+      "residual": [],
+      "module_autoload": false
+    }
   }
 ]

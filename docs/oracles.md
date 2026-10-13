@@ -108,6 +108,41 @@ seccomp. Namespace-creation probes are `Undecidable`: `create_new_namespaces`
 and `copy_namespaces` perform capability checks as part of the operation, so
 `EPERM` is not attributable to a filter without the capability correlate.
 
+## Deferred families (#20)
+
+Specified in `engine/crates/corpus/src/deferred.rs`, never run. Each probe's
+oracle carries its kernel ordering; the strategy per family:
+
+- **ioctl:** `ioctl(-1, CMD, ...)`. `fdget` fails before `security_file_ioctl`,
+  so `EBADF` isolates seccomp and the probe measures filtering on the request
+  code alone.
+- **bpf:** commands use a non-zero byte past `union bpf_attr`, so
+  `bpf_check_uarg_tail_zero` answers `E2BIG` before `security_bpf`. Before 6.3,
+  `__sys_bpf` refused `BPF_MAP_CREATE` and `BPF_PROG_LOAD` with `EPERM` under
+  `unprivileged_bpf_disabled` first, so those two are `Undecidable`;
+  `BPF_BTF_LOAD` isolates seccomp. Program types sit behind the attr pointer,
+  out of a filter's sight, and are `Undecidable` against their capability.
+- **keyctl:** a serial that cannot exist answers `ENOKEY` from `key_lookup`
+  before any key permission hook; an undefined operation answers `EOPNOTSUPP`.
+  Both isolate seccomp, and nothing is created.
+- **prctl:** `security_task_prctl` runs before the option switch, so every
+  `EINVAL` oracle is `SeccompOrLsm`.
+- **perf_event_open:** bad flags (`EINVAL`) and a bad attr size (`E2BIG`) are
+  both answered before `security_perf_event_open`. The CPU-wide event is
+  gated by `perf_event_paranoid` (`EACCES`) and `CAP_PERFMON`.
+- **userfaultfd:** `UFFD_USER_MODE_ONLY` passes the sysctl gate, so an unknown
+  flag beside it answers `EINVAL` before any hook. Kernel-mode faults are
+  `Undecidable` against `CAP_SYS_PTRACE`.
+- **open_by_handle_at:** before 6.10 `handle_to_path` checks
+  `CAP_DAC_READ_SEARCH` first, so the open is `Undecidable`.
+  `name_to_handle_at` rejects unknown flags before path lookup and isolates
+  seccomp.
+- **module:** `init_module` and `delete_module` check `CAP_SYS_MODULE` first;
+  both are `Undecidable`, like `capability.sys_module`.
+- **seccomp_notify:** `seccomp(2)` has no LSM hook, so `EFAULT` from a NULL
+  program or size buffer isolates seccomp; the notification ioctl uses the
+  `EBADF` oracle.
+
 ## Cross-family review record (#18)
 
 The review was performed against the kernel locations named in each probe and

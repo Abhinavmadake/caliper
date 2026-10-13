@@ -217,5 +217,7 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
             assert_eq!(r["verdict"], "killed", "{r}");
         }
     }
-    assert_eq!(doc["unmeasured"], serde_json::json!([]));
+    for u in doc["unmeasured"].as_array().unwrap() {
+        assert_eq!(u["why"], "deferred", "{u}");
+    }
 }
