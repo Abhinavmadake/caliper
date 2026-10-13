@@ -197,12 +197,17 @@ fn check_keys(v: &Value, path: &str) {
 #[test]
 fn the_run_emits_the_probe_side_of_a_fingerprint() {
     let corpus = run("--dump-corpus", None);
-    let ids: Vec<&str> = corpus
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|p| p["id"].as_str().unwrap())
-        .collect();
+    let ids_with = |status: &str| -> Vec<&str> {
+        corpus
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter(|p| p["status"] == status)
+            .map(|p| p["id"].as_str().unwrap())
+            .collect()
+    };
+    let ids = ids_with("committed");
+    let deferred = ids_with("deferred");
     assert!(ids.len() >= 10, "{ids:?}");
 
     let doc = run("--run", None);
@@ -233,12 +238,15 @@ fn the_run_emits_the_probe_side_of_a_fingerprint() {
     // One result per probe, in corpus order, each the three fields and no
     // interpretation.
     let results = doc["results"].as_array().unwrap();
-    assert_eq!(
-        doc["unmeasured"],
-        serde_json::json!([]),
-        "{}",
-        doc["unmeasured"]
-    );
+    // Deferred probes are named in `unmeasured`, never run.
+    let unmeasured: Vec<(&str, &str)> = doc["unmeasured"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|u| (u["probe_id"].as_str().unwrap(), u["why"].as_str().unwrap()))
+        .collect();
+    let want: Vec<(&str, &str)> = deferred.iter().map(|id| (*id, "deferred")).collect();
+    assert_eq!(unmeasured, want, "{}", doc["unmeasured"]);
     let got: Vec<&str> = results
         .iter()
         .map(|r| r["probe_id"].as_str().unwrap())
@@ -334,5 +342,7 @@ fn under_a_kill_filter_reachable_probes_are_killed_and_the_run_survives() {
         assert_eq!(r["verdict"], "killed", "{r}");
         assert_eq!(r["errno"], 0, "{r}");
     }
-    assert_eq!(doc["unmeasured"], serde_json::json!([]));
+    for u in doc["unmeasured"].as_array().unwrap() {
+        assert_eq!(u["why"], "deferred", "{u}");
+    }
 }

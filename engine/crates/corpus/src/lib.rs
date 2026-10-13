@@ -115,6 +115,7 @@ pub use caliper_engine::Probe;
 mod capability;
 mod clone;
 mod common;
+mod deferred;
 mod device;
 mod io_uring;
 mod mount;
@@ -315,6 +316,34 @@ pub fn probes() -> &'static [Probe] {
         capability::NET_BIND_SERVICE,
         capability::SYS_NICE,
         capability::SYS_RAWIO,
+        deferred::IOCTL_FIOCLEX,
+        deferred::IOCTL_TIOCSTI,
+        deferred::IOCTL_TIOCLINUX,
+        deferred::BPF_MAP_CREATE,
+        deferred::BPF_PROG_LOAD,
+        deferred::BPF_BTF_LOAD,
+        deferred::BPF_PROG_TYPE_SOCKET_FILTER,
+        deferred::BPF_PROG_TYPE_KPROBE,
+        deferred::KEYCTL_READ,
+        deferred::KEYCTL_OUT_OF_RANGE,
+        deferred::KEYCTL_ADD_KEY,
+        deferred::KEYCTL_REQUEST_KEY,
+        deferred::PRCTL_OUT_OF_RANGE,
+        deferred::PRCTL_SET_MM,
+        deferred::PRCTL_SET_DUMPABLE,
+        deferred::PERF_FLAGS_INVALID,
+        deferred::PERF_ATTR_SIZE,
+        deferred::PERF_CPU_WIDE,
+        deferred::UFFD_FLAGS_INVALID,
+        deferred::UFFD_USER_MODE,
+        deferred::UFFD_KERNEL_FAULTS,
+        deferred::FHANDLE_OPEN,
+        deferred::FHANDLE_NAME_TO_HANDLE,
+        deferred::MODULE_INIT,
+        deferred::MODULE_DELETE,
+        deferred::SECCOMP_NEW_LISTENER,
+        deferred::SECCOMP_NOTIF_SIZES,
+        deferred::SECCOMP_NOTIF_RECV,
     ]
 }
 
@@ -335,9 +364,22 @@ mod tests {
         "capability",
     ];
 
+    /// §9.2's deferred families (#20).
+    const DEFERRED_FAMILIES: &[&str] = &[
+        "ioctl",
+        "bpf",
+        "keyctl",
+        "prctl",
+        "perf_event_open",
+        "userfaultfd",
+        "open_by_handle_at",
+        "module",
+        "seccomp_notify",
+    ];
+
     /// Counts recorded by the frozen `corpus/index.json` artefact (#19).
     const FROZEN_COMMITTED_PROBES: usize = 185;
-    const FROZEN_DEFERRED_PROBES: usize = 0;
+    const FROZEN_DEFERRED_PROBES: usize = 28;
 
     #[test]
     fn frozen_corpus_size_matches_probe_statuses() {
@@ -401,16 +443,31 @@ mod tests {
     }
 
     #[test]
-    fn every_probe_family_is_in_the_committed_set() {
+    fn every_probe_family_is_in_its_set() {
         let stray: Vec<_> = probes()
             .iter()
-            .filter(|p| !COMMITTED_FAMILIES.contains(&p.family))
+            .filter(|p| match p.status {
+                Status::Committed => !COMMITTED_FAMILIES.contains(&p.family),
+                Status::Deferred => !DEFERRED_FAMILIES.contains(&p.family),
+            })
             .map(|p| (p.id, p.family))
             .collect();
         assert!(
             stray.is_empty(),
-            "probe families outside the committed set: {stray:?}"
+            "probe families outside their set: {stray:?}"
         );
+    }
+
+    #[test]
+    fn every_deferred_family_is_specified() {
+        for family in DEFERRED_FAMILIES {
+            assert!(
+                probes()
+                    .iter()
+                    .any(|p| p.status == Status::Deferred && p.family == *family),
+                "{family}: no deferred probe"
+            );
+        }
     }
 
     /// The merge gate for #9: `Undeclared` is for authoring, not for

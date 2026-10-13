@@ -20,7 +20,7 @@
 use std::io::Write;
 use std::process::ExitCode;
 
-use caliper_engine::{Cell, Measurement};
+use caliper_engine::{Cell, Measurement, Unmeasurable};
 
 const USAGE: &str = "\
 usage: caliper-probe <mode>
@@ -90,7 +90,11 @@ fn run(reduced: bool) -> ExitCode {
     let m = Measurement::run(&probes, caliper_corpus::REVISION, set, cell);
     // Everything below is also in the document; stderr is for the person
     // watching the run, and for a corpus defect to be loud.
-    for u in &m.unmeasured {
+    for u in m
+        .unmeasured
+        .iter()
+        .filter(|u| u.why != Unmeasurable::Deferred)
+    {
         eprintln!("caliper-probe: {}: not measured: {:?}", u.probe_id, u.why);
     }
     for l in &m.residual.leaks {
