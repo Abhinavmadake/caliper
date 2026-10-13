@@ -32,6 +32,8 @@ const SupportedFormatVersion = 1
 type Fingerprint struct {
 	FormatVersion  int             `json:"format_version"`
 	CorpusRevision string          `json:"corpus_revision"`
+	CorpusSet      string          `json:"corpus_set,omitempty"`
+	Digest         string          `json:"digest,omitempty"`
 	Cell           Cell            `json:"cell"`
 	Results        []ProbeResult   `json:"results"`
 	Unmeasured     []Unmeasured    `json:"unmeasured"`
@@ -45,11 +47,47 @@ type Fingerprint struct {
 type ProbeMeasurement struct {
 	FormatVersion  int             `json:"format_version"`
 	CorpusRevision string          `json:"corpus_revision"`
+	CorpusSet      string          `json:"corpus_set,omitempty"`
 	Cell           ProbeCell       `json:"cell"`
 	Results        []ProbeResult   `json:"results"`
 	Unmeasured     []Unmeasured    `json:"unmeasured"`
 	ModuleDelta    json.RawMessage `json:"module_delta,omitempty"`
 	Residual       json.RawMessage `json:"residual,omitempty"`
+}
+
+// DecodeFingerprint reads the supported fingerprint version while allowing
+// additive fields from newer producers. Unknown fields are ignored as required
+// by the format contract; unsupported versions are rejected before use.
+func DecodeFingerprint(data []byte) (Fingerprint, error) {
+	var fingerprint Fingerprint
+	if err := json.Unmarshal(data, &fingerprint); err != nil {
+		return Fingerprint{}, fmt.Errorf("decode fingerprint: %w", err)
+	}
+	if err := fingerprint.ValidateFormatVersion(); err != nil {
+		return Fingerprint{}, err
+	}
+	return fingerprint, nil
+}
+
+// EncodeFingerprint serializes a fingerprint in the agreed JSON format.
+func EncodeFingerprint(fingerprint Fingerprint) ([]byte, error) {
+	if err := fingerprint.ValidateFormatVersion(); err != nil {
+		return nil, err
+	}
+	data, err := json.Marshal(fingerprint)
+	if err != nil {
+		return nil, fmt.Errorf("encode fingerprint: %w", err)
+	}
+	return data, nil
+}
+
+// ValidateFormatVersion refuses an unknown or missing schema version rather
+// than interpreting the fingerprint on a best-effort basis.
+func (f Fingerprint) ValidateFormatVersion() error {
+	if f.FormatVersion != SupportedFormatVersion {
+		return fmt.Errorf("unsupported format_version %d", f.FormatVersion)
+	}
+	return nil
 }
 
 // CompleteFingerprint turns decoded engine output into the control plane's
@@ -59,6 +97,7 @@ func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) Fingerpr
 	return Fingerprint{
 		FormatVersion:  probe.FormatVersion,
 		CorpusRevision: probe.CorpusRevision,
+		CorpusSet:      probe.CorpusSet,
 		Cell:           CompleteCell(probe.Cell, metadata),
 		Results:        probe.Results,
 		Unmeasured:     probe.Unmeasured,
@@ -193,19 +232,27 @@ type UnmeasuredProbe struct {
 
 // DiffResult separates comparable verdict changes from corpus skew.
 type DiffResult struct {
-	Divergences []Divergence      `json:"divergences"`
-	CorpusSkew  CorpusSkew        `json:"corpus_skew"`
-	Unmeasured  []UnmeasuredProbe `json:"unmeasured"`
+	CorpusRevisions CorpusRevisions   `json:"corpus_revisions"`
+	Divergences     []Divergence      `json:"divergences"`
+	CorpusSkew      CorpusSkew        `json:"corpus_skew"`
+	Unmeasured      []UnmeasuredProbe `json:"unmeasured"`
+}
+
+// CorpusRevisions makes it explicit which corpus versions produced each side
+// of a comparison, including when their probe sets differ.
+type CorpusRevisions struct {
+	Left  string `json:"left"`
+	Right string `json:"right"`
 }
 
 // Diff compares the intersection of two fingerprints at probe granularity.
 // Results are ordered by probe ID so reports and tests are reproducible.
 func Diff(left, right Fingerprint) (DiffResult, error) {
-	if left.FormatVersion != SupportedFormatVersion {
-		return DiffResult{}, fmt.Errorf("left fingerprint: unsupported format_version %d", left.FormatVersion)
+	if err := left.ValidateFormatVersion(); err != nil {
+		return DiffResult{}, fmt.Errorf("left fingerprint: %w", err)
 	}
-	if right.FormatVersion != SupportedFormatVersion {
-		return DiffResult{}, fmt.Errorf("right fingerprint: unsupported format_version %d", right.FormatVersion)
+	if err := right.ValidateFormatVersion(); err != nil {
+		return DiffResult{}, fmt.Errorf("right fingerprint: %w", err)
 	}
 
 	leftByID, err := resultsByID(left.Results)
@@ -251,7 +298,10 @@ func Diff(left, right Fingerprint) (DiffResult, error) {
 	}
 	sort.Strings(sortedIDs)
 
-	result := DiffResult{}
+	result := DiffResult{CorpusRevisions: CorpusRevisions{
+		Left:  left.CorpusRevision,
+		Right: right.CorpusRevision,
+	}}
 	for _, id := range sortedIDs {
 		leftResult, inLeft := leftByID[id]
 		rightResult, inRight := rightByID[id]

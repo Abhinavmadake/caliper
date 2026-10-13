@@ -176,12 +176,17 @@ func TestDiffSeparatesCorpusSkew(t *testing.T) {
 		{ProbeID: "shared", Verdict: "denied", Errno: 1},
 		{ProbeID: "only-left", Verdict: "permitted"},
 	})
+	left.CorpusRevision = "0.1.0"
 	right := testFingerprint([]ProbeResult{
 		{ProbeID: "shared", Verdict: "permitted"},
 		{ProbeID: "only-right", Verdict: "denied", Errno: 13},
 	})
+	right.CorpusRevision = "0.2.0"
 
 	diff := mustDiff(t, left, right)
+	if diff.CorpusRevisions.Left != "0.1.0" || diff.CorpusRevisions.Right != "0.2.0" {
+		t.Errorf("corpus revisions = %#v, want left 0.1.0 and right 0.2.0", diff.CorpusRevisions)
+	}
 	if len(diff.Divergences) != 1 || diff.Divergences[0].ProbeID != "shared" {
 		t.Errorf("divergences = %#v, want only shared", diff.Divergences)
 	}
