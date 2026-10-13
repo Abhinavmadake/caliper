@@ -40,6 +40,20 @@ const PATH_DEPENDENCY: KernelDependency = KernelDependency {
     absent_errno: Some(Errno::ENOENT),
 };
 
+fn classify_mount(
+    expected_magic: libc::c_long,
+    actual_magic: libc::c_long,
+    flags: libc::c_ulong,
+) -> RawResult {
+    if flags & libc::ST_RDONLY as libc::c_ulong != 0 {
+        Err(Errno::EROFS)
+    } else if actual_magic != expected_magic {
+        Err(Errno::ENODATA)
+    } else {
+        Ok(())
+    }
+}
+
 fn check_path(path: &CStr, expected_magic: libc::c_long) -> RawResult {
     let fd = unsafe {
         libc::syscall(
@@ -64,12 +78,31 @@ fn check_path(path: &CStr, expected_magic: libc::c_long) -> RawResult {
         return Err(errno);
     }
 
-    if statfs.f_type as libc::c_long != expected_magic {
-        Err(Errno::ENODATA)
-    } else if statfs.f_flags & libc::ST_RDONLY as libc::c_ulong != 0 {
-        Err(Errno::EROFS)
-    } else {
-        Ok(())
+    // A read-only mount is observable even when its filesystem magic differs
+    // from the expected path filesystem. Preserve EROFS first so an unmasked
+    // read-only sysfs/procfs path is not reported as a runtime mask.
+    classify_mount(
+        expected_magic,
+        statfs.f_type as libc::c_long,
+        statfs.f_flags as libc::c_ulong,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn readonly_mount_is_not_misreported_as_a_mask() {
+        assert_eq!(
+            classify_mount(1, 1, libc::ST_RDONLY as libc::c_ulong),
+            Err(Errno::EROFS)
+        );
+    }
+
+    #[test]
+    fn different_filesystem_without_readonly_flag_is_a_mask() {
+        assert_eq!(classify_mount(1, 2, 0), Err(Errno::ENODATA));
     }
 }
 
