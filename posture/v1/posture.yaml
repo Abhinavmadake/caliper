@@ -1,6 +1,6 @@
 # Immutable public identifier carried by every control-plane finding.
 posture_revision: v1
-status: draft
+status: released
 
 # Assertions inherit downward: an assertion at restricted also applies to
 # untrusted-multi-tenant. Each assertion maps to corpus family/id names or is
@@ -206,6 +206,11 @@ assertions:
 
   - tier: baseline
     family: mount
+    probe_ids:
+      - mount.reach
+      - mount.fs.proc
+      - mount.fs.overlay
+      - mount.fs.fuse
     expect: unreachable
     rationale: >-
       Ordinary services do not need to create or probe mount filesystems;

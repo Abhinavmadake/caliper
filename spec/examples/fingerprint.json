@@ -1,6 +1,7 @@
 {
   "format_version": 1,
   "corpus_revision": "0.1.0",
+  "corpus_set": "full",
   "digest": "sha256:1f0c3a6b8d4e5f2a9c7b1e3d5f7a9b1c3e5d7f9a1b3c5e7d9f1a3b5c7e9d1f3a",
 
   "cell": {

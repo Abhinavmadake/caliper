@@ -46,9 +46,9 @@ change to a shipped policy is a new `posture/vN/` directory, a new
 `posture_revision`, and a `CHANGELOG.md` entry; released revisions are never
 edited in place.
 
-The current `v1` document is marked `status: draft` while the corrections
-tracked by issue #94 are pending. It must be marked released only after those
-assertions are fixed and reviewed.
+The current `v1` document is marked `status: released`. Its mount assertion
+was corrected in issue #94 before release. Released revisions are immutable
+and ship with the instrument.
 
 Every finding emitted by the control plane records the exact
 `posture_revision` used for evaluation. The field is provenance, not a claim

@@ -47,7 +47,7 @@ jobs:
               corpus = json.load(f)
 
           assert posture["posture_revision"] == "v1"
-          assert posture["status"] == "draft"
+          assert posture["status"] == "released"
           assert {tier["name"] for tier in posture["tiers"]} == {
               "privileged", "baseline", "restricted", "untrusted-multi-tenant"
           }
@@ -68,7 +68,11 @@ jobs:
                          for probe_id in assertion.get("probe_ids", []))
           PY
           test -f posture/CHANGELOG.md
-          grep -q '^## v1 — draft — ' posture/CHANGELOG.md
+          grep -q '^## v1 — released — ' posture/CHANGELOG.md
+      - name: validate k8s manifests
+        run: |
+          curl -sL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar -xz
+          ./kubeconform -strict deploy/k8s/
 
   engine:
     runs-on: ubuntu-24.04
@@ -110,6 +114,9 @@ jobs:
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
           docker run --rm caliper-probe --run > /dev/null
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --run > /dev/null
+      - name: verify alert-safe reduced corpus
+        run: |
+          ../scripts/test-alert-safe.sh
 
   control:
     # Activates once control/go.mod exists (week 2, issue #3).
