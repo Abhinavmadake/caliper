@@ -117,6 +117,9 @@ jobs:
       - name: verify alert-safe reduced corpus
         run: |
           ../scripts/test-alert-safe.sh
+      - name: reduced corpus runtime budget
+        run: |
+          bash ../scripts/check-reduced-runtime.sh target/x86_64-unknown-linux-musl/release/caliper-probe
 
   control:
     # Activates once control/go.mod exists (week 2, issue #3).
