@@ -1081,7 +1081,7 @@
     "id": "io_uring.register.probe",
     "family": "io_uring",
     "status": "committed",
-    "description": "io_uring_register(-1, IORING_REGISTER_PROBE, NULL, 0): guaranteed EBADF",
+    "description": "io_uring_register(INT_MAX, IORING_REGISTER_PROBE, NULL, 0): guaranteed EBADF",
     "risk": {
       "requires_fork": true,
       "timeout_ms": 1000
@@ -1089,12 +1089,13 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled"
     },
     "oracle": {
       "guarantees": 9,
       "isolates": "seccomp",
-      "reason": "io_uring_register resolves the descriptor with fdget as soon as the opcode is in range, and -1 is never a descriptor; EBADF is produced before any LSM hook, so only a filter at syscall entry answers EPERM first"
+      "reason": "io_uring_register resolves the descriptor with fget as soon as the opcode is in range, and INT_MAX is above the nr_open ceiling, so never a descriptor; EBADF is produced before any LSM hook, so only a filter at syscall entry answers EPERM first. Not -1: since 6.13 that selects the blind register path, which answers EINVAL"
     },
     "capability": null,
     "effects": {
@@ -1114,7 +1115,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled"
     },
     "oracle": {
       "guarantees": 22,
@@ -1139,12 +1141,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1164,12 +1168,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1189,12 +1195,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1214,12 +1222,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1239,12 +1249,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1264,12 +1276,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1289,12 +1303,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1314,12 +1330,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1339,12 +1357,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1364,12 +1384,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1389,12 +1411,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1414,12 +1438,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1439,12 +1465,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1464,12 +1492,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1489,12 +1519,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1514,12 +1546,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1539,12 +1573,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1564,12 +1600,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1589,12 +1627,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1614,12 +1654,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1639,12 +1681,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1664,12 +1708,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1689,12 +1735,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1714,12 +1762,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1739,12 +1789,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1764,12 +1816,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1789,12 +1843,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1814,12 +1870,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1839,12 +1897,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1864,12 +1924,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1889,12 +1951,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1914,12 +1978,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1939,12 +2005,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1964,12 +2032,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -1989,12 +2059,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2014,12 +2086,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2039,12 +2113,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2064,12 +2140,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2089,12 +2167,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2114,12 +2194,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2139,12 +2221,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2164,12 +2248,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2189,12 +2275,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2214,12 +2302,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2239,12 +2329,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2264,12 +2356,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2289,12 +2383,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2314,12 +2410,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2339,12 +2437,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2364,12 +2464,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {
@@ -2389,12 +2491,14 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 38
+      "absent_errno": 38,
+      "present_if": "/proc/sys/kernel/io_uring_disabled",
+      "encoded_absent": 61
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp",
-      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENOSYS, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
+      "reason": "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or capability check before the SUPPORTED bit is read, so EPERM is a filter at entry on either syscall; since 6.6 the kernel.io_uring_disabled sysctl also answers EPERM at setup, and on such a cell the filter is not isolated. A clear SUPPORTED bit is returned as ENODATA, which io_uring_register never produces for an accepted ring: absence, read as unimplemented"
     },
     "capability": null,
     "effects": {

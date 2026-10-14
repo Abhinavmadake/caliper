@@ -111,20 +111,14 @@ pub fn classify(
                 errno,
             }
         }
-        Outcome::Returned { errno } => {
-            let absent = match running {
-                Some(k) => dep.means_absent(errno, k),
-                None => dep.absent_errno.is_some_and(|e| e as i32 == errno),
-            };
-            Measured {
-                verdict: if absent {
-                    Verdict::Unimplemented
-                } else {
-                    Verdict::Denied
-                },
-                errno,
-            }
-        }
+        Outcome::Returned { errno } => Measured {
+            verdict: if dep.means_absent(errno, running) {
+                Verdict::Unimplemented
+            } else {
+                Verdict::Denied
+            },
+            errno,
+        },
         Outcome::Signaled { signal } if signal == sigsys => Measured {
             verdict: Verdict::Killed,
             errno: 0,
