@@ -18,7 +18,6 @@ package control
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -105,6 +104,7 @@ func (a Applicability) Includes(architecture string) bool {
 type KernelDependency struct {
 	Since       *KernelVersion `json:"since"`
 	AbsentErrno *int           `json:"absent_errno"`
+	Module      string         `json:"module,omitempty"`
 }
 
 // KernelVersion is the major/minor release used by a version-gated probe.
@@ -164,7 +164,10 @@ func Classify(left, right Fingerprint, corpus []ProbeMetadata) (ClassificationRe
 		if !exists {
 			return ClassificationResult{}, fmt.Errorf("no corpus metadata for divergent probe %q", divergence.ProbeID)
 		}
-		class := classifyDivergence(divergence, probe, left.Cell, right.Cell)
+		class, err := classifyDivergence(divergence, probe, left.Cell, right.Cell)
+		if err != nil {
+			return ClassificationResult{}, err
+		}
 		result.Divergences = append(result.Divergences, ClassifiedDivergence{
 			Divergence: divergence,
 			Class:      class,
@@ -188,17 +191,21 @@ func metadataByID(corpus []ProbeMetadata) (map[string]ProbeMetadata, error) {
 	return byID, nil
 }
 
-func classifyDivergence(divergence Divergence, probe ProbeMetadata, left, right Cell) DivergenceClass {
+func classifyDivergence(divergence Divergence, probe ProbeMetadata, left, right Cell) (DivergenceClass, error) {
 	if architectureExplains(divergence, probe.Arch, left.Architecture, right.Architecture) {
-		return ArchitectureExplained
+		return ArchitectureExplained, nil
 	}
 	if runtimeClassExplains(divergence, runtimeClassValue(left), runtimeClassValue(right)) {
-		return RuntimeClassExplained
+		return RuntimeClassExplained, nil
 	}
-	if kernelExplains(divergence, probe.Kernel, left.Kernel, right.Kernel) {
-		return KernelVersionExplained
+	kernelExplanation, err := kernelExplains(divergence, probe.Kernel, left.Kernel, right.Kernel)
+	if err != nil {
+		return "", err
 	}
-	return PolicyExplained
+	if kernelExplanation {
+		return KernelVersionExplained, nil
+	}
+	return PolicyExplained, nil
 }
 
 func runtimeClassValue(cell Cell) string {
@@ -229,30 +236,45 @@ func sandboxed(runtimeClass string) bool {
 	return strings.HasPrefix(class, "runsc") || strings.HasPrefix(class, "kata-")
 }
 
-func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) bool {
+func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) (bool, error) {
 	if dependency.AbsentErrno == nil {
-		return false
+		return false, nil
 	}
 	// A kernel dependency explains absence only when the other environment
 	// permits the probe. Denied, killed, and timed-out results indicate a policy
 	// or execution difference, not a kernel-version boundary.
 	if d.Left.Verdict == "unimplemented" {
 		if d.Left.Errno != *dependency.AbsentErrno || d.Right.Verdict != "permitted" {
-			return false
+			return false, nil
 		}
 	} else if d.Right.Verdict == "unimplemented" {
 		if d.Right.Errno != *dependency.AbsentErrno || d.Left.Verdict != "permitted" {
-			return false
+			return false, nil
 		}
 	} else {
-		return false
+		return false, nil
 	}
 	if dependency.Since != nil {
 		leftVersion, leftKnown := parseKernelVersion(left.Release)
 		rightVersion, rightKnown := parseKernelVersion(right.Release)
-		return leftKnown && rightKnown && (before(leftVersion, *dependency.Since) != before(rightVersion, *dependency.Since))
+		return leftKnown && rightKnown && (before(leftVersion, *dependency.Since) != before(rightVersion, *dependency.Since)), nil
 	}
-	return modulesDiffer(left.Modules, right.Modules)
+	if dependency.Module == "" {
+		return false, nil
+	}
+	if left.Modules == nil || right.Modules == nil {
+		return false, fmt.Errorf("probe %q declares kernel module %q but a fingerprint has no kernel module list", d.ProbeID, dependency.Module)
+	}
+	return containsModule(*left.Modules, dependency.Module) != containsModule(*right.Modules, dependency.Module), nil
+}
+
+func containsModule(modules []string, module string) bool {
+	for _, loaded := range modules {
+		if loaded == module {
+			return true
+		}
+	}
+	return false
 }
 
 func parseKernelVersion(release string) (KernelVersion, bool) {
@@ -270,17 +292,6 @@ func parseKernelVersion(release string) (KernelVersion, bool) {
 
 func before(version, threshold KernelVersion) bool {
 	return version[0] < threshold[0] || (version[0] == threshold[0] && version[1] < threshold[1])
-}
-
-func modulesDiffer(left, right *[]string) bool {
-	if left == nil || right == nil {
-		return false
-	}
-	leftModules := append([]string(nil), (*left)...)
-	rightModules := append([]string(nil), (*right)...)
-	sort.Strings(leftModules)
-	sort.Strings(rightModules)
-	return strings.Join(leftModules, "\x00") != strings.Join(rightModules, "\x00")
 }
 
 func increment(counts *DivergenceCounts, class DivergenceClass) {

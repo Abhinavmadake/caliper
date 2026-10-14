@@ -38,6 +38,7 @@ use crate::common::ONE_CALL;
 const PATH_DEPENDENCY: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENOENT),
+    module: None,
 };
 
 fn check_path(path: &CStr, expected_magic: libc::c_long) -> RawResult {

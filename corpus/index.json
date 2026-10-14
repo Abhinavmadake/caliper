@@ -36,7 +36,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_alg"
     },
     "oracle": {
       "guarantees": null,
@@ -61,7 +62,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_packet"
     },
     "oracle": {
       "guarantees": null,
@@ -136,7 +138,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "ipv6"
     },
     "oracle": {
       "guarantees": null,
@@ -161,7 +164,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_key"
     },
     "oracle": {
       "guarantees": null,
@@ -186,7 +190,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "bluetooth"
     },
     "oracle": {
       "guarantees": null,
@@ -211,7 +216,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "can"
     },
     "oracle": {
       "guarantees": null,
@@ -236,7 +242,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "tipc"
     },
     "oracle": {
       "guarantees": null,
@@ -261,7 +268,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "rds"
     },
     "oracle": {
       "guarantees": null,
@@ -311,7 +319,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "rxrpc"
     },
     "oracle": {
       "guarantees": null,
@@ -336,7 +345,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "phonet"
     },
     "oracle": {
       "guarantees": null,
@@ -361,12 +371,13 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "ieee802154_socket"
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp-or-lsm",
-      "reason": "ieee802154_create answers EAFNOSUPPORT for any network namespace but the initial one, after the family lookup has loaded af_802154 (net-pf-36): inside a container the errno is the same as absence and the module snapshot is what tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW"
+      "reason": "ieee802154_create answers EAFNOSUPPORT for any network namespace but the initial one, after the family lookup has loaded ieee802154_socket (net-pf-36): inside a container the errno is the same as absence and the module snapshot is what tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW"
     },
     "capability": null,
     "effects": {
@@ -386,7 +397,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "nfc"
     },
     "oracle": {
       "guarantees": null,
@@ -411,7 +423,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "vsock"
     },
     "oracle": {
       "guarantees": null,
@@ -436,7 +449,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "kcm"
     },
     "oracle": {
       "guarantees": null,
@@ -461,7 +475,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "qrtr"
     },
     "oracle": {
       "guarantees": null,
@@ -486,7 +501,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "smc"
     },
     "oracle": {
       "guarantees": null,
@@ -511,7 +527,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "mctp"
     },
     "oracle": {
       "guarantees": null,
@@ -536,7 +553,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "ax25"
     },
     "oracle": {
       "guarantees": null,
@@ -561,7 +579,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "appletalk"
     },
     "oracle": {
       "guarantees": null,
@@ -586,7 +605,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "x25"
     },
     "oracle": {
       "guarantees": null,
@@ -711,7 +731,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "xfrm_user"
     },
     "oracle": {
       "guarantees": null,
@@ -761,7 +782,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "scsi_transport_iscsi"
     },
     "oracle": {
       "guarantees": null,
@@ -836,7 +858,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "cn"
     },
     "oracle": {
       "guarantees": null,
@@ -861,7 +884,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "nfnetlink"
     },
     "oracle": {
       "guarantees": null,
@@ -936,12 +960,13 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "scsi_mod"
     },
     "oracle": {
       "guarantees": null,
       "isolates": "seccomp-or-lsm",
-      "reason": "scsi_netlink_init registers the handler where CONFIG_SCSI_NETLINK=y (a dependency of the FC transport); EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
+      "reason": "scsi_netlink_init registers the handler from the SCSI core (scsi_mod) where CONFIG_SCSI_NETLINK=y; EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence"
     },
     "capability": null,
     "effects": {
@@ -961,7 +986,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "ib_core"
     },
     "oracle": {
       "guarantees": null,
@@ -986,7 +1012,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "crypto_user"
     },
     "oracle": {
       "guarantees": null,
@@ -1011,7 +1038,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "smc"
     },
     "oracle": {
       "guarantees": null,
@@ -3188,7 +3216,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 19
+      "absent_errno": 19,
+      "module": "9p"
     },
     "oracle": {
       "guarantees": null,
@@ -3213,7 +3242,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 19
+      "absent_errno": 19,
+      "module": "virtiofs"
     },
     "oracle": {
       "guarantees": null,

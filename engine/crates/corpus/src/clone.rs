@@ -503,6 +503,7 @@ pub const CLONE3_SHORT_ARGS: Probe = Probe {
     kernel: KernelDependency {
         since: Some((5, 3)),
         absent_errno: Some(Errno::ENOSYS),
+        module: None,
     },
     oracle: Oracle {
         guarantees: Some(Errno::EINVAL),

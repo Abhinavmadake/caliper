@@ -89,6 +89,7 @@ fn out_of_range() -> RawResult {
 const CONFIG_GATED_FAMILY: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::EAFNOSUPPORT),
+    module: None,
 };
 
 /// The motivating case (CVE-2026-31431): `RuntimeDefault` permits this.
@@ -99,7 +100,7 @@ pub const AF_ALG: Probe = Probe {
     description: "socket(AF_ALG, SOCK_SEQPACKET, 0): the crypto user API is reachable",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: CONFIG_GATED_FAMILY,
+    kernel: KernelDependency::module("af_alg", Errno::EAFNOSUPPORT),
     oracle: Oracle {
         guarantees: None,
         isolates: Isolates::SeccompOrLsm,
@@ -146,7 +147,7 @@ pub const AF_PACKET: Probe = Probe {
     description: "socket(AF_PACKET, SOCK_RAW, 0): raw link-layer access, CAP_NET_RAW",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: CONFIG_GATED_FAMILY,
+    kernel: KernelDependency::module("af_packet", Errno::EAFNOSUPPORT),
     oracle: Oracle {
         guarantees: None,
         isolates: Isolates::Undecidable,
@@ -241,7 +242,7 @@ family!(AF_UNIX, af_unix, "socket.family.af_unix",
 family!(AF_INET6, af_inet6, "socket.family.af_inet6",
     (libc::AF_INET6, libc::SOCK_STREAM, 0),
     "socket(AF_INET6, SOCK_STREAM, 0): IPv6 is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("ipv6", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "inet6_create runs after security_socket_create; EPERM is seccomp or an LSM. \
              EAFNOSUPPORT is CONFIG_IPV6=n, ipv6.disable=1, or the ipv6 module not loadable \
@@ -250,7 +251,7 @@ family!(AF_INET6, af_inet6, "socket.family.af_inet6",
 family!(AF_KEY, af_key, "socket.family.af_key",
     (libc::AF_KEY, libc::SOCK_RAW, PF_KEY_V2),
     "socket(AF_KEY, SOCK_RAW, PF_KEY_V2): the IPsec key management interface, CAP_NET_ADMIN",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::Undecidable,
+    kernel: KernelDependency::module("af_key", Errno::EAFNOSUPPORT), isolates: Isolates::Undecidable,
     capability: Some(Capability::NetAdmin), autoload: true,
     reason: "pfkey_create checks ns_capable(CAP_NET_ADMIN) first and answers EPERM itself, \
              after security_socket_create and the family lookup; nothing separates a filter \
@@ -259,7 +260,7 @@ family!(AF_KEY, af_key, "socket.family.af_key",
 family!(AF_BLUETOOTH_RFCOMM, af_bluetooth_rfcomm, "socket.family.af_bluetooth",
     (libc::AF_BLUETOOTH, libc::SOCK_STREAM, BTPROTO_RFCOMM),
     "socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM): the Bluetooth stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("bluetooth", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "bt_sock_create runs after security_socket_create, loads bt-proto-3 (rfcomm) if \
              unregistered, and rfcomm_sock_create checks no capability for SOCK_STREAM; \
@@ -269,7 +270,7 @@ family!(AF_BLUETOOTH_RFCOMM, af_bluetooth_rfcomm, "socket.family.af_bluetooth",
 family!(AF_CAN_RAW, af_can_raw, "socket.family.af_can",
     (libc::AF_CAN, libc::SOCK_RAW, CAN_RAW),
     "socket(AF_CAN, SOCK_RAW, CAN_RAW): the CAN bus stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("can", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "can_create runs after security_socket_create, loads can-proto-1 (can_raw) if \
              unregistered, and raw_init checks no capability; EPERM is seccomp or an LSM. \
@@ -278,7 +279,7 @@ family!(AF_CAN_RAW, af_can_raw, "socket.family.af_can",
 family!(AF_TIPC, af_tipc, "socket.family.af_tipc",
     (libc::AF_TIPC, libc::SOCK_RDM, 0),
     "socket(AF_TIPC, SOCK_RDM, 0): the TIPC cluster stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("tipc", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "tipc_sk_create runs after security_socket_create and checks no capability; \
              EPERM is seccomp or an LSM. EAFNOSUPPORT is tipc absent (net-pf-30)");
@@ -286,7 +287,7 @@ family!(AF_TIPC, af_tipc, "socket.family.af_tipc",
 family!(AF_RDS, af_rds, "socket.family.af_rds",
     (libc::AF_RDS, libc::SOCK_SEQPACKET, 0),
     "socket(AF_RDS, SOCK_SEQPACKET, 0): Reliable Datagram Sockets are reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("rds", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "rds_create runs after security_socket_create and checks no capability; EPERM \
              is seccomp or an LSM. EAFNOSUPPORT is rds absent (net-pf-21)");
@@ -303,7 +304,7 @@ family!(AF_XDP, af_xdp, "socket.family.af_xdp",
 family!(AF_RXRPC, af_rxrpc, "socket.family.af_rxrpc",
     (libc::AF_RXRPC, libc::SOCK_DGRAM, libc::PF_INET),
     "socket(AF_RXRPC, SOCK_DGRAM, PF_INET): the RxRPC transport is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("rxrpc", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "rxrpc_create runs after security_socket_create and checks no capability; \
              EPERM is seccomp or an LSM. EAFNOSUPPORT is rxrpc absent (net-pf-33)");
@@ -311,7 +312,7 @@ family!(AF_RXRPC, af_rxrpc, "socket.family.af_rxrpc",
 family!(AF_PHONET, af_phonet, "socket.family.af_phonet",
     (libc::AF_PHONET, libc::SOCK_DGRAM, 0),
     "socket(AF_PHONET, SOCK_DGRAM, 0): the Phonet stack, CAP_SYS_ADMIN",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::Undecidable,
+    kernel: KernelDependency::module("phonet", Errno::EAFNOSUPPORT), isolates: Isolates::Undecidable,
     capability: Some(Capability::SysAdmin), autoload: true,
     reason: "pn_socket_create checks capable(CAP_SYS_ADMIN) first, for every socket type, \
              and answers EPERM itself, after security_socket_create and the family lookup; \
@@ -321,17 +322,17 @@ family!(AF_PHONET, af_phonet, "socket.family.af_phonet",
 family!(AF_IEEE802154, af_ieee802154, "socket.family.af_ieee802154",
     (libc::AF_IEEE802154, libc::SOCK_DGRAM, 0),
     "socket(AF_IEEE802154, SOCK_DGRAM, 0): the 802.15.4 stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("ieee802154_socket", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "ieee802154_create answers EAFNOSUPPORT for any network namespace but the initial \
-             one, after the family lookup has loaded af_802154 (net-pf-36): inside a \
+             one, after the family lookup has loaded ieee802154_socket (net-pf-36): inside a \
              container the errno is the same as absence and the module snapshot is what \
              tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW");
 
 family!(AF_NFC, af_nfc, "socket.family.af_nfc",
     (libc::AF_NFC, libc::SOCK_STREAM, 1),
     "socket(AF_NFC, SOCK_STREAM, NFC_SOCKPROTO_LLCP): the NFC stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("nfc", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "nfc_sock_create runs after security_socket_create; the LLCP protocol checks no \
              capability (raw would need CAP_NET_RAW). EPERM is seccomp or an LSM. \
@@ -340,7 +341,7 @@ family!(AF_NFC, af_nfc, "socket.family.af_nfc",
 family!(AF_VSOCK, af_vsock, "socket.family.af_vsock",
     (libc::AF_VSOCK, libc::SOCK_STREAM, 0),
     "socket(AF_VSOCK, SOCK_STREAM, 0): the host-guest vsock family is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("vsock", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "vsock_create runs after security_socket_create and checks no capability for \
              protocol 0; EPERM is seccomp or an LSM. EAFNOSUPPORT is vsock absent \
@@ -349,7 +350,7 @@ family!(AF_VSOCK, af_vsock, "socket.family.af_vsock",
 family!(AF_KCM, af_kcm, "socket.family.af_kcm",
     (PF_KCM, libc::SOCK_DGRAM, 0),
     "socket(AF_KCM, SOCK_DGRAM, KCMPROTO_CONNECTED): kernel connection multiplexor",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("kcm", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "kcm_create runs after security_socket_create and checks no capability; EPERM \
              is seccomp or an LSM. EAFNOSUPPORT is kcm absent (net-pf-41)");
@@ -357,7 +358,7 @@ family!(AF_KCM, af_kcm, "socket.family.af_kcm",
 family!(AF_QIPCRTR, af_qipcrtr, "socket.family.af_qipcrtr",
     (PF_QIPCRTR, libc::SOCK_DGRAM, PF_QIPCRTR),
     "socket(AF_QIPCRTR, SOCK_DGRAM, PF_QIPCRTR): the Qualcomm IPC router is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("qrtr", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "qrtr_create runs after security_socket_create and checks no capability; EPERM \
              is seccomp or an LSM. EAFNOSUPPORT is qrtr absent (net-pf-42)");
@@ -365,7 +366,7 @@ family!(AF_QIPCRTR, af_qipcrtr, "socket.family.af_qipcrtr",
 family!(AF_SMC, af_smc, "socket.family.af_smc",
     (PF_SMC, libc::SOCK_STREAM, 0),
     "socket(AF_SMC, SOCK_STREAM, SMCPROTO_SMC): shared memory communications",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("smc", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "smc_create runs after security_socket_create and checks no capability; EPERM \
              is seccomp or an LSM. EAFNOSUPPORT is smc absent (net-pf-43)");
@@ -373,7 +374,7 @@ family!(AF_SMC, af_smc, "socket.family.af_smc",
 family!(AF_MCTP, af_mctp, "socket.family.af_mctp",
     (PF_MCTP, libc::SOCK_DGRAM, 0),
     "socket(AF_MCTP, SOCK_DGRAM, 0): the Management Component Transport Protocol",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("mctp", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "mctp_pf_create runs after security_socket_create and checks no capability; \
              EPERM is seccomp or an LSM. EAFNOSUPPORT is mctp absent (net-pf-45)");
@@ -381,7 +382,7 @@ family!(AF_MCTP, af_mctp, "socket.family.af_mctp",
 family!(AF_AX25, af_ax25, "socket.family.af_ax25",
     (libc::AF_AX25, libc::SOCK_DGRAM, 0),
     "socket(AF_AX25, SOCK_DGRAM, 0): the amateur-radio AX.25 stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("ax25", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "ax25_create answers EAFNOSUPPORT outside the initial network namespace, after \
              the family lookup has loaded ax25 (net-pf-3): inside a container the errno \
@@ -391,7 +392,7 @@ family!(AF_AX25, af_ax25, "socket.family.af_ax25",
 family!(AF_APPLETALK, af_appletalk, "socket.family.af_appletalk",
     (libc::AF_APPLETALK, libc::SOCK_DGRAM, 0),
     "socket(AF_APPLETALK, SOCK_DGRAM, 0): the AppleTalk stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("appletalk", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "atalk_create answers EAFNOSUPPORT outside the initial network namespace, after \
              the family lookup has loaded appletalk (net-pf-5): inside a container the \
@@ -401,7 +402,7 @@ family!(AF_APPLETALK, af_appletalk, "socket.family.af_appletalk",
 family!(AF_X25, af_x25, "socket.family.af_x25",
     (libc::AF_X25, libc::SOCK_SEQPACKET, 0),
     "socket(AF_X25, SOCK_SEQPACKET, 0): the X.25 stack is reachable",
-    kernel: CONFIG_GATED_FAMILY, isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("x25", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "x25_create answers EAFNOSUPPORT outside the initial network namespace, after \
              the family lookup has loaded x25 (net-pf-9): inside a container the errno is \

@@ -123,6 +123,10 @@ pub struct KernelDependency {
     /// fingerprint.
     #[serde(serialize_with = "errno_as_int")]
     pub absent_errno: Option<Errno>,
+    /// A loaded kernel module whose presence is required by this probe.
+    /// `None` when the dependency is not a single named module.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub module: Option<&'static str>,
 }
 
 impl KernelDependency {
@@ -131,7 +135,17 @@ impl KernelDependency {
     pub const NONE: KernelDependency = KernelDependency {
         since: None,
         absent_errno: None,
+        module: None,
     };
+
+    /// A configuration- or module-gated entry point backed by one named module.
+    pub const fn module(module: &'static str, absent_errno: Errno) -> KernelDependency {
+        KernelDependency {
+            since: None,
+            absent_errno: Some(absent_errno),
+            module: Some(module),
+        }
+    }
 
     /// Whether `errno`, from `running`, means the entry point is absent
     /// rather than filtered.
