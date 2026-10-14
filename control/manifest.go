@@ -90,6 +90,7 @@ type PodSecuritySpec struct {
 type ContainerSecurity struct {
 	Name         string          `json:"name"`
 	Kind         string          `json:"kind"`
+	Privileged   *bool           `json:"privileged,omitempty"`
 	Seccomp      *SeccompProfile `json:"seccomp,omitempty"`
 	Capabilities *CapabilitySet  `json:"capabilities,omitempty"`
 }
@@ -107,18 +108,33 @@ type SeccompProfile struct {
 // capabilities were not declared for that container; an empty non-nil set
 // means the manifest explicitly supplied an empty capabilities object.
 type CapabilitySet struct {
+	All  bool     `json:"all,omitempty"`
 	Add  []string `json:"add,omitempty"`
 	Drop []string `json:"drop,omitempty"`
 }
 
-// EffectiveSeccomp returns the container-level declaration when present, or
-// the Pod-level declaration otherwise. A nil result means the manifest did
-// not declare a profile; it does not imply Unconfined or RuntimeDefault.
+// EffectiveSeccomp returns the profile implied by Kubernetes security
+// semantics. Privileged containers are unconfined even if a seccomp profile
+// is also declared; otherwise the container declaration overrides the Pod
+// declaration. A nil result means neither scope declares a profile.
 func (p PodSecuritySpec) EffectiveSeccomp(container ContainerSecurity) *SeccompProfile {
+	if container.Privileged != nil && *container.Privileged {
+		return &SeccompProfile{Type: string(corev1.SeccompProfileTypeUnconfined)}
+	}
 	if container.Seccomp != nil {
 		return container.Seccomp
 	}
 	return p.Seccomp
+}
+
+// EffectiveCapabilities returns the capability effect of the container's
+// declaration. A privileged container receives all capabilities regardless
+// of its explicit Add/Drop lists.
+func (c ContainerSecurity) EffectiveCapabilities() *CapabilitySet {
+	if c.Privileged != nil && *c.Privileged {
+		return &CapabilitySet{All: true}
+	}
+	return c.Capabilities
 }
 
 // ParseManifest parses Kubernetes YAML or JSON documents using the Kubernetes
@@ -170,11 +186,7 @@ func ParseManifest(data []byte) (Manifest, error) {
 		if !supported {
 			continue
 		}
-		namespace := workload.Namespace
-		if namespace == "" {
-			namespace = "default"
-		}
-		if pss, ok := namespacePolicies[namespace]; ok && (pss.Enforce != nil || pss.Warn != nil || pss.Audit != nil) {
+		if pss, ok := namespacePolicies[workload.Namespace]; ok && (pss.Enforce != nil || pss.Warn != nil || pss.Audit != nil) {
 			copy := pss
 			workload.PodSecurityStandard = &copy
 		}
@@ -294,6 +306,10 @@ func parseContainer(name, kind string, context *corev1.SecurityContext) Containe
 	parsed := ContainerSecurity{Name: name, Kind: kind}
 	if context == nil {
 		return parsed
+	}
+	if context.Privileged != nil {
+		privileged := *context.Privileged
+		parsed.Privileged = &privileged
 	}
 	parsed.Seccomp = seccompProfile(context.SeccompProfile)
 	if context.Capabilities != nil {

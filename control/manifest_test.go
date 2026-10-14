@@ -31,6 +31,7 @@ spec:
     - name: web
       image: example.invalid/web
       securityContext:
+        privileged: false
         capabilities:
           add: [NET_BIND_SERVICE]
           drop: [ALL]
@@ -87,6 +88,9 @@ metadata:
 	web := workload.Pod.Containers[0]
 	if web.Name != "web" || web.Kind != "container" || web.Capabilities == nil {
 		t.Fatalf("web security = %#v", web)
+	}
+	if web.Privileged == nil || *web.Privileged {
+		t.Errorf("web privileged declaration = %v, want explicit false", web.Privileged)
 	}
 	if len(web.Capabilities.Add) != 1 || web.Capabilities.Add[0] != "NET_BIND_SERVICE" {
 		t.Errorf("web capabilities added = %v", web.Capabilities.Add)
@@ -207,6 +211,77 @@ spec:
 	profile := manifest.Workloads[0].Pod.Containers[0].Seccomp
 	if profile == nil || profile.Type != "Localhost" || profile.RuntimeDefined || profile.LocalhostProfilePath == nil || *profile.LocalhostProfilePath != "profiles/api.json" {
 		t.Errorf("Localhost seccomp profile = %#v", profile)
+	}
+}
+
+func TestParseManifestPrivilegedContainerOverridesSecurityDeclarations(t *testing.T) {
+	manifest, err := ParseManifest([]byte(`apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged
+spec:
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: app
+      image: example.invalid/app
+      securityContext:
+        privileged: true
+        seccompProfile:
+          type: RuntimeDefault
+        capabilities:
+          drop: [ALL]
+`))
+	if err != nil {
+		t.Fatalf("ParseManifest() error = %v", err)
+	}
+	container := manifest.Workloads[0].Pod.Containers[0]
+	if container.Privileged == nil || !*container.Privileged {
+		t.Fatalf("privileged declaration = %v, want true", container.Privileged)
+	}
+	if container.Seccomp == nil || container.Seccomp.Type != "RuntimeDefault" {
+		t.Fatalf("declared seccomp = %#v, want raw RuntimeDefault declaration", container.Seccomp)
+	}
+	if got := manifest.Workloads[0].Pod.EffectiveSeccomp(container); got == nil || got.Type != "Unconfined" {
+		t.Errorf("effective seccomp = %#v, want Unconfined for privileged container", got)
+	}
+	if got := container.EffectiveCapabilities(); got == nil || !got.All {
+		t.Errorf("effective capabilities = %#v, want all capabilities", got)
+	}
+	if len(container.Capabilities.Drop) != 1 || container.Capabilities.Drop[0] != "ALL" {
+		t.Errorf("declared capabilities = %#v, want raw drop list preserved", container.Capabilities)
+	}
+}
+
+func TestParseManifestDoesNotAssumeDefaultNamespaceForPSS(t *testing.T) {
+	manifest, err := ParseManifest([]byte(`apiVersion: v1
+kind: List
+items:
+  - apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: default
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+  - apiVersion: v1
+    kind: Pod
+    metadata:
+      name: uses-context-namespace
+    spec:
+      containers:
+        - name: app
+          image: example.invalid/app
+`))
+	if err != nil {
+		t.Fatalf("ParseManifest() error = %v", err)
+	}
+	workload := manifest.Workloads[0]
+	if workload.Namespace != "" {
+		t.Errorf("namespace = %q, want omitted", workload.Namespace)
+	}
+	if workload.PodSecurityStandard != nil {
+		t.Errorf("PSS = %#v, want unknown when metadata.namespace is omitted", workload.PodSecurityStandard)
 	}
 }
 
