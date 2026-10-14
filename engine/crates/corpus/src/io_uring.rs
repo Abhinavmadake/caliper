@@ -20,7 +20,7 @@
 //! written, let alone submitted.
 //!
 //! Two reach probes first, each with an answer the kernel produces before
-//! any hook: `io_uring_register(-1, …)` for `EBADF`, `io_uring_setup(0, …)`
+//! any hook: `io_uring_register(INT_MAX, …)` for `EBADF`, `io_uring_setup(0, …)`
 //! for `EINVAL`. Then one probe per opcode: the child creates a one-entry
 //! ring, registers a probe buffer, and reads the opcode's
 //! `IO_URING_OP_SUPPORTED` bit. The ring is a descriptor; the child's exit
@@ -57,6 +57,11 @@ use crate::common::{result, ONE_CALL};
 
 /// `include/uapi/linux/io_uring.h`; not in the libc crate.
 const IORING_REGISTER_PROBE: libc::c_uint = 8;
+
+/// `sysctl_nr_open_max` is `INT_MAX` rounded down to a multiple of
+/// `BITS_PER_LONG`, so no descriptor reaches it. Not -1: since 6.13
+/// `io_uring_register(-1, …)` is a blind registration and answers `EINVAL`.
+const NEVER_A_DESCRIPTOR: libc::c_int = libc::c_int::MAX;
 
 /// `sizeof(struct io_uring_params)`, as fifteen zeroed words: the kernel
 /// copies exactly that many bytes and rejects a non-zero `resv`.
@@ -151,11 +156,11 @@ macro_rules! opcode {
 
 fn register_probe_bad_fd() -> RawResult {
     // SAFETY: integer arguments and a null pointer the kernel never reads,
-    // because -1 fails descriptor resolution first.
+    // because the descriptor fails resolution first.
     result(unsafe {
         libc::syscall(
             libc::SYS_io_uring_register,
-            -1 as libc::c_int,
+            NEVER_A_DESCRIPTOR,
             IORING_REGISTER_PROBE,
             std::ptr::null::<libc::c_void>(),
             0 as libc::c_uint,
@@ -181,16 +186,18 @@ pub const REGISTER_PROBE: Probe = Probe {
     id: "io_uring.register.probe",
     family: "io_uring",
     status: Status::Committed,
-    description: "io_uring_register(-1, IORING_REGISTER_PROBE, NULL, 0): guaranteed EBADF",
+    description: "io_uring_register(INT_MAX, IORING_REGISTER_PROBE, NULL, 0): guaranteed EBADF",
     risk: ONE_CALL,
     arch: Applicability::All,
     kernel: CONFIG_GATED,
     oracle: Oracle {
         guarantees: Some(Errno::EBADF),
         isolates: Isolates::Seccomp,
-        reason: "io_uring_register resolves the descriptor with fdget as soon as the opcode \
-                 is in range, and -1 is never a descriptor; EBADF is produced before any \
-                 LSM hook, so only a filter at syscall entry answers EPERM first",
+        reason: "io_uring_register resolves the descriptor with fget as soon as the opcode \
+                 is in range, and INT_MAX is above the nr_open ceiling, so never a descriptor; \
+                 EBADF is produced before any LSM hook, so only a filter at syscall entry \
+                 answers EPERM first. Not -1: since 6.13 that selects the blind register path, \
+                 which answers EINVAL",
     },
     capability: None,
     effects: SideEffects::NONE,
