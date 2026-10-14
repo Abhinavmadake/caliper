@@ -36,18 +36,22 @@
 //! either syscall or the sysctl, and every opcode probe on the cell says
 //! the same thing: io_uring denied outright. An opcode whose bit is clear
 //! is absent from this kernel, by version or configuration: the probe
-//! returns `ENOSYS` for it, the errno the syscall itself answers with when
-//! io_uring is not built at all, and one `io_uring_register` never produces
-//! for a ring it has just accepted. That is the encoding `spec/probe.md`'s
-//! decision on masked paths allows: named here, read by the attributor as
+//! returns `ENODATA` for it, which `io_uring_register` never produces for a
+//! ring it has just accepted. That is the encoding `spec/probe.md`'s
+//! decision on made-up errnos allows: named here, read by the attributor as
 //! absence, and recorded as `unimplemented` through the kernel dependency.
 //! Presence is decided by version and configuration together, so the
 //! dependency carries no `since`; the release each opcode appeared in is
 //! in its description, for the reader.
 //!
+//! `ENOSYS` from either syscall is absence only when io_uring may not be
+//! built. A kernel with the `io_uring_disabled` sysctl has it, and there
+//! `ENOSYS` is a filter's default errno (the containers/common profile
+//! Podman and CRI-O use answers `ENOSYS` to anything it does not list).
+//!
 //! That is the distinction #12 asks for: denied outright is `denied 1` on
 //! every opcode probe (and on the reach probes); an opcode unavailable is
-//! `unimplemented 38` on that opcode alone.
+//! `unimplemented 61` on that opcode alone.
 
 use caliper_engine::{
     Applicability, Errno, Isolates, KernelDependency, Oracle, Probe, RawResult, SideEffects, Status,
@@ -79,7 +83,7 @@ const IO_URING_OP_SUPPORTED: u16 = 1;
 
 /// Is `opcode` supported on this kernel? A one-entry ring, a probe
 /// registration, one bit. Every failure is the kernel's own errno; a clear
-/// bit is `ENOSYS`, per the module comment.
+/// bit is `ENODATA`, per the module comment.
 fn opcode_supported(opcode: u8) -> RawResult {
     let params = [0u64; IO_URING_PARAMS_WORDS];
     // SAFETY: a zeroed, correctly sized params block on the stack; the
@@ -106,14 +110,14 @@ fn opcode_supported(opcode: u8) -> RawResult {
     let ops_len = buf[1] as usize;
     let i = opcode as usize;
     if i >= ops_len {
-        return Err(Errno::ENOSYS);
+        return Err(Errno::ENODATA);
     }
     let at = PROBE_HEADER + PROBE_OP_SIZE * i;
     let flags = u16::from_ne_bytes([buf[at + 2], buf[at + 3]]);
     if flags & IO_URING_OP_SUPPORTED != 0 {
         Ok(())
     } else {
-        Err(Errno::ENOSYS)
+        Err(Errno::ENODATA)
     }
 }
 
@@ -135,7 +139,7 @@ macro_rules! opcode {
             ),
             risk: ONE_CALL,
             arch: Applicability::All,
-            kernel: CONFIG_GATED,
+            kernel: OPCODE_GATED,
             oracle: Oracle {
                 guarantees: None,
                 isolates: Isolates::Seccomp,
@@ -143,7 +147,7 @@ macro_rules! opcode {
                          capability check before the SUPPORTED bit is read, so EPERM is a filter \
                          at entry on either syscall; since 6.6 the kernel.io_uring_disabled \
                          sysctl also answers EPERM at setup, and on such a cell the filter is not \
-                         isolated. A clear SUPPORTED bit is returned as ENOSYS, which \
+                         isolated. A clear SUPPORTED bit is returned as ENODATA, which \
                          io_uring_register never produces for an accepted ring: absence, read as \
                          unimplemented",
             },
@@ -175,11 +179,21 @@ fn setup_zero_entries() -> RawResult {
     result(unsafe { libc::syscall(libc::SYS_io_uring_setup, 0 as libc::c_uint, params.as_ptr()) })
 }
 
-/// `CONFIG_IO_URING=n` leaves the syscalls out: `ENOSYS` is absence.
+/// `CONFIG_IO_URING=n` leaves the syscalls out: `ENOSYS` is absence, unless
+/// the `io_uring_disabled` sysctl (6.6+, built with io_uring) says the
+/// kernel has them and the `ENOSYS` is a filter's.
 const CONFIG_GATED: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENOSYS),
     module: None,
+    present_if: Some("/proc/sys/kernel/io_uring_disabled"),
+    encoded_absent: None,
+};
+
+/// As [`CONFIG_GATED`], plus the clear SUPPORTED bit's `ENODATA`.
+const OPCODE_GATED: KernelDependency = KernelDependency {
+    encoded_absent: Some(Errno::ENODATA),
+    ..CONFIG_GATED
 };
 
 pub const REGISTER_PROBE: Probe = Probe {

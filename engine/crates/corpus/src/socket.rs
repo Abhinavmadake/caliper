@@ -90,6 +90,7 @@ const CONFIG_GATED_FAMILY: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::EAFNOSUPPORT),
     module: None,
+    ..KernelDependency::NONE
 };
 
 /// The motivating case (CVE-2026-31431): `RuntimeDefault` permits this.
