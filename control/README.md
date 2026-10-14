@@ -12,3 +12,10 @@ kernel-version-explained, runtime-class-explained or policy-explained (see
 correction — without it the headline divergence metric is dominated by
 architecture, or by what gVisor and Kata do not implement, rather than by
 policy.
+
+`BuildReport` combines evaluator findings, classified divergences, and
+attribution details. `WriteJSONReport` and `WriteTextReport` render the same
+report in machine-readable and human-readable forms. Both include the
+authorization notice and the undecidable attribution fraction; its denominator
+is all denied probe results, as specified in proposal §11.2. SARIF remains
+deferred.
