@@ -26,7 +26,14 @@ func TestFindingRequiresPostureRevision(t *testing.T) {
 		t.Fatal("expected a finding without posture_revision to be rejected")
 	}
 
-	f := Finding{PostureRevision: "v1"}
+	f := Finding{
+		Kind:            ExpectationViolation,
+		PostureRevision: "v1",
+		Tier:            "untrusted-multi-tenant",
+		Family:          "socket",
+		ProbeID:         "socket.family.af_alg",
+		Verdict:         "permitted",
+	}
 	if err := f.Validate(); err != nil {
 		t.Fatalf("valid finding rejected: %v", err)
 	}
