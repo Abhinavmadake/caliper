@@ -127,6 +127,17 @@ pub struct KernelDependency {
     /// `None` when the dependency is not a single named module.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<&'static str>,
+    /// A path that exists only on a kernel that builds the entry point.
+    /// When it exists, `absent_errno` is a filter whatever the version.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub present_if: Option<&'static str>,
+    /// An errno the probe itself returns for absence (`spec/probe.md`,
+    /// made-up errnos); always `unimplemented`.
+    #[serde(
+        serialize_with = "errno_as_int",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub encoded_absent: Option<Errno>,
 }
 
 impl KernelDependency {
@@ -136,6 +147,8 @@ impl KernelDependency {
         since: None,
         absent_errno: None,
         module: None,
+        present_if: None,
+        encoded_absent: None,
     };
 
     /// A configuration- or module-gated entry point backed by one named module.
@@ -144,20 +157,50 @@ impl KernelDependency {
             since: None,
             absent_errno: Some(absent_errno),
             module: Some(module),
+            present_if: None,
+            encoded_absent: None,
         }
     }
 
     /// Whether `errno`, from `running`, means the entry point is absent
-    /// rather than filtered.
-    pub fn means_absent(&self, errno: i32, running: KernelVersion) -> bool {
-        match (self.absent_errno, self.since) {
-            (Some(e), since) if e as i32 == errno => match since {
-                Some(v) => !running.at_least(v),
-                None => true,
-            },
-            _ => false,
+    /// rather than filtered. An unparsed release reads as one that may lack
+    /// it.
+    pub fn means_absent(&self, errno: i32, running: Option<KernelVersion>) -> bool {
+        if self.encoded_absent.is_some_and(|e| e as i32 == errno) {
+            return true;
+        }
+        if self.absent_errno.is_none_or(|e| e as i32 != errno) {
+            return false;
+        }
+        if self.present_if.is_some_and(exists) {
+            return false;
+        }
+        match (self.since, running) {
+            (Some(v), Some(k)) => !k.at_least(v),
+            _ => true,
         }
     }
+}
+
+/// Raw `openat` with `O_PATH`, for the run path's footprint (see
+/// `cell::label`): no permission check and no read.
+fn exists(path: &'static str) -> bool {
+    let path = std::ffi::CString::new(path).unwrap();
+    // SAFETY: a NUL-terminated path and constant flags.
+    let fd = unsafe {
+        libc::syscall(
+            libc::SYS_openat,
+            libc::AT_FDCWD,
+            path.as_ptr(),
+            libc::O_PATH | libc::O_CLOEXEC,
+        )
+    } as libc::c_int;
+    if fd < 0 {
+        return false;
+    }
+    // SAFETY: fd is a descriptor this function owns and closes once.
+    unsafe { libc::close(fd) };
+    true
 }
 
 fn errno_as_int<S: Serializer>(e: &Option<Errno>, s: S) -> Result<S::Ok, S::Error> {

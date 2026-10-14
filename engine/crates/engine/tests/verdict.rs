@@ -116,6 +116,7 @@ fn absent(since: Option<(u32, u32)>) -> KernelDependency {
         since,
         absent_errno: Some(Errno::ENOSYS),
         module: None,
+        ..KernelDependency::NONE
     }
 }
 
@@ -166,6 +167,45 @@ fn an_unparsed_kernel_release_reads_absence_as_unimplemented() {
     let m = classify(out, &SUCCEEDS, &absent(Some((2, 6))), None).unwrap();
     assert_eq!(m.verdict, Verdict::Unimplemented);
     let m = classify(out, &SUCCEEDS, &KernelDependency::NONE, None).unwrap();
+    assert_eq!(m.verdict, Verdict::Denied);
+}
+
+#[test]
+fn absent_errno_is_a_filter_when_the_presence_path_exists() {
+    let out = Outcome::Returned { errno: ENOSYS };
+    let present = KernelDependency {
+        present_if: Some("/proc/self"),
+        ..absent(None)
+    };
+    let m = classify(out, &SUCCEEDS, &present, RUNNING).unwrap();
+    assert_eq!((m.verdict, m.errno), (Verdict::Denied, ENOSYS));
+    let m = classify(out, &SUCCEEDS, &present, None).unwrap();
+    assert_eq!(m.verdict, Verdict::Denied);
+    let missing = KernelDependency {
+        present_if: Some("/proc/self/caliper-no-such-path"),
+        ..absent(None)
+    };
+    let m = classify(out, &SUCCEEDS, &missing, RUNNING).unwrap();
+    assert_eq!(m.verdict, Verdict::Unimplemented);
+}
+
+#[test]
+fn the_encoded_absent_errno_is_unimplemented_on_any_kernel() {
+    let dep = KernelDependency {
+        present_if: Some("/proc/self"),
+        encoded_absent: Some(Errno::ENODATA),
+        ..absent(Some((2, 6)))
+    };
+    let out = Outcome::Returned {
+        errno: libc::ENODATA,
+    };
+    let m = classify(out, &SUCCEEDS, &dep, RUNNING).unwrap();
+    assert_eq!(
+        (m.verdict, m.errno),
+        (Verdict::Unimplemented, libc::ENODATA)
+    );
+    let out = Outcome::Returned { errno: ENOSYS };
+    let m = classify(out, &SUCCEEDS, &dep, RUNNING).unwrap();
     assert_eq!(m.verdict, Verdict::Denied);
 }
 

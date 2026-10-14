@@ -153,6 +153,7 @@ const TYPE_GATED: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENODEV),
     module: None,
+    ..KernelDependency::NONE
 };
 
 macro_rules! fstype {
@@ -360,6 +361,7 @@ fstype!(
         since: None,
         absent_errno: Some(Errno::ENODEV),
         module: Some("9p"),
+        ..KernelDependency::NONE
     }
 );
 fstype!(
@@ -372,6 +374,7 @@ fstype!(
         since: None,
         absent_errno: Some(Errno::ENODEV),
         module: Some("virtiofs"),
+        ..KernelDependency::NONE
     }
 );
 fstype!(
