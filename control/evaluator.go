@@ -78,22 +78,32 @@ func EvaluateFindings(fingerprint Fingerprint, workload ManifestWorkload, tier s
 			ProbeID:         result.ProbeID,
 			Verdict:         result.Verdict,
 		}
-		switch {
-		case assertion != nil:
-			finding.Kind = ExpectationViolation
-			finding.Reason = assertion.Rationale
-			report.ExpectationViolations = append(report.ExpectationViolations, finding)
-		case manifestClaimsCapability(workload, probe.Capability):
-			finding.Kind = ClaimViolation
-			finding.Reason = "manifest declares this capability unavailable, but its probe was permitted"
-			report.ClaimViolations = append(report.ClaimViolations, finding)
-		default:
+		if assertion != nil {
+			expectationFinding := finding
+			expectationFinding.Kind = ExpectationViolation
+			expectationFinding.Reason = assertion.Rationale
+			if err := expectationFinding.Validate(); err != nil {
+				return FindingReport{}, fmt.Errorf("invalid expectation finding for %q: %w", result.ProbeID, err)
+			}
+			report.ExpectationViolations = append(report.ExpectationViolations, expectationFinding)
+		}
+		claimViolation := probe.Oracle.Isolates == "undecidable" && manifestClaimsCapability(workload, probe.Capability)
+		if claimViolation {
+			claimFinding := finding
+			claimFinding.Kind = ClaimViolation
+			claimFinding.Reason = "manifest declares this capability unavailable, but its probe was permitted"
+			if err := claimFinding.Validate(); err != nil {
+				return FindingReport{}, fmt.Errorf("invalid claim finding for %q: %w", result.ProbeID, err)
+			}
+			report.ClaimViolations = append(report.ClaimViolations, claimFinding)
+		}
+		if assertion == nil && !claimViolation {
 			finding.Kind = UndeclaredExposure
 			finding.Reason = "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+			if err := finding.Validate(); err != nil {
+				return FindingReport{}, fmt.Errorf("invalid undeclared exposure finding for %q: %w", result.ProbeID, err)
+			}
 			report.UndeclaredExposures = append(report.UndeclaredExposures, finding)
-		}
-		if err := finding.Validate(); err != nil {
-			return FindingReport{}, fmt.Errorf("invalid finding for %q: %w", result.ProbeID, err)
 		}
 	}
 	sortFindings(report.ExpectationViolations)

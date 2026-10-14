@@ -61,8 +61,8 @@ func TestEvaluateFindingsSeparatesExpectationClaimAndUndeclared(t *testing.T) {
 		},
 	}
 	corpus := []ProbeMetadata{
-		{ID: "socket.family.af_alg", Family: "socket"},
-		{ID: "capability.sys_module", Family: "capability", Capability: "CAP_SYS_MODULE"},
+		{ID: "socket.family.af_alg", Family: "socket", Oracle: Oracle{Isolates: "seccomp"}},
+		{ID: "capability.sys_module", Family: "capability", Capability: "CAP_SYS_MODULE", Oracle: Oracle{Isolates: "undecidable"}},
 		{ID: "custom.entry", Family: "custom"},
 	}
 
@@ -70,7 +70,7 @@ func TestEvaluateFindingsSeparatesExpectationClaimAndUndeclared(t *testing.T) {
 	if err != nil {
 		t.Fatalf("EvaluateFindings() error = %v", err)
 	}
-	if len(report.ExpectationViolations) != 2 || len(report.ClaimViolations) != 0 || len(report.UndeclaredExposures) != 1 {
+	if len(report.ExpectationViolations) != 2 || len(report.ClaimViolations) != 1 || len(report.UndeclaredExposures) != 1 {
 		t.Fatalf("finding categories = expectation %d, claim %d, undeclared %d", len(report.ExpectationViolations), len(report.ClaimViolations), len(report.UndeclaredExposures))
 	}
 	var afalgFinding *Finding
@@ -83,8 +83,20 @@ func TestEvaluateFindingsSeparatesExpectationClaimAndUndeclared(t *testing.T) {
 	if afalgFinding == nil || afalgFinding.Kind != ExpectationViolation || afalgFinding.PostureRevision != "v1" {
 		t.Errorf("AF_ALG finding = %#v, want posture expectation violation", afalgFinding)
 	}
+	var capabilityExpectation bool
+	for _, finding := range report.ExpectationViolations {
+		if finding.ProbeID == "capability.sys_module" {
+			capabilityExpectation = true
+		}
+	}
+	if !capabilityExpectation {
+		t.Error("capability.sys_module should remain in the expectation list as well as the claim list")
+	}
 	if got := report.UndeclaredExposures[0]; got.ProbeID != "custom.entry" || got.Kind != UndeclaredExposure {
 		t.Errorf("undeclared finding = %#v", got)
+	}
+	if got := report.ClaimViolations[0]; got.ProbeID != "capability.sys_module" || got.Kind != ClaimViolation {
+		t.Errorf("overlapping claim finding = %#v", got)
 	}
 
 	// At the privileged tier no reference assertion applies. The explicit
@@ -101,6 +113,34 @@ func TestEvaluateFindingsSeparatesExpectationClaimAndUndeclared(t *testing.T) {
 		t.Errorf("claim finding = %#v", got)
 	}
 
+}
+
+func TestEvaluateFindingsRequiresOracleToIsolateCapabilityClaim(t *testing.T) {
+	posture := loadReferencePosture(t)
+	workload := ManifestWorkload{Pod: PodSecuritySpec{Containers: []ContainerSecurity{{
+		Name: "app", Capabilities: &CapabilitySet{Drop: []string{"ALL"}},
+	}}}}
+	fingerprint := Fingerprint{
+		FormatVersion: SupportedFormatVersion,
+		Results:       []ProbeResult{{ProbeID: "mount.reach", Verdict: "permitted"}},
+	}
+	corpus := []ProbeMetadata{{
+		ID:         "mount.reach",
+		Family:     "mount",
+		Capability: "CAP_SYS_ADMIN",
+		Oracle:     Oracle{Isolates: "seccomp"},
+	}}
+
+	report, err := EvaluateFindings(fingerprint, workload, "privileged", posture, corpus)
+	if err != nil {
+		t.Fatalf("EvaluateFindings() error = %v", err)
+	}
+	if len(report.ClaimViolations) != 0 {
+		t.Fatalf("got claim violation for non-isolating oracle: %#v", report.ClaimViolations)
+	}
+	if len(report.UndeclaredExposures) != 1 || report.UndeclaredExposures[0].ProbeID != "mount.reach" {
+		t.Fatalf("mount.reach should remain undeclared, got %#v", report.UndeclaredExposures)
+	}
 }
 
 func TestEvaluateFindingsRequiresCorpusMetadataForMeasuredResults(t *testing.T) {

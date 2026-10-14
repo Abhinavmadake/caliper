@@ -73,7 +73,9 @@ plane, so a finding can always be reproduced against the declared policy.
 
 The evaluator takes the reference tier explicitly; it does not infer that tier
 from a Namespace's PSS label. PSS and the reference posture make different
-promises. For each permitted probe, the evaluator reports exactly one category:
+promises. For each permitted probe, the evaluator reports every applicable
+category; an exposure can therefore be both an expectation and a claim
+violation. It is undeclared only when neither applies:
 
 - `expectation-violation` when an applicable posture assertion says the probe
   should be unreachable;
@@ -81,9 +83,11 @@ promises. For each permitted probe, the evaluator reports exactly one category:
   Restricted's dropped-capability requirement) is contradicted by the probe;
 - `undeclared-exposure` when neither model says the probe should be unreachable.
 
-Expectation violations take precedence when both models apply. Seccomp profile
-names alone do not assert syscall-specific denials: `RuntimeDefault` is
-runtime-defined, and a `Localhost` profile's rules are not in the manifest.
+Claim violations are limited to probes whose corpus oracle has
+`isolates: undecidable`, so an earlier path or policy check cannot masquerade
+as a capability check. Seccomp profile names alone do not assert
+syscall-specific denials: `RuntimeDefault` is runtime-defined, and a
+`Localhost` profile's rules are not in the manifest.
 Thus AF_ALG permitted under RuntimeDefault and PSS Restricted is an expectation
 violation for the untrusted-multi-tenant reference tier, not a claim violation.
 The three categories remain separate in the report; undeclared exposures are
