@@ -135,7 +135,7 @@ protocol!(SELINUX, selinux, "netlink.protocol.selinux", libc::NETLINK_SELINUX,
 
 protocol!(ISCSI, iscsi, "netlink.protocol.iscsi", libc::NETLINK_ISCSI,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_ISCSI): the open-iSCSI transport",
-    kernel: KernelDependency::module("iscsi_transport", Errno::EPROTONOSUPPORT), autoload: true,
+    kernel: KernelDependency::module("scsi_transport_iscsi", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "scsi_transport_iscsi registers the handler; netlink_create loads \
              net-pf-16-proto-8 with no capability check. EPERM is seccomp or an LSM; \
              EPROTONOSUPPORT is the module absent");
@@ -184,10 +184,9 @@ protocol!(GENERIC, generic, "netlink.protocol.generic", libc::NETLINK_GENERIC,
 protocol!(SCSITRANSPORT, scsitransport, "netlink.protocol.scsitransport",
     libc::NETLINK_SCSITRANSPORT,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_SCSITRANSPORT): the SCSI transport netlink",
-    kernel: KernelDependency::module("scsi_transport_netlink", Errno::EPROTONOSUPPORT), autoload: false,
-    reason: "scsi_netlink_init registers the handler where CONFIG_SCSI_NETLINK=y (a \
-             dependency of the FC transport); EPERM is seccomp or an LSM; EPROTONOSUPPORT \
-             is absence");
+    kernel: KernelDependency::module("scsi_mod", Errno::EPROTONOSUPPORT), autoload: false,
+    reason: "scsi_netlink_init registers the handler from the SCSI core (scsi_mod) where \
+             CONFIG_SCSI_NETLINK=y; EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence");
 
 protocol!(RDMA, rdma, "netlink.protocol.rdma", libc::NETLINK_RDMA,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_RDMA): the RDMA subsystem's netlink",

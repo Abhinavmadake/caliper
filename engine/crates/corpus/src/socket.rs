@@ -322,10 +322,10 @@ family!(AF_PHONET, af_phonet, "socket.family.af_phonet",
 family!(AF_IEEE802154, af_ieee802154, "socket.family.af_ieee802154",
     (libc::AF_IEEE802154, libc::SOCK_DGRAM, 0),
     "socket(AF_IEEE802154, SOCK_DGRAM, 0): the 802.15.4 stack is reachable",
-    kernel: KernelDependency::module("af_802154", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
+    kernel: KernelDependency::module("ieee802154_socket", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "ieee802154_create answers EAFNOSUPPORT for any network namespace but the initial \
-             one, after the family lookup has loaded af_802154 (net-pf-36): inside a \
+             one, after the family lookup has loaded ieee802154_socket (net-pf-36): inside a \
              container the errno is the same as absence and the module snapshot is what \
              tells them apart. EPERM is seccomp or an LSM; SOCK_RAW would need CAP_NET_RAW");
 
