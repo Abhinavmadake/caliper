@@ -18,6 +18,7 @@ package control
 import (
 	"bytes"
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -57,7 +58,10 @@ func TestBuildReportAndWriteJSON(t *testing.T) {
 	}
 	second := Fingerprint{Results: []ProbeResult{{ProbeID: "probe.no-attr", Verdict: "denied"}}}
 
-	report := BuildReport(findings, classification, first, second)
+	report, err := BuildReport(findings, classification, first, second)
+	if err != nil {
+		t.Fatalf("BuildReport() error = %v", err)
+	}
 	if report.Attribution.Denials != 4 || report.Attribution.Undecidable != 2 {
 		t.Fatalf("attribution totals = %d/%d, want 2/4 including the killed result", report.Attribution.Undecidable, report.Attribution.Denials)
 	}
@@ -83,6 +87,15 @@ func TestBuildReportAndWriteJSON(t *testing.T) {
 	if attribution["undecidable_fraction"] != *report.Attribution.UndecidableFraction {
 		t.Errorf("JSON undecidable fraction = %v", attribution["undecidable_fraction"])
 	}
+	attributionResults := attribution["results"].([]any)
+	firstObservation := attributionResults[0].(map[string]any)
+	if _, ok := firstObservation["cell_label"].(string); !ok {
+		t.Errorf("JSON attribution result omitted cell_label: %#v", firstObservation)
+	}
+	cellDetails := firstObservation["cell"].(map[string]any)
+	if cellDetails["architecture"] != "amd64" {
+		t.Errorf("JSON attribution result cell details = %#v", cellDetails)
+	}
 	if _, ok := decoded["findings"]; !ok {
 		t.Error("JSON report omitted findings")
 	}
@@ -93,7 +106,7 @@ func TestBuildReportAndWriteJSON(t *testing.T) {
 
 func TestWriteTextReportSeparatesClassesAndIncludesUndecidableFraction(t *testing.T) {
 	mechanism := Seccomp
-	report := BuildReport(
+	report, err := BuildReport(
 		FindingReport{
 			PostureRevision: "v1",
 			Tier:            "restricted",
@@ -121,6 +134,9 @@ func TestWriteTextReportSeparatesClassesAndIncludesUndecidableFraction(t *testin
 			ProbeID: "probe.two", Verdict: "killed", Attribution: &Attribution{Confidence: High, Mechanism: &mechanism},
 		}}},
 	)
+	if err != nil {
+		t.Fatalf("BuildReport() error = %v", err)
+	}
 	var output bytes.Buffer
 	if err := WriteTextReport(&output, report); err != nil {
 		t.Fatalf("WriteTextReport() error = %v", err)
@@ -143,12 +159,64 @@ func TestWriteTextReportSeparatesClassesAndIncludesUndecidableFraction(t *testin
 }
 
 func TestWriteTextReportHandlesNoMeasuredResults(t *testing.T) {
-	report := BuildReport(FindingReport{}, ClassificationResult{})
+	report, err := BuildReport(FindingReport{}, ClassificationResult{})
+	if err != nil {
+		t.Fatalf("BuildReport() error = %v", err)
+	}
 	var output bytes.Buffer
 	if err := WriteTextReport(&output, report); err != nil {
 		t.Fatalf("WriteTextReport() error = %v", err)
 	}
 	if !strings.Contains(output.String(), "Undecidable: n/a (0/0 denials)") {
 		t.Fatalf("empty attribution denominator not explained:\n%s", output.String())
+	}
+}
+
+func TestBuildReportLabelsSameCellFingerprintsByPositionAndDigest(t *testing.T) {
+	cell := Cell{
+		Architecture: "x86_64",
+		Kernel:       Kernel{Release: "6.8.0-142-generic"},
+		RuntimeClass: &SourcedValue{Value: "runc", Source: "pod"},
+	}
+	first := Fingerprint{
+		FormatVersion: SupportedFormatVersion,
+		Cell:          cell,
+		Results:       []ProbeResult{{ProbeID: "default.probe", Verdict: "denied", Attribution: &Attribution{Confidence: High}}},
+	}
+	second := Fingerprint{
+		FormatVersion: SupportedFormatVersion,
+		Cell:          cell,
+		Results:       []ProbeResult{{ProbeID: "hardened.probe", Verdict: "killed", Attribution: &Attribution{Confidence: High}}},
+	}
+	firstDigest, err := ComputeFingerprintDigest(first)
+	if err != nil {
+		t.Fatalf("ComputeFingerprintDigest(first) error = %v", err)
+	}
+	secondDigest, err := ComputeFingerprintDigest(second)
+	if err != nil {
+		t.Fatalf("ComputeFingerprintDigest(second) error = %v", err)
+	}
+
+	report, err := BuildReport(FindingReport{}, ClassificationResult{}, first, second)
+	if err != nil {
+		t.Fatalf("BuildReport() error = %v", err)
+	}
+	if len(report.Attribution.Results) != 2 {
+		t.Fatalf("got %d attribution records, want 2", len(report.Attribution.Results))
+	}
+	wantLabels := []string{
+		"cell-1-" + strings.TrimPrefix(firstDigest, "sha256:")[:12],
+		"cell-2-" + strings.TrimPrefix(secondDigest, "sha256:")[:12],
+	}
+	for i, observation := range report.Attribution.Results {
+		if observation.CellLabel != wantLabels[i] {
+			t.Errorf("cell label[%d] = %q, want %q", i, observation.CellLabel, wantLabels[i])
+		}
+		if !reflect.DeepEqual(observation.Cell, cell) {
+			t.Errorf("cell details[%d] = %#v, want %#v", i, observation.Cell, cell)
+		}
+	}
+	if report.Attribution.Results[0].CellLabel == report.Attribution.Results[1].CellLabel {
+		t.Fatal("same-cell fingerprints received the same report label")
 	}
 }

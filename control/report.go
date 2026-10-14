@@ -60,7 +60,8 @@ type AttributionConfidenceCounts struct {
 // Undecidable is true when attribution is absent as well as when its oracle
 // explicitly could not separate the mechanism.
 type AttributionObservation struct {
-	Cell        string       `json:"cell"`
+	CellLabel   string       `json:"cell_label"`
+	Cell        Cell         `json:"cell"`
 	ProbeID     string       `json:"probe_id"`
 	Undecidable bool         `json:"undecidable"`
 	Attribution *Attribution `json:"attribution,omitempty"`
@@ -69,7 +70,7 @@ type AttributionObservation struct {
 // BuildReport combines already-computed evaluation and classification results
 // with attribution details from one or more fingerprints. The undecidable
 // fraction's denominator is all denied probe results across those cells.
-func BuildReport(findings FindingReport, classification ClassificationResult, fingerprints ...Fingerprint) Report {
+func BuildReport(findings FindingReport, classification ClassificationResult, fingerprints ...Fingerprint) (Report, error) {
 	report := Report{
 		Notice:         AuthorizationNotice,
 		Findings:       findings,
@@ -79,14 +80,18 @@ func BuildReport(findings FindingReport, classification ClassificationResult, fi
 		},
 	}
 	for i, fingerprint := range fingerprints {
-		cell := reportCellName(fingerprint.Cell, i)
+		cellLabel, err := reportCellLabel(fingerprint, i)
+		if err != nil {
+			return Report{}, fmt.Errorf("fingerprint %d: %w", i+1, err)
+		}
 		for _, result := range fingerprint.Results {
 			if result.Verdict != "denied" && result.Verdict != "killed" {
 				continue
 			}
 			report.Attribution.Denials++
 			observation := AttributionObservation{
-				Cell:        cell,
+				CellLabel:   cellLabel,
+				Cell:        fingerprint.Cell,
 				ProbeID:     result.ProbeID,
 				Attribution: result.Attribution,
 			}
@@ -118,12 +123,12 @@ func BuildReport(findings FindingReport, classification ClassificationResult, fi
 		report.Attribution.UndecidableFraction = &fraction
 	}
 	sort.Slice(report.Attribution.Results, func(i, j int) bool {
-		if report.Attribution.Results[i].Cell != report.Attribution.Results[j].Cell {
-			return report.Attribution.Results[i].Cell < report.Attribution.Results[j].Cell
+		if report.Attribution.Results[i].CellLabel != report.Attribution.Results[j].CellLabel {
+			return report.Attribution.Results[i].CellLabel < report.Attribution.Results[j].CellLabel
 		}
 		return report.Attribution.Results[i].ProbeID < report.Attribution.Results[j].ProbeID
 	})
-	return report
+	return report, nil
 }
 
 // WriteJSONReport writes an indented JSON report and does not close w.
@@ -184,7 +189,13 @@ func WriteTextReport(w io.Writer, report Report) error {
 		if observation.Undecidable {
 			marker = " (undecidable)"
 		}
-		fmt.Fprintf(&b, "  %s / %s: %s confidence, %s%s\n", observation.Cell, observation.ProbeID, confidence, mechanism, marker)
+		fmt.Fprintf(&b, "  %s (%s) / %s: %s confidence, %s%s\n",
+			observation.CellLabel,
+			reportCellDetail(observation.Cell),
+			observation.ProbeID,
+			confidence,
+			mechanism,
+			marker)
 	}
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		return fmt.Errorf("write text report: %w", err)
@@ -229,7 +240,19 @@ func divergenceClassLabel(class DivergenceClass) string {
 	}
 }
 
-func reportCellName(cell Cell, index int) string {
+func reportCellLabel(fingerprint Fingerprint, index int) (string, error) {
+	digest, err := ComputeFingerprintDigest(fingerprint)
+	if err != nil {
+		return "", fmt.Errorf("compute digest: %w", err)
+	}
+	digestHex := strings.TrimPrefix(digest, "sha256:")
+	if len(digestHex) < 12 {
+		return "", fmt.Errorf("computed digest %q is too short", digest)
+	}
+	return fmt.Sprintf("cell-%d-%s", index+1, digestHex[:12]), nil
+}
+
+func reportCellDetail(cell Cell) string {
 	parts := make([]string, 0, 3)
 	if cell.Architecture != "" {
 		parts = append(parts, cell.Architecture)
@@ -241,7 +264,7 @@ func reportCellName(cell Cell, index int) string {
 		parts = append(parts, "runtime-class="+cell.RuntimeClass.Value)
 	}
 	if len(parts) == 0 {
-		return fmt.Sprintf("cell-%d", index+1)
+		return "cell details unavailable"
 	}
 	return strings.Join(parts, ", ")
 }
