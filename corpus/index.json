@@ -36,7 +36,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_alg"
     },
     "oracle": {
       "guarantees": null,
@@ -61,7 +62,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_packet"
     },
     "oracle": {
       "guarantees": null,
@@ -136,7 +138,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "ipv6"
     },
     "oracle": {
       "guarantees": null,
@@ -161,7 +164,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_key"
     },
     "oracle": {
       "guarantees": null,
@@ -186,7 +190,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "bluetooth"
     },
     "oracle": {
       "guarantees": null,
@@ -211,7 +216,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "can"
     },
     "oracle": {
       "guarantees": null,
@@ -236,7 +242,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "tipc"
     },
     "oracle": {
       "guarantees": null,
@@ -261,7 +268,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "rds"
     },
     "oracle": {
       "guarantees": null,
@@ -311,7 +319,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "rxrpc"
     },
     "oracle": {
       "guarantees": null,
@@ -336,7 +345,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "phonet"
     },
     "oracle": {
       "guarantees": null,
@@ -361,7 +371,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "af_802154"
     },
     "oracle": {
       "guarantees": null,
@@ -386,7 +397,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "nfc"
     },
     "oracle": {
       "guarantees": null,
@@ -411,7 +423,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "vsock"
     },
     "oracle": {
       "guarantees": null,
@@ -436,7 +449,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "kcm"
     },
     "oracle": {
       "guarantees": null,
@@ -461,7 +475,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "qrtr"
     },
     "oracle": {
       "guarantees": null,
@@ -486,7 +501,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "smc"
     },
     "oracle": {
       "guarantees": null,
@@ -511,7 +527,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "mctp"
     },
     "oracle": {
       "guarantees": null,
@@ -536,7 +553,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "ax25"
     },
     "oracle": {
       "guarantees": null,
@@ -561,7 +579,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "appletalk"
     },
     "oracle": {
       "guarantees": null,
@@ -586,7 +605,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 97
+      "absent_errno": 97,
+      "module": "x25"
     },
     "oracle": {
       "guarantees": null,
@@ -711,7 +731,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "xfrm_user"
     },
     "oracle": {
       "guarantees": null,
@@ -761,7 +782,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "iscsi_transport"
     },
     "oracle": {
       "guarantees": null,
@@ -836,7 +858,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "cn"
     },
     "oracle": {
       "guarantees": null,
@@ -861,7 +884,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "nfnetlink"
     },
     "oracle": {
       "guarantees": null,
@@ -936,7 +960,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "scsi_transport_netlink"
     },
     "oracle": {
       "guarantees": null,
@@ -961,7 +986,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "ib_core"
     },
     "oracle": {
       "guarantees": null,
@@ -986,7 +1012,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "crypto_user"
     },
     "oracle": {
       "guarantees": null,
@@ -1011,7 +1038,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": 93
+      "absent_errno": 93,
+      "module": "smc"
     },
     "oracle": {
       "guarantees": null,

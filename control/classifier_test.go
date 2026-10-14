@@ -222,17 +222,46 @@ func TestClassifyRejectsUnknownDivergentProbe(t *testing.T) {
 	}
 }
 
-func TestClassifyRejectsMissingRuntimeClass(t *testing.T) {
-	left := fingerprintWithCell("x86_64", "6.8.0", "runc", nil)
-	right := fingerprintWithCell("x86_64", "6.8.0", "runc", nil)
+func TestClassifyTreatsMissingRuntimeClassAsNotSandboxed(t *testing.T) {
+	left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "call", Verdict: "permitted"}})
+	right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "call", Verdict: "unimplemented", Errno: 38}})
 	right.Cell.RuntimeClass = nil
-	if _, err := Classify(left, right, nil); err == nil || !strings.Contains(err.Error(), "right fingerprint is missing cell.runtime_class") {
-		t.Fatalf("Classify error = %v, want missing RuntimeClass error", err)
+	classified, err := Classify(left, right, []ProbeMetadata{{ID: "call", Arch: Applicability{All: true}}})
+	if err != nil {
+		t.Fatalf("Classify with default runtime class: %v", err)
 	}
+	assertClass(t, classified, "call", PolicyExplained)
+}
 
-	right.Cell.RuntimeClass = &SourcedValue{Value: "  ", Source: "test"}
-	if _, err := Classify(left, right, nil); err == nil || !strings.Contains(err.Error(), "right fingerprint is missing cell.runtime_class") {
-		t.Fatalf("Classify error = %v, want blank RuntimeClass error", err)
+func TestCorpusDeclaresPerProbeModuleDependencies(t *testing.T) {
+	corpus := loadCorpus(t)
+	byID, err := metadataByID(corpus)
+	if err != nil {
+		t.Fatalf("metadataByID: %v", err)
+	}
+	want := map[string]string{
+		"mount.type.9p":                  "9p",
+		"mount.type.virtiofs":            "virtiofs",
+		"socket.family.af_tipc":          "tipc",
+		"socket.family.af_rds":           "rds",
+		"netlink.protocol.xfrm":          "xfrm_user",
+		"netlink.protocol.iscsi":         "iscsi_transport",
+		"netlink.protocol.connector":     "cn",
+		"netlink.protocol.netfilter":     "nfnetlink",
+		"netlink.protocol.scsitransport": "scsi_transport_netlink",
+		"netlink.protocol.rdma":          "ib_core",
+		"netlink.protocol.crypto":        "crypto_user",
+		"netlink.protocol.smc":           "smc",
+	}
+	for id, module := range want {
+		probe, exists := byID[id]
+		if !exists {
+			t.Errorf("corpus metadata missing probe %q", id)
+			continue
+		}
+		if probe.Kernel.Module != module {
+			t.Errorf("%s module = %q, want %q", id, probe.Kernel.Module, module)
+		}
 	}
 }
 

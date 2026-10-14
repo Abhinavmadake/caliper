@@ -138,6 +138,15 @@ impl KernelDependency {
         module: None,
     };
 
+    /// A configuration- or module-gated entry point backed by one named module.
+    pub const fn module(module: &'static str, absent_errno: Errno) -> KernelDependency {
+        KernelDependency {
+            since: None,
+            absent_errno: Some(absent_errno),
+            module: Some(module),
+        }
+    }
+
     /// Whether `errno`, from `running`, means the entry point is absent
     /// rather than filtered.
     pub fn means_absent(&self, errno: i32, running: KernelVersion) -> bool {

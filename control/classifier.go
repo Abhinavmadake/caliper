@@ -149,12 +149,6 @@ type ClassificationResult struct {
 // Classify runs the probe-granularity diff and assigns each verdict change one
 // class using the recorded cells and corpus declarations.
 func Classify(left, right Fingerprint, corpus []ProbeMetadata) (ClassificationResult, error) {
-	if err := validateClassifierInputs(left, "left"); err != nil {
-		return ClassificationResult{}, err
-	}
-	if err := validateClassifierInputs(right, "right"); err != nil {
-		return ClassificationResult{}, err
-	}
 	diff, err := Diff(left, right)
 	if err != nil {
 		return ClassificationResult{}, err
@@ -181,13 +175,6 @@ func Classify(left, right Fingerprint, corpus []ProbeMetadata) (ClassificationRe
 		increment(&result.Counts, class)
 	}
 	return result, nil
-}
-
-func validateClassifierInputs(fingerprint Fingerprint, side string) error {
-	if fingerprint.Cell.RuntimeClass == nil || strings.TrimSpace(fingerprint.Cell.RuntimeClass.Value) == "" {
-		return fmt.Errorf("%s fingerprint is missing cell.runtime_class", side)
-	}
-	return nil
 }
 
 func metadataByID(corpus []ProbeMetadata) (map[string]ProbeMetadata, error) {
