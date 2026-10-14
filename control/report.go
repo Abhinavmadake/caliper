@@ -36,8 +36,9 @@ type Report struct {
 	Attribution    AttributionReport    `json:"attribution"`
 }
 
-// AttributionReport summarizes uncertainty across denied probe results, as
-// required by proposal §11.2. A denial without attribution is undecidable.
+// AttributionReport summarizes uncertainty across denied and killed probe
+// results, as required by proposal §11.2. SIGSYS kills are denials; a denial
+// without attribution is counted as undecidable.
 type AttributionReport struct {
 	Denials             int                         `json:"denials"`
 	Undecidable         int                         `json:"undecidable"`
@@ -80,7 +81,7 @@ func BuildReport(findings FindingReport, classification ClassificationResult, fi
 	for i, fingerprint := range fingerprints {
 		cell := reportCellName(fingerprint.Cell, i)
 		for _, result := range fingerprint.Results {
-			if result.Verdict != "denied" {
+			if result.Verdict != "denied" && result.Verdict != "killed" {
 				continue
 			}
 			report.Attribution.Denials++
@@ -163,7 +164,7 @@ func WriteTextReport(w io.Writer, report Report) error {
 	if report.Attribution.UndecidableFraction == nil {
 		fmt.Fprintf(&b, "  Undecidable: n/a (0/0 denials)\n")
 	} else {
-		fmt.Fprintf(&b, "  Undecidable: %d/%d denials (%.1f%%)\n", report.Attribution.Undecidable, report.Attribution.Denials, *report.Attribution.UndecidableFraction*100)
+		fmt.Fprintf(&b, "  Undecidable: %d/%d denials (including kills; %.1f%%)\n", report.Attribution.Undecidable, report.Attribution.Denials, *report.Attribution.UndecidableFraction*100)
 	}
 	fmt.Fprintf(&b, "  Confidence counts: high %d, medium %d, low %d, unknown %d\n",
 		report.Attribution.ConfidenceCounts.High,

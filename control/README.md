@@ -17,5 +17,5 @@ policy.
 attribution details. `WriteJSONReport` and `WriteTextReport` render the same
 report in machine-readable and human-readable forms. Both include the
 authorization notice and the undecidable attribution fraction; its denominator
-is all denied probe results, as specified in proposal §11.2. SARIF remains
-deferred.
+is all denials, including SIGSYS-killed results, as specified in proposal §11.2.
+SARIF remains deferred.

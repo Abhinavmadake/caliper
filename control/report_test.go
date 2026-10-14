@@ -52,16 +52,17 @@ func TestBuildReportAndWriteJSON(t *testing.T) {
 		Results: []ProbeResult{
 			{ProbeID: "probe.high", Verdict: "denied", Attribution: &Attribution{Confidence: High, Mechanism: &seccomp}},
 			{ProbeID: "probe.low", Verdict: "denied", Attribution: &Attribution{Confidence: Low, Undecidable: true}},
+			{ProbeID: "probe.killed", Verdict: "killed", Attribution: &Attribution{Confidence: High, Mechanism: &seccomp}},
 		},
 	}
 	second := Fingerprint{Results: []ProbeResult{{ProbeID: "probe.no-attr", Verdict: "denied"}}}
 
 	report := BuildReport(findings, classification, first, second)
-	if report.Attribution.Denials != 3 || report.Attribution.Undecidable != 2 {
-		t.Fatalf("attribution totals = %d/%d, want 2/3", report.Attribution.Undecidable, report.Attribution.Denials)
+	if report.Attribution.Denials != 4 || report.Attribution.Undecidable != 2 {
+		t.Fatalf("attribution totals = %d/%d, want 2/4 including the killed result", report.Attribution.Undecidable, report.Attribution.Denials)
 	}
-	if report.Attribution.UndecidableFraction == nil || *report.Attribution.UndecidableFraction < 0.666 || *report.Attribution.UndecidableFraction > 0.667 {
-		t.Fatalf("undecidable fraction = %v, want about 0.667", report.Attribution.UndecidableFraction)
+	if report.Attribution.UndecidableFraction == nil || *report.Attribution.UndecidableFraction != 0.5 {
+		t.Fatalf("undecidable fraction = %v, want 0.5", report.Attribution.UndecidableFraction)
 	}
 
 	var output bytes.Buffer
@@ -76,8 +77,8 @@ func TestBuildReportAndWriteJSON(t *testing.T) {
 		t.Errorf("JSON report notice = %v", decoded["notice"])
 	}
 	attribution := decoded["attribution"].(map[string]any)
-	if attribution["denials"] != float64(3) {
-		t.Errorf("JSON attribution denominator = %v, want 3 denials", attribution["denials"])
+	if attribution["denials"] != float64(4) {
+		t.Errorf("JSON attribution denominator = %v, want 4 denials including the kill", attribution["denials"])
 	}
 	if attribution["undecidable_fraction"] != *report.Attribution.UndecidableFraction {
 		t.Errorf("JSON undecidable fraction = %v", attribution["undecidable_fraction"])
@@ -117,7 +118,7 @@ func TestWriteTextReportSeparatesClassesAndIncludesUndecidableFraction(t *testin
 			ProbeID: "probe.one", Verdict: "denied", Attribution: &Attribution{Confidence: Low, Undecidable: true, Mechanism: &mechanism},
 		}}},
 		Fingerprint{Cell: Cell{Architecture: "arm64"}, Results: []ProbeResult{{
-			ProbeID: "probe.two", Verdict: "denied", Attribution: &Attribution{Confidence: High},
+			ProbeID: "probe.two", Verdict: "killed", Attribution: &Attribution{Confidence: High, Mechanism: &mechanism},
 		}}},
 	)
 	var output bytes.Buffer
@@ -132,7 +133,7 @@ func TestWriteTextReportSeparatesClassesAndIncludesUndecidableFraction(t *testin
 		"Undeclared exposures (1)", "custom.probe [custom]: undeclared exposure",
 		"Architecture-explained (1)", "probe.arch: permitted -> not-applicable",
 		"Policy-explained (1)", "probe.policy: denied -> permitted",
-		"Undecidable: 1/2 denials (50.0%)",
+		"Undecidable: 1/2 denials (including kills; 50.0%)",
 		"high 1, medium 0, low 1, unknown 0",
 	} {
 		if !strings.Contains(text, want) {
