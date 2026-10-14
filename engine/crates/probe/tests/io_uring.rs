@@ -81,6 +81,10 @@ fn denied_outright_and_opcode_absent_are_different_records() {
             ("permitted", libc::EINVAL as u64)
         );
         assert_eq!(r["io_uring.opcode.nop"], ("permitted".into(), 0));
+        assert_eq!(
+            r["io_uring.register.probe"],
+            ("permitted".into(), libc::EBADF as u64)
+        );
         for (id, (verdict, errno)) in &opcodes {
             match verdict.as_str() {
                 "permitted" => assert_eq!(*errno, 0, "{id}"),
