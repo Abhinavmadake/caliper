@@ -190,6 +190,8 @@ type Cell struct {
 	Runtime        *SourcedValue   `json:"runtime,omitempty"`
 	RuntimeVersion *SourcedValue   `json:"runtime_version,omitempty"`
 	LSM            string          `json:"lsm"`
+	LSMLabel       *string         `json:"lsm_label,omitempty"`
+	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
 	RuntimeClass   *SourcedValue   `json:"runtime_class,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
 }
@@ -201,6 +203,8 @@ type ProbeCell struct {
 	Architecture string          `json:"architecture"`
 	Kernel       Kernel          `json:"kernel"`
 	LSM          string          `json:"lsm"`
+	LSMLabel     *string         `json:"lsm_label,omitempty"`
+	LSMEnforcing *bool           `json:"lsm_enforcing,omitempty"`
 	Capabilities json.RawMessage `json:"capabilities,omitempty"`
 }
 
@@ -235,6 +239,8 @@ func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
 		Runtime:        metadata.Runtime,
 		RuntimeVersion: metadata.RuntimeVersion,
 		LSM:            probe.LSM,
+		LSMLabel:       probe.LSMLabel,
+		LSMEnforcing:   probe.LSMEnforcing,
 		RuntimeClass:   metadata.RuntimeClass,
 		Capabilities:   probe.Capabilities,
 	}
