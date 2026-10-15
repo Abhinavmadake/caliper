@@ -16,6 +16,7 @@
 package control
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 )
@@ -71,6 +72,32 @@ func TestAttributeRules(t *testing.T) {
 				t.Errorf("a denial must have a mechanism or be undecidable, not both: %+v", got)
 			}
 		})
+	}
+}
+
+func TestCorrelationUsesProcessCapabilitiesAndLSMLabel(t *testing.T) {
+	eperm, eacces := 1, 13
+	capability := ProbeMetadata{ID: "cap", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_BOOT"}
+	lsm := ProbeMetadata{ID: "lsm", Oracle: Oracle{Isolates: "seccomp-or-lsm"}}
+
+	withoutBoot := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}
+	got := correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, withoutBoot)
+	if got.Mechanism == nil || *got.Mechanism != CapabilityMissing || got.Confidence != Low || got.Undecidable {
+		t.Errorf("missing capability correlation = %+v", got)
+	}
+
+	withBoot := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000400000","bounding":"0000000000400000"}`)}
+	got = correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, withBoot)
+	if got.Mechanism == nil || *got.Mechanism != Seccomp || got.Confidence != Low || got.Undecidable {
+		t.Errorf("present capability correlation = %+v", got)
+	}
+
+	label := "docker-default (enforce)"
+	enforcing := true
+	confined := Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing}
+	got = correlate(undecidable(nil, ""), ProbeResult{Verdict: "denied", Errno: eacces}, lsm, confined)
+	if got.Mechanism == nil || *got.Mechanism != LSM || got.Confidence != Low || got.Undecidable {
+		t.Errorf("LSM correlation = %+v", got)
 	}
 }
 
@@ -132,12 +159,9 @@ func TestAttributeRecordedFixtures(t *testing.T) {
 	assert(def, "clone3.args.short", Seccomp, High)
 	assert(def, "socket.family.out_of_range", "", High)
 	assert(def, "socket.family.af_vsock", "", Low)
-	assert(def, "socket.family.af_packet", "", Low)
+	assert(def, "socket.family.af_packet", CapabilityMissing, Low)
 	assert(def, "path.masked.proc_kcore", Mount, High)
 	assert(def, "path.readonly.proc_bus", Mount, High)
-	if got := def["socket.family.af_packet"].Candidates; !reflect.DeepEqual(got, []Mechanism{Seccomp, CapabilityMissing}) {
-		t.Errorf("af_packet candidates = %v", got)
-	}
 
 	hardened := loadFixture(t, "x86_64-apparmor-hardened.json")
 	byID := attributed("x86_64-apparmor-hardened.json")

@@ -15,7 +15,12 @@
 
 package control
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
+)
 
 // Mechanism is what produced a denial (proposal §6.1).
 type Mechanism string
@@ -72,7 +77,7 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 		if !ok {
 			return Fingerprint{}, fmt.Errorf("no corpus metadata for probe %q", r.ProbeID)
 		}
-		a := attribute(r, probe)
+		a := correlate(attribute(r, probe), r, probe, fp.Cell)
 		r.Attribution = &a
 		results[i] = r
 	}
@@ -83,6 +88,85 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 	}
 	fp.Digest = digest
 	return fp, nil
+}
+
+// correlate narrows the deliberately conservative errno-oracle result with
+// facts the process recorded about itself. It never reads host state: the
+// capability masks and LSM label belong to the measured process.
+func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribution {
+	if r.Verdict != "denied" {
+		return a
+	}
+
+	if r.Errno == errnoEPERM && p.Oracle.Isolates == "undecidable" && p.Capability != "" {
+		if present, known := effectiveCapability(cell.Capabilities, p.Capability); known {
+			if !present {
+				return correlated(CapabilityMissing,
+					fmt.Sprintf("%s is absent from the process effective capability set; this correlates the EPERM with the syscall capability gate", p.Capability))
+			}
+			return correlated(Seccomp,
+				fmt.Sprintf("%s is present in the process effective capability set, so the capability gate cannot explain EPERM", p.Capability))
+		}
+	}
+
+	if r.Errno == 13 && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
+		return correlated(LSM,
+			fmt.Sprintf("EACCES follows the security-module hook and %s is enforcing label %q", cell.LSM, *cell.LSMLabel))
+	}
+	return a
+}
+
+func correlated(mechanism Mechanism, reason string) Attribution {
+	return Attribution{Mechanism: &mechanism, Confidence: Low, Reason: reason}
+}
+
+type capabilityMasks struct {
+	Effective string `json:"effective"`
+	Bounding  string `json:"bounding"`
+}
+
+var capabilityBits = map[string]uint{
+	"CAP_NET_ADMIN":        12,
+	"CAP_NET_RAW":          13,
+	"CAP_SYS_ADMIN":        21,
+	"CAP_SYS_RAWIO":        17,
+	"CAP_SYS_TIME":         25,
+	"CAP_SYS_BOOT":         22,
+	"CAP_SYS_MODULE":       16,
+	"CAP_MKNOD":            27,
+	"CAP_SYS_PTRACE":       19,
+	"CAP_NET_BIND_SERVICE": 10,
+	"CAP_SYS_NICE":         23,
+	"CAP_SYS_RESOURCE":     24,
+	"CAP_DAC_READ_SEARCH":  2,
+	"CAP_BPF":              39,
+	"CAP_PERFMON":          38,
+}
+
+func effectiveCapability(raw json.RawMessage, capability string) (present bool, known bool) {
+	bit, ok := capabilityBits[capability]
+	if !ok || len(raw) == 0 {
+		return false, false
+	}
+	var masks capabilityMasks
+	if json.Unmarshal(raw, &masks) != nil || masks.Effective == "" || masks.Bounding == "" {
+		return false, false
+	}
+	effective, err := strconv.ParseUint(masks.Effective, 16, 64)
+	if err != nil {
+		return false, false
+	}
+	return effective&(uint64(1)<<bit) != 0, true
+}
+
+func confiningLSM(cell Cell) bool {
+	if cell.LSMLabel == nil || cell.LSMEnforcing == nil || !*cell.LSMEnforcing {
+		return false
+	}
+	if cell.LSM != "apparmor" && cell.LSM != "selinux" {
+		return false
+	}
+	return strings.TrimSpace(*cell.LSMLabel) != "" && strings.TrimSpace(*cell.LSMLabel) != "unconfined"
 }
 
 func attribute(r ProbeResult, p ProbeMetadata) Attribution {

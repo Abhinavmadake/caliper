@@ -144,7 +144,7 @@ impl Lsm {
 /// `O_CLOEXEC` with an `fcntl` for kernels that ignored the flag. The run
 /// path's footprint is meant to be the three named in the module comment
 /// and nothing else.
-fn label(lsm: &str) -> bool {
+fn read_attr(lsm: &str) -> Option<String> {
     let path = if lsm.is_empty() {
         c"/proc/self/attr/current".to_owned()
     } else {
@@ -160,14 +160,49 @@ fn label(lsm: &str) -> bool {
         )
     } as libc::c_int;
     if fd < 0 {
-        return false;
+        return None;
     }
-    let mut buf = [0u8; 1];
-    // SAFETY: fd is open and buf is a valid one-byte buffer.
+    let mut buf = [0u8; 4096];
+    // SAFETY: fd is open and buf is a valid buffer.
     let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
     // SAFETY: fd is a descriptor this function owns and closes once.
     unsafe { libc::close(fd) };
-    n > 0
+    if n <= 0 {
+        return None;
+    }
+    let n = usize::try_from(n).ok()?;
+    let label = String::from_utf8_lossy(&buf[..n]).trim().to_owned();
+    (!label.is_empty()).then_some(label)
+}
+
+fn label(lsm: &str) -> bool {
+    read_attr(lsm).is_some()
+}
+
+fn read_selinux_enforce() -> Option<bool> {
+    let path = c"/sys/fs/selinux/enforce";
+    // SAFETY: a NUL-terminated path and constant flags.
+    let fd = unsafe {
+        libc::syscall(
+            libc::SYS_openat,
+            libc::AT_FDCWD,
+            path.as_ptr(),
+            libc::O_RDONLY | libc::O_CLOEXEC,
+        )
+    } as libc::c_int;
+    if fd < 0 {
+        return None;
+    }
+    let mut byte = [0u8; 1];
+    // SAFETY: fd is open and byte is valid for one byte.
+    let n = unsafe { libc::read(fd, byte.as_mut_ptr().cast(), byte.len()) };
+    // SAFETY: fd is a descriptor this function owns.
+    unsafe { libc::close(fd) };
+    match (n, byte[0]) {
+        (1, b'1') => Some(true),
+        (1, b'0') => Some(false),
+        _ => None,
+    }
 }
 
 fn serialize_cap<S>(cap: &u64, serializer: S) -> Result<S::Ok, S::Error>
@@ -299,15 +334,35 @@ pub struct Cell {
     pub architecture: Arch,
     pub kernel: Kernel,
     pub lsm: Lsm,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lsm_label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lsm_enforcing: Option<bool>,
     pub capabilities: Capabilities,
 }
 
 impl Cell {
     pub fn detect() -> nix::Result<Cell> {
+        let lsm = Lsm::detect();
+        let (lsm_label, lsm_enforcing) = match lsm {
+            Lsm::Apparmor => {
+                let label = read_attr("apparmor");
+                let enforcing = label.as_deref().map(|label| label.contains(" (enforce)"));
+                (label, enforcing)
+            }
+            Lsm::Selinux => {
+                let label = read_attr("");
+                let enforcing = read_selinux_enforce();
+                (label, enforcing)
+            }
+            Lsm::None => (None, None),
+        };
         Ok(Cell {
             architecture: Arch::current(),
             kernel: Kernel::running()?,
-            lsm: Lsm::detect(),
+            lsm,
+            lsm_label,
+            lsm_enforcing,
             capabilities: Capabilities::detect()?,
         })
     }
