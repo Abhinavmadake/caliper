@@ -487,6 +487,17 @@ mod tests {
     }
 
     #[test]
+    fn module_backed_devices_declare_autoload() {
+        for id in ["device.open.fuse", "device.open.net_tun", "device.open.kvm"] {
+            let probe = probes().iter().find(|probe| probe.id == id).expect(id);
+            assert!(
+                probe.effects.may_autoload_module(),
+                "{id} must declare possible module autoload"
+            );
+        }
+    }
+
+    #[test]
     fn probe_ids_are_unique() {
         let mut ids: Vec<_> = probes().iter().map(|p| p.id).collect();
         ids.sort_unstable();

@@ -18,14 +18,14 @@
 //! The lists are pinned from containerd `v2.2.1` and `v1.7.12`
 //! (`pkg/oci/spec.go`), Moby's `oci/defaults.go`, and Podman's
 //! `containers/common/pkg/config/default.go`. Containerd and Moby mask
-//! `/proc/asound`; Podman makes it read-only. It is consequently one probe:
-//! the filesystem type distinguishes a mask and `ST_RDONLY` distinguishes the
-//! Podman mount flag.
+//! `/proc/asound`; Podman makes it read-only. Mask probes therefore use only
+//! filesystem magic, while explicitly read-only probes also inspect
+//! `ST_RDONLY`.
 //!
 //! Every probe opens its target with `O_PATH | O_NOFOLLOW | O_CLOEXEC` and
 //! inspects it with `fstatfs`; it never reads or writes the target. A different
-//! filesystem magic is encoded as `ENODATA` (the runtime mask), `ST_RDONLY`
-//! as `EROFS` (a read-only mount), and the expected filesystem as success.
+//! filesystem magic is encoded as `ENODATA` (the runtime mask); read-only
+//! probes encode `ST_RDONLY` as `EROFS` and the expected filesystem as success.
 
 use std::ffi::CStr;
 
@@ -42,7 +42,22 @@ const PATH_DEPENDENCY: KernelDependency = KernelDependency {
     ..KernelDependency::NONE
 };
 
-fn check_path(path: &CStr, expected_magic: libc::c_long) -> RawResult {
+fn classify_mount(
+    expected_magic: libc::c_long,
+    actual_magic: libc::c_long,
+    flags: libc::c_ulong,
+    check_readonly: bool,
+) -> RawResult {
+    if check_readonly && flags & libc::ST_RDONLY as libc::c_ulong != 0 {
+        Err(Errno::EROFS)
+    } else if actual_magic != expected_magic {
+        Err(Errno::ENODATA)
+    } else {
+        Ok(())
+    }
+}
+
+fn check_path(path: &CStr, expected_magic: libc::c_long, check_readonly: bool) -> RawResult {
     let fd = unsafe {
         libc::syscall(
             libc::SYS_openat,
@@ -66,19 +81,51 @@ fn check_path(path: &CStr, expected_magic: libc::c_long) -> RawResult {
         return Err(errno);
     }
 
-    if statfs.f_type as libc::c_long != expected_magic {
-        Err(Errno::ENODATA)
-    } else if statfs.f_flags & libc::ST_RDONLY as libc::c_ulong != 0 {
-        Err(Errno::EROFS)
-    } else {
-        Ok(())
+    // The caller selects whether this path is a read-only assertion or a mask
+    // assertion; masked paths intentionally ignore ST_RDONLY.
+    classify_mount(
+        expected_magic,
+        statfs.f_type as libc::c_long,
+        statfs.f_flags as libc::c_ulong,
+        check_readonly,
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn readonly_mount_is_not_misreported_as_a_mask() {
+        assert_eq!(
+            classify_mount(1, 1, libc::ST_RDONLY as libc::c_ulong, true),
+            Err(Errno::EROFS)
+        );
+    }
+
+    #[test]
+    fn different_filesystem_without_readonly_flag_is_a_mask() {
+        assert_eq!(classify_mount(1, 2, 0, false), Err(Errno::ENODATA));
+    }
+
+    #[test]
+    fn masked_probe_ignores_readonly_flag() {
+        assert_eq!(
+            classify_mount(1, 2, libc::ST_RDONLY as libc::c_ulong, false),
+            Err(Errno::ENODATA)
+        );
     }
 }
 
 macro_rules! path_probe {
     ($name:ident, $path:expr, $magic:expr) => {
         fn $name() -> RawResult {
-            check_path($path, $magic as libc::c_long)
+            check_path($path, $magic as libc::c_long, false)
+        }
+    };
+    ($name:ident, $path:expr, $magic:expr, readonly) => {
+        fn $name() -> RawResult {
+            check_path($path, $magic as libc::c_long, true)
         }
     };
 }
@@ -114,14 +161,35 @@ path_probe!(
     c"/sys/devices/virtual/powercap",
     libc::SYSFS_MAGIC
 );
-path_probe!(readonly_proc_bus, c"/proc/bus", libc::PROC_SUPER_MAGIC);
-path_probe!(readonly_proc_fs, c"/proc/fs", libc::PROC_SUPER_MAGIC);
-path_probe!(readonly_proc_irq, c"/proc/irq", libc::PROC_SUPER_MAGIC);
-path_probe!(readonly_proc_sys, c"/proc/sys", libc::PROC_SUPER_MAGIC);
+path_probe!(
+    readonly_proc_bus,
+    c"/proc/bus",
+    libc::PROC_SUPER_MAGIC,
+    readonly
+);
+path_probe!(
+    readonly_proc_fs,
+    c"/proc/fs",
+    libc::PROC_SUPER_MAGIC,
+    readonly
+);
+path_probe!(
+    readonly_proc_irq,
+    c"/proc/irq",
+    libc::PROC_SUPER_MAGIC,
+    readonly
+);
+path_probe!(
+    readonly_proc_sys,
+    c"/proc/sys",
+    libc::PROC_SUPER_MAGIC,
+    readonly
+);
 path_probe!(
     readonly_proc_sysrq_trigger,
     c"/proc/sysrq-trigger",
-    libc::PROC_SUPER_MAGIC
+    libc::PROC_SUPER_MAGIC,
+    readonly
 );
 path_probe!(
     control_proc_self_status,

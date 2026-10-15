@@ -59,7 +59,7 @@ device_probe!(open_null, c"/dev/null");
 device_probe!(open_sda, c"/dev/sda");
 
 macro_rules! define_probe {
-    ($constant:ident, $function:ident, $id:literal, $description:literal, $capability:expr) => {
+    ($constant:ident, $function:ident, $id:literal, $description:literal, $capability:expr, $effects:expr) => {
         pub const $constant: Probe = Probe {
             id: $id,
             family: "device",
@@ -74,7 +74,7 @@ macro_rules! define_probe {
                 reason: "openat(O_RDONLY | O_NONBLOCK | O_NOCTTY | O_CLOEXEC) does not read or write: ENOENT means the runtime did not provision the node; EACCES is nodev, DAC, or an LSM; after DAC permits the read-open, EPERM is the device cgroup or the driver's own capability check",
             },
             capability: $capability,
-            effects: SideEffects::NONE,
+            effects: $effects,
             run: $function,
         };
     };
@@ -85,54 +85,71 @@ define_probe!(
     open_fuse,
     "device.open.fuse",
     "/dev/fuse (10:229, typically 0666): read-only nonblocking open",
-    None
+    None,
+    SideEffects::Declared {
+        residual: &[],
+        module_autoload: true
+    }
 );
 define_probe!(
     OPEN_NET_TUN,
     open_net_tun,
     "device.open.net_tun",
     "/dev/net/tun (10:200, typically 0666): read-only nonblocking open",
-    None
+    None,
+    SideEffects::Declared {
+        residual: &[],
+        module_autoload: true
+    }
 );
 define_probe!(
     OPEN_KVM,
     open_kvm,
     "device.open.kvm",
     "/dev/kvm (10:232, typically 0660 root:kvm): DAC-gated read-only nonblocking open",
-    None
+    None,
+    SideEffects::Declared {
+        residual: &[],
+        module_autoload: true
+    }
 );
 define_probe!(
     OPEN_KMSG,
     open_kmsg,
     "device.open.kmsg",
     "/dev/kmsg (1:11, typically 0644): read-only nonblocking open",
-    None
+    None,
+    SideEffects::NONE
 );
 define_probe!(
     OPEN_MEM,
     open_mem,
     "device.open.mem",
     "/dev/mem (1:1, typically 0640 root:kmem): DAC-gated read-only nonblocking open",
-    Some(Capability::SysRawio)
+    Some(Capability::SysRawio),
+    SideEffects::NONE
 );
 define_probe!(
     OPEN_PORT,
     open_port,
     "device.open.port",
     "/dev/port (1:4, typically 0640 root:kmem): DAC-gated read-only nonblocking open",
-    Some(Capability::SysRawio)
+    Some(Capability::SysRawio),
+    SideEffects::NONE
 );
 define_probe!(
     OPEN_NULL,
     open_null,
     "device.open.null",
     "/dev/null (1:3, typically 0666): control read-only nonblocking open",
-    None
+    None,
+    SideEffects::NONE
 );
 define_probe!(
     OPEN_SDA,
     open_sda,
     "device.open.sda",
     "/dev/sda (8:0, typically 0660 root:disk): DAC-gated read-only nonblocking open",
-    None
+    None,
+    SideEffects::NONE
 );
