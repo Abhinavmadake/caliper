@@ -13,16 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// caliper-ci-report summarizes a measured target-cluster fingerprint and posts
-// an idempotent GitHub PR comment. Posture evaluation belongs to issue #34.
+// caliper-ci-report evaluates a measured target-cluster fingerprint against the
+// reference posture and posts the result as an idempotent GitHub PR comment.
 package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/Abhinavmadake/caliper/control"
@@ -37,15 +39,30 @@ func main() {
 	cluster := flag.String("cluster", "", "named target cluster context")
 	repository := flag.String("repository", "", "GitHub repository in owner/name form")
 	prNumber := flag.Int("pr", 0, "pull request number")
+	in := inputs{}
+	flag.StringVar(&in.posture, "posture", "../posture/v1/posture.yaml", "reference posture YAML")
+	flag.StringVar(&in.corpus, "corpus", "../corpus/index.json", "corpus index JSON")
+	flag.StringVar(&in.manifest, "manifest", "../deploy/k8s/job.yaml", "manifest of the measured workload")
+	flag.StringVar(&in.tier, "tier", "restricted", "posture tier to evaluate against")
 	flag.Parse()
 
-	if err := run(*fingerprintPath, *cluster, *repository, *prNumber); err != nil {
+	if err := run(*fingerprintPath, *cluster, *repository, *prNumber, in); err != nil {
 		fmt.Fprintln(os.Stderr, "caliper-ci-report:", err)
 		os.Exit(1)
 	}
 }
 
-func run(fingerprintPath, cluster, repository string, prNumber int) error {
+type inputs struct {
+	posture, corpus, manifest, tier string
+}
+
+type evaluation struct {
+	fingerprint control.Fingerprint
+	workload    control.ManifestWorkload
+	report      control.Report
+}
+
+func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) error {
 	if fingerprintPath == "" || cluster == "" || prNumber < 1 {
 		return errors.New("fingerprint, cluster and positive PR number are required")
 	}
@@ -62,7 +79,11 @@ func run(fingerprintPath, cluster, repository string, prNumber int) error {
 	if err != nil {
 		return fmt.Errorf("read fingerprint: %w", err)
 	}
-	body := renderReport(cluster, measurement)
+	ev, err := evaluate(measurement, in)
+	if err != nil {
+		return err
+	}
+	body := renderReport(cluster, ev)
 	ctx := context.Background()
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
 	if err := upsertComment(ctx, client, parts[0], parts[1], prNumber, body); err != nil {
@@ -93,19 +114,122 @@ func readMeasurement(path string) (control.Fingerprint, error) {
 	return measurement, errors.New("no CALIPER measurement JSON found in container logs")
 }
 
-func renderReport(cluster string, fp control.Fingerprint) string {
+func evaluate(fp control.Fingerprint, in inputs) (evaluation, error) {
+	var corpus []control.ProbeMetadata
+	data, err := os.ReadFile(in.corpus)
+	if err != nil {
+		return evaluation{}, fmt.Errorf("read corpus: %w", err)
+	}
+	if err := json.Unmarshal(data, &corpus); err != nil {
+		return evaluation{}, fmt.Errorf("parse corpus: %w", err)
+	}
+	data, err = os.ReadFile(in.posture)
+	if err != nil {
+		return evaluation{}, fmt.Errorf("read posture: %w", err)
+	}
+	posture, err := control.ParsePosture(data)
+	if err != nil {
+		return evaluation{}, err
+	}
+	data, err = os.ReadFile(in.manifest)
+	if err != nil {
+		return evaluation{}, fmt.Errorf("read manifest: %w", err)
+	}
+	manifest, err := control.ParseManifest(data)
+	if err != nil {
+		return evaluation{}, err
+	}
+	if len(manifest.Workloads) != 1 {
+		return evaluation{}, fmt.Errorf("manifest %s has %d workloads, want 1", in.manifest, len(manifest.Workloads))
+	}
+	workload := manifest.Workloads[0]
+
+	fp, err = control.Attribute(fp, corpus)
+	if err != nil {
+		return evaluation{}, fmt.Errorf("attribute: %w", err)
+	}
+	findings, err := control.EvaluateFindings(fp, workload, in.tier, posture, corpus)
+	if err != nil {
+		return evaluation{}, fmt.Errorf("evaluate: %w", err)
+	}
+	report, err := control.BuildReport(findings, control.ClassificationResult{}, fp)
+	if err != nil {
+		return evaluation{}, err
+	}
+	return evaluation{fingerprint: fp, workload: workload, report: report}, nil
+}
+
+func renderReport(cluster string, ev evaluation) string {
+	fp, findings, attribution := ev.fingerprint, ev.report.Findings, ev.report.Attribution
 	var b strings.Builder
 	b.WriteString(reportMarker + "\n")
-	fmt.Fprintf(&b, "## CALIPER target-cluster measurement\n\n")
-	fmt.Fprintf(&b, "**Target:** `%s`  \n**Cell:** `%s`, kernel `%s`  \n**Corpus:** `%s` revision `%s`\n\n",
+	b.WriteString("## CALIPER target-cluster evaluation\n\n")
+	fmt.Fprintf(&b, "**Target:** `%s`  \n**Cell:** `%s`, kernel `%s`  \n**Corpus:** `%s` revision `%s`  \n",
 		cluster, fp.Cell.Architecture, fp.Cell.Kernel.Release, fp.CorpusSet, fp.CorpusRevision)
-	b.WriteString("| Probe | Verdict |\n|---|---|\n")
-	for _, result := range fp.Results {
-		fmt.Fprintf(&b, "| `%s` | `%s` |\n", result.ProbeID, result.Verdict)
+	fmt.Fprintf(&b, "**Posture:** `%s`, tier `%s`, workload `%s/%s`\n\n",
+		findings.PostureRevision, findings.Tier, ev.workload.Kind, ev.workload.Name)
+
+	writeFindings(&b, "Expectation violations", findings.ExpectationViolations)
+	writeFindings(&b, "Claim violations", findings.ClaimViolations)
+	writeExposures(&b, findings.UndeclaredExposures)
+
+	b.WriteString("### Attribution\n\n")
+	if attribution.UndecidableFraction == nil {
+		b.WriteString("No denials.\n\n")
+	} else {
+		fmt.Fprintf(&b, "Undecidable: %d/%d denials (%.1f%%). Confidence: high %d, medium %d, low %d, unknown %d.\n\n",
+			attribution.Undecidable, attribution.Denials, *attribution.UndecidableFraction*100,
+			attribution.ConfidenceCounts.High, attribution.ConfidenceCounts.Medium,
+			attribution.ConfidenceCounts.Low, attribution.ConfidenceCounts.Unknown)
 	}
-	fmt.Fprintf(&b, "\n**Summary:** %d measured probe(s), %d unmeasured probe(s).\n", len(fp.Results), len(fp.Unmeasured))
-	b.WriteString("\nThis report records measurements only. Posture evaluation is handled separately under issue #34.\n")
+
+	fmt.Fprintf(&b, "<details><summary>%d measured probe(s), %d unmeasured</summary>\n\n", len(fp.Results), len(fp.Unmeasured))
+	b.WriteString("| Probe | Verdict | Errno | Mechanism |\n|---|---|---|---|\n")
+	for _, result := range fp.Results {
+		mechanism := ""
+		if result.Attribution != nil && result.Attribution.Mechanism != nil {
+			mechanism = string(*result.Attribution.Mechanism)
+		}
+		fmt.Fprintf(&b, "| `%s` | `%s` | %d | %s |\n", result.ProbeID, result.Verdict, result.Errno, mechanism)
+	}
+	b.WriteString("\n</details>\n\n")
+	b.WriteString(control.AuthorizationNotice + "\n")
 	return b.String()
+}
+
+func writeFindings(b *strings.Builder, title string, findings []control.Finding) {
+	fmt.Fprintf(b, "### %s (%d)\n\n", title, len(findings))
+	if len(findings) == 0 {
+		return
+	}
+	b.WriteString("| Probe | Family | Reason |\n|---|---|---|\n")
+	for _, f := range findings {
+		reason := strings.ReplaceAll(strings.Join(strings.Fields(f.Reason), " "), "|", "\\|")
+		fmt.Fprintf(b, "| `%s` | %s | %s |\n", f.ProbeID, f.Family, reason)
+	}
+	b.WriteString("\n")
+}
+
+// Undeclared exposures share one reason, so they are listed per family.
+func writeExposures(b *strings.Builder, findings []control.Finding) {
+	fmt.Fprintf(b, "### Undeclared exposures (%d)\n\n", len(findings))
+	if len(findings) == 0 {
+		return
+	}
+	b.WriteString("Permitted, and neither the posture tier nor the manifest declares them unreachable.\n\n")
+	byFamily := map[string][]string{}
+	var families []string
+	for _, f := range findings {
+		if _, seen := byFamily[f.Family]; !seen {
+			families = append(families, f.Family)
+		}
+		byFamily[f.Family] = append(byFamily[f.Family], "`"+f.ProbeID+"`")
+	}
+	sort.Strings(families)
+	for _, family := range families {
+		fmt.Fprintf(b, "- **%s** (%d): %s\n", family, len(byFamily[family]), strings.Join(byFamily[family], ", "))
+	}
+	b.WriteString("\n")
 }
 
 func upsertComment(ctx context.Context, client *github.Client, owner, repo string, pr int, body string) error {
