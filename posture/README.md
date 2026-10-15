@@ -69,6 +69,30 @@ The posture directory is part of the instrument release. A release therefore
 ships the posture revision and its changelog alongside the engine and control
 plane, so a finding can always be reproduced against the declared policy.
 
+### Finding categories (#34)
+
+The evaluator takes the reference tier explicitly; it does not infer that tier
+from a Namespace's PSS label. PSS and the reference posture make different
+promises. For each permitted probe, the evaluator reports every applicable
+category; an exposure can therefore be both an expectation and a claim
+violation. It is undeclared only when neither applies:
+
+- `expectation-violation` when an applicable posture assertion says the probe
+  should be unreachable;
+- `claim-violation` when a manifest capability-drop declaration (or PSS
+  Restricted's dropped-capability requirement) is contradicted by the probe;
+- `undeclared-exposure` when neither model says the probe should be unreachable.
+
+Claim violations are limited to probes whose corpus oracle has
+`isolates: undecidable`, so an earlier path or policy check cannot masquerade
+as a capability check. Seccomp profile names alone do not assert
+syscall-specific denials: `RuntimeDefault` is runtime-defined, and a
+`Localhost` profile's rules are not in the manifest.
+Thus AF_ALG permitted under RuntimeDefault and PSS Restricted is an expectation
+violation for the untrusted-multi-tenant reference tier, not a claim violation.
+The three categories remain separate in the report; undeclared exposures are
+feedback for corpus and posture development.
+
 ## Tier definitions (#21)
 
 `posture/v1/posture.yaml` currently defines four named tiers:

@@ -48,24 +48,45 @@ jobs:
 
           assert posture["posture_revision"] == "v1"
           assert posture["status"] == "released"
-          assert {tier["name"] for tier in posture["tiers"]} == {
+          tier_names = {tier["name"] for tier in posture["tiers"]}
+          assert tier_names == {
               "privileged", "baseline", "restricted", "untrusted-multi-tenant"
           }
-          measured_families = {probe["family"] for probe in corpus}
-          probe_ids = {probe["id"] for probe in corpus}
-          deferred_families = {
-              "perf_event_open", "bpf", "keyctl", "userfaultfd",
-              "open_by_handle_at",
+          probes_by_family = {}
+          for probe in corpus:
+              assert probe["status"] in {"committed", "deferred"}
+              if probe["status"] == "committed":
+                  probes_by_family.setdefault(probe["family"], set()).add(probe["id"])
+          measured_families = {
+              probe["family"] for probe in corpus if probe["status"] == "committed"
           }
+          deferred_families = {
+              probe["family"] for probe in corpus if probe["status"] == "deferred"
+          }
+          assert measured_families.isdisjoint(deferred_families)
           for assertion in posture["assertions"]:
               assert assertion["family"] in measured_families | deferred_families
+              assert assertion["tier"] in tier_names
               assert assertion["expect"] == "unreachable"
               assert assertion["rationale"].strip()
               assert assertion["citations"]
               assert all(citation.get("id") or citation.get("url")
                          for citation in assertion["citations"])
-              assert all(probe_id in probe_ids
-                         for probe_id in assertion.get("probe_ids", []))
+              # A misspelled singular ``probe_id`` is not allowed to fall back
+              # to the family-wide assertion semantics of an omitted list.
+              assert "probe_id" not in assertion
+              assert set(assertion) <= {
+                  "tier", "family", "probe_ids", "expect", "rationale",
+                  "citations",
+              }
+              if "probe_ids" in assertion:
+                  assert isinstance(assertion["probe_ids"], list)
+                  assert assertion["probe_ids"]
+                  assert len(assertion["probe_ids"]) == len(set(assertion["probe_ids"]))
+                  assert all(
+                      probe_id in probes_by_family[assertion["family"]]
+                      for probe_id in assertion["probe_ids"]
+                  )
           PY
           test -f posture/CHANGELOG.md
           grep -q '^## v1 — released — ' posture/CHANGELOG.md

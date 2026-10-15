@@ -57,7 +57,11 @@ docker run --rm caliper-probe --reduced > /dev/null
 sleep 3
 
 BEFORE_FULL=$(( $(docker logs tracee 2>&1 | wc -l) ))
-docker logs tracee 2>&1 | head -n "$BEFORE_FULL" | tail -n +"$((BEFORE_REDUCED + 1))" > /tmp/tracee_reduced.log
+# Snapshot before slicing. Piping docker logs through head can close stdout
+# while docker is still writing; with pipefail that becomes SIGPIPE (141) and
+# masks the actual alert-safe result.
+docker logs tracee > /tmp/tracee_snapshot.log 2>&1
+sed -n "$((BEFORE_REDUCED + 1)),${BEFORE_FULL}p" /tmp/tracee_snapshot.log > /tmp/tracee_reduced.log
 
 echo "Running full corpus (should trigger alerts)..."
 docker run --rm caliper-probe --run > /dev/null || true
