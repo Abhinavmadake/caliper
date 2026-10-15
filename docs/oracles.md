@@ -33,9 +33,9 @@ As agreed by all members and documented in `spec/probe.md`, the `ENOSYS` error r
 ## 3. io_uring Opcode Reach (`IORING_REGISTER_PROBE`)
 
 - **Probed Syscall:** `io_uring_register(fd, IORING_REGISTER_PROBE, arg, nr_args)`
-- **Oracle Argument Set:** `io_uring_register(-1, IORING_REGISTER_PROBE, NULL, 0)`
-  - We pass an invalid file descriptor (`fd = -1`) which structurally guarantees `EBADF`.
-- **Hook Ordering:** File descriptor resolution (`fdget()`) occurs at the very beginning of the syscall, preceding any LSM hook or io_uring specific checks.
+- **Oracle Argument Set:** `io_uring_register(INT_MAX, IORING_REGISTER_PROBE, NULL, 0)`
+  - We pass a descriptor above the `nr_open` ceiling (`fd = INT_MAX`), which structurally guarantees `EBADF`. Not `-1`: since 6.13 that selects the blind register path, which answers `EINVAL`.
+- **Hook Ordering:** File descriptor resolution (`fget()`) occurs at the very beginning of the syscall, preceding any LSM hook or io_uring specific checks.
 - **What it proves:**
   - If the probe returns `EPERM` instead of the guaranteed `EBADF`, it proves interception occurred before descriptor resolution. Since `seccomp` acts on the syscall entry before `fd` resolution, this EBADF oracle **isolates seccomp**. Any `EPERM` is definitively from a seccomp filter and not from an LSM or capability check.
 

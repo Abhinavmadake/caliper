@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -170,15 +171,39 @@ func TestClassifyKernelDependencies(t *testing.T) {
 
 	t.Run("module-gated dependency", func(t *testing.T) {
 		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
-		left.Cell.Kernel.Modules = modules("nf_tables")
+		left.Cell.Kernel.Modules = modules("nf_tables", "netlink_diag")
 		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
-		right.Cell.Kernel.Modules = modules("nf_tables", "netlink_diag")
+		right.Cell.Kernel.Modules = modules("nf_tables")
 		classified := mustClassify(t, left, right, []ProbeMetadata{{
 			ID:     "module-call",
 			Arch:   Applicability{All: true},
-			Kernel: dependency(nil, 93),
+			Kernel: KernelDependency{AbsentErrno: intPointer(93), Module: "netlink_diag"},
 		}})
 		assertClass(t, classified, "module-call", KernelVersionExplained)
+	})
+
+	t.Run("unrelated module changes do not explain a probe", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
+		left.Cell.Kernel.Modules = modules("nf_tables")
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
+		right.Cell.Kernel.Modules = modules("netlink_diag")
+		classified := mustClassify(t, left, right, []ProbeMetadata{{
+			ID: "module-call", Arch: Applicability{All: true}, Kernel: dependency(nil, 93),
+		}})
+		assertClass(t, classified, "module-call", PolicyExplained)
+	})
+
+	t.Run("declared module dependency requires known module lists", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
+		right.Cell.Kernel.Modules = modules("netlink_diag")
+		_, err := Classify(left, right, []ProbeMetadata{{
+			ID: "module-call", Arch: Applicability{All: true},
+			Kernel: KernelDependency{AbsentErrno: intPointer(93), Module: "netlink_diag"},
+		}})
+		if err == nil || !strings.Contains(err.Error(), "no kernel module list") {
+			t.Fatalf("Classify error = %v, want missing module list error", err)
+		}
 	})
 
 	t.Run("release alone does not explain a probe without a dependency", func(t *testing.T) {
@@ -190,10 +215,71 @@ func TestClassifyKernelDependencies(t *testing.T) {
 }
 
 func TestClassifyRejectsUnknownDivergentProbe(t *testing.T) {
-	left := testFingerprint([]ProbeResult{{ProbeID: "unknown", Verdict: "denied"}})
-	right := testFingerprint([]ProbeResult{{ProbeID: "unknown", Verdict: "permitted"}})
+	left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "unknown", Verdict: "denied"}})
+	right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "unknown", Verdict: "permitted"}})
 	if _, err := Classify(left, right, nil); err == nil || err.Error() != `no corpus metadata for divergent probe "unknown"` {
 		t.Fatalf("Classify error = %v, want missing metadata error", err)
+	}
+}
+
+func TestClassifyTreatsMissingRuntimeClassAsNotSandboxed(t *testing.T) {
+	left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "call", Verdict: "permitted"}})
+	right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "call", Verdict: "unimplemented", Errno: 38}})
+	right.Cell.RuntimeClass = nil
+	classified, err := Classify(left, right, []ProbeMetadata{{ID: "call", Arch: Applicability{All: true}}})
+	if err != nil {
+		t.Fatalf("Classify with default runtime class: %v", err)
+	}
+	assertClass(t, classified, "call", PolicyExplained)
+}
+
+func TestCorpusDeclaresPerProbeModuleDependencies(t *testing.T) {
+	corpus := loadCorpus(t)
+	byID, err := metadataByID(corpus)
+	if err != nil {
+		t.Fatalf("metadataByID: %v", err)
+	}
+	want := map[string]string{
+		"mount.type.9p":                  "9p",
+		"mount.type.virtiofs":            "virtiofs",
+		"socket.family.af_alg":           "af_alg",
+		"socket.family.af_packet":        "af_packet",
+		"socket.family.af_inet6":         "ipv6",
+		"socket.family.af_key":           "af_key",
+		"socket.family.af_bluetooth":     "bluetooth",
+		"socket.family.af_can":           "can",
+		"socket.family.af_tipc":          "tipc",
+		"socket.family.af_rds":           "rds",
+		"socket.family.af_rxrpc":         "rxrpc",
+		"socket.family.af_phonet":        "phonet",
+		"socket.family.af_ieee802154":    "ieee802154_socket",
+		"socket.family.af_nfc":           "nfc",
+		"socket.family.af_vsock":         "vsock",
+		"socket.family.af_kcm":           "kcm",
+		"socket.family.af_qipcrtr":       "qrtr",
+		"socket.family.af_smc":           "smc",
+		"socket.family.af_mctp":          "mctp",
+		"socket.family.af_ax25":          "ax25",
+		"socket.family.af_appletalk":     "appletalk",
+		"socket.family.af_x25":           "x25",
+		"netlink.protocol.xfrm":          "xfrm_user",
+		"netlink.protocol.iscsi":         "scsi_transport_iscsi",
+		"netlink.protocol.connector":     "cn",
+		"netlink.protocol.netfilter":     "nfnetlink",
+		"netlink.protocol.scsitransport": "scsi_mod",
+		"netlink.protocol.rdma":          "ib_core",
+		"netlink.protocol.crypto":        "crypto_user",
+		"netlink.protocol.smc":           "smc",
+	}
+	for id, module := range want {
+		probe, exists := byID[id]
+		if !exists {
+			t.Errorf("corpus metadata missing probe %q", id)
+			continue
+		}
+		if probe.Kernel.Module != module {
+			t.Errorf("%s module = %q, want %q", id, probe.Kernel.Module, module)
+		}
 	}
 }
 
@@ -231,6 +317,10 @@ func fingerprintWithCell(architecture, release, runtimeClass string, results []P
 
 func dependency(since *KernelVersion, absentErrno int) KernelDependency {
 	return KernelDependency{Since: since, AbsentErrno: &absentErrno}
+}
+
+func intPointer(value int) *int {
+	return &value
 }
 
 func modules(names ...string) *[]string {

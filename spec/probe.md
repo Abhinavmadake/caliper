@@ -40,8 +40,10 @@ metadata — the proposal is explicit that this is not deferred to a later phase
   and the engine reports it from a before/after snapshot of loaded modules
 - **Risk class** — whether the probe requires fork isolation, and its timeout
 - **Kernel dependency** — the kernel version, configuration option or module
-  the entry point needs, so the diff engine can exclude kernel-version-explained
-  divergence probe by probe instead of inferring it from the version string
+  the entry point needs, and a path whose existence proves the kernel builds
+  it where version alone cannot, so the diff engine can exclude
+  kernel-version-explained divergence probe by probe instead of inferring it
+  from the version string
 - **Architecture applicability** — probes whose entry point exists only on
   some architectures must say so, or the diff engine will report architecture
   as policy. Where presence is a kernel property rather than an architecture
@@ -174,3 +176,10 @@ the mount-masking mechanism and nothing else. Decided 2026-09-15 for #15
 (A, under the week-2 delegation); the alternative — probing directories only —
 would have left `/proc/kcore` and `/proc/keys`, the files the posture asserts
 against, unprobed.
+
+The same encoding covers an enumeration interface that reports absence as a
+bit rather than an errno: an io_uring opcode probe returns `ENODATA` for a
+clear `IO_URING_OP_SUPPORTED` bit, which `io_uring_register` never produces
+for a ring it has just accepted. It was `ENOSYS`, which a filter can also
+answer (the containers/common profile's default), so it could not separate
+an absent opcode from a filtered syscall. Decided 2026-10-14 for #93 (A).

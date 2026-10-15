@@ -17,11 +17,26 @@ package control
 
 import "fmt"
 
-// Finding carries the posture provenance required by issue #23. The complete
-// finding shape belongs to the evaluator in issue #34; this contract does not
-// prescribe its kind, tier, family, or probe fields.
+// FindingKind classifies a measured exposure without conflating the manifest
+// contract with the independent reference posture.
+type FindingKind string
+
+const (
+	ExpectationViolation FindingKind = "expectation-violation"
+	ClaimViolation       FindingKind = "claim-violation"
+	UndeclaredExposure   FindingKind = "undeclared-exposure"
+)
+
+// Finding carries the posture provenance and probe evidence for one reachable
+// kernel entry point.
 type Finding struct {
-	PostureRevision string `json:"posture_revision"`
+	Kind            FindingKind `json:"kind"`
+	PostureRevision string      `json:"posture_revision"`
+	Tier            string      `json:"tier"`
+	Family          string      `json:"family"`
+	ProbeID         string      `json:"probe_id"`
+	Verdict         Verdict     `json:"verdict"`
+	Reason          string      `json:"reason,omitempty"`
 }
 
 // Validate prevents a finding from being emitted without naming the exact
@@ -29,6 +44,17 @@ type Finding struct {
 func (f Finding) Validate() error {
 	if f.PostureRevision == "" {
 		return fmt.Errorf("finding posture_revision is required")
+	}
+	switch f.Kind {
+	case ExpectationViolation, ClaimViolation, UndeclaredExposure:
+	default:
+		return fmt.Errorf("finding kind %q is invalid", f.Kind)
+	}
+	if f.Tier == "" || f.Family == "" || f.ProbeID == "" {
+		return fmt.Errorf("finding tier, family, and probe_id are required")
+	}
+	if f.Verdict != "permitted" {
+		return fmt.Errorf("finding verdict must be permitted, got %q", f.Verdict)
 	}
 	return nil
 }

@@ -38,6 +38,8 @@ use crate::common::ONE_CALL;
 const PATH_DEPENDENCY: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENOENT),
+    module: None,
+    ..KernelDependency::NONE
 };
 
 fn classify_mount(

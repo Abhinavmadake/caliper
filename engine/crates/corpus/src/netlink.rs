@@ -58,6 +58,8 @@ fn netlink(protocol: libc::c_int) -> RawResult {
 const CONFIG_GATED_PROTOCOL: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::EPROTONOSUPPORT),
+    module: None,
+    ..KernelDependency::NONE
 };
 
 /// A netlink protocol probe. `$autoload` is whether the handler lives in a
@@ -121,7 +123,7 @@ protocol!(NFLOG, nflog, "netlink.protocol.nflog", libc::NETLINK_NFLOG,
 
 protocol!(XFRM, xfrm, "netlink.protocol.xfrm", libc::NETLINK_XFRM,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_XFRM): IPsec transform configuration",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("xfrm_user", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "xfrm_user registers the handler; netlink_create loads net-pf-16-proto-6 with \
              no capability check (CAP_NET_ADMIN is on sendmsg). EPERM is seccomp or an LSM; \
              EPROTONOSUPPORT is xfrm_user absent");
@@ -134,7 +136,7 @@ protocol!(SELINUX, selinux, "netlink.protocol.selinux", libc::NETLINK_SELINUX,
 
 protocol!(ISCSI, iscsi, "netlink.protocol.iscsi", libc::NETLINK_ISCSI,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_ISCSI): the open-iSCSI transport",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("scsi_transport_iscsi", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "scsi_transport_iscsi registers the handler; netlink_create loads \
              net-pf-16-proto-8 with no capability check. EPERM is seccomp or an LSM; \
              EPROTONOSUPPORT is the module absent");
@@ -155,13 +157,13 @@ protocol!(FIB_LOOKUP, fib_lookup, "netlink.protocol.fib_lookup", libc::NETLINK_F
 
 protocol!(CONNECTOR, connector, "netlink.protocol.connector", libc::NETLINK_CONNECTOR,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_CONNECTOR): the kernel connector (proc events)",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("cn", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "cn registers the handler; netlink_create loads net-pf-16-proto-11 with no \
              capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence");
 
 protocol!(NETFILTER, netfilter, "netlink.protocol.netfilter", libc::NETLINK_NETFILTER,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_NETFILTER): nfnetlink, the nf_tables entry point",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("nfnetlink", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "nfnetlink registers the handler; netlink_create loads net-pf-16-proto-12 with \
              no capability check (CAP_NET_ADMIN is on the messages). EPERM is seccomp or \
              an LSM; EPROTONOSUPPORT is nfnetlink absent");
@@ -183,27 +185,26 @@ protocol!(GENERIC, generic, "netlink.protocol.generic", libc::NETLINK_GENERIC,
 protocol!(SCSITRANSPORT, scsitransport, "netlink.protocol.scsitransport",
     libc::NETLINK_SCSITRANSPORT,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_SCSITRANSPORT): the SCSI transport netlink",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: false,
-    reason: "scsi_netlink_init registers the handler where CONFIG_SCSI_NETLINK=y (a \
-             dependency of the FC transport); EPERM is seccomp or an LSM; EPROTONOSUPPORT \
-             is absence");
+    kernel: KernelDependency::module("scsi_mod", Errno::EPROTONOSUPPORT), autoload: false,
+    reason: "scsi_netlink_init registers the handler from the SCSI core (scsi_mod) where \
+             CONFIG_SCSI_NETLINK=y; EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence");
 
 protocol!(RDMA, rdma, "netlink.protocol.rdma", libc::NETLINK_RDMA,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_RDMA): the RDMA subsystem's netlink",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("ib_core", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "ib_core registers the handler; netlink_create loads net-pf-16-proto-20 with no \
              capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence");
 
 protocol!(CRYPTO, crypto, "netlink.protocol.crypto", libc::NETLINK_CRYPTO,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_CRYPTO): the crypto user configuration API",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("crypto_user", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "crypto_user registers the handler; netlink_create loads net-pf-16-proto-21 with \
              no capability check (CAP_NET_ADMIN is on the messages). EPERM is seccomp or \
              an LSM; EPROTONOSUPPORT is crypto_user absent");
 
 protocol!(SMC, smc, "netlink.protocol.smc", NETLINK_SMC,
     "socket(AF_NETLINK, SOCK_RAW, NETLINK_SMC): the SMC protocol's netlink",
-    kernel: CONFIG_GATED_PROTOCOL, autoload: true,
+    kernel: KernelDependency::module("smc", Errno::EPROTONOSUPPORT), autoload: true,
     reason: "smc registers the handler; netlink_create loads net-pf-16-proto-22 with no \
              capability check. EPERM is seccomp or an LSM; EPROTONOSUPPORT is absence");
 
