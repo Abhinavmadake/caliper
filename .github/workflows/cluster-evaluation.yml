@@ -30,7 +30,7 @@ on:
 permissions:
   contents: read
   packages: write
-  issues: write
+  pull-requests: write
 
 concurrency:
   group: caliper-cell-${{ github.event.pull_request.number }}
