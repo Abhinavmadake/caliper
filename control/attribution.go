@@ -109,8 +109,13 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 					fmt.Sprintf("%s is absent from Effective but remains in Bounding, which correlates the EPERM with the syscall capability gate", p.Capability))
 			}
 
-			return undecidable([]Mechanism{Seccomp, LSM},
-				fmt.Sprintf("%s is %s the effective set and %s the bounding set; seccomp and an LSM capability or namespace hook can also return EPERM", p.Capability, membership(effective), membership(bounding)))
+			candidates := []Mechanism{Seccomp, LSM}
+			reason := fmt.Sprintf("%s is present in the effective set, so seccomp and an LSM capability or namespace hook can also return EPERM", p.Capability)
+			if !bounding {
+				candidates = []Mechanism{Seccomp, CapabilityMissing}
+				reason = fmt.Sprintf("%s is absent from both Effective and Bounding; it is still missing, but Docker's default seccomp policy can produce the same EPERM first", p.Capability)
+			}
+			return undecidable(candidates, reason)
 		}
 	}
 
@@ -166,13 +171,6 @@ func capabilityState(raw json.RawMessage, capability string) (effectivePresent, 
 		return false, false, false
 	}
 	return effective&(uint64(1)<<bit) != 0, bounding&(uint64(1)<<bit) != 0, true
-}
-
-func membership(present bool) string {
-	if present {
-		return "present in"
-	}
-	return "absent from"
 }
 
 func confiningLSM(cell Cell) bool {

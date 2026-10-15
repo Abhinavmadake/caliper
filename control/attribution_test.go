@@ -94,7 +94,7 @@ func TestCorrelationUsesProcessCapabilitiesAndLSMLabel(t *testing.T) {
 
 	outsideBounding := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}
 	got = correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, outsideBounding)
-	if got.Mechanism != nil || !got.Undecidable || !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, LSM}) {
+	if got.Mechanism != nil || !got.Undecidable || !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, CapabilityMissing}) {
 		t.Errorf("capability outside bounding correlation = %+v", got)
 	}
 
@@ -166,8 +166,8 @@ func TestAttributeRecordedFixtures(t *testing.T) {
 	assert(def, "socket.family.out_of_range", "", High)
 	assert(def, "socket.family.af_vsock", "", Low)
 	assert(def, "socket.family.af_packet", CapabilityMissing, Low)
-	if got := def["unshare.flags.newns"]; got.Mechanism != nil || !got.Undecidable || !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, LSM}) {
-		t.Errorf("unshare.flags.newns = %+v, want undecidable between seccomp and LSM", got)
+	if got := def["unshare.flags.newns"]; got.Mechanism != nil || !got.Undecidable || !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, CapabilityMissing}) {
+		t.Errorf("unshare.flags.newns = %+v, want undecidable between seccomp and a missing capability", got)
 	}
 	assert(def, "path.masked.proc_kcore", Mount, High)
 	assert(def, "path.readonly.proc_bus", Mount, High)
