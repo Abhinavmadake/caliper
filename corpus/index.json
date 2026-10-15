@@ -3488,7 +3488,7 @@
     "capability": null,
     "effects": {
       "residual": [],
-      "module_autoload": false
+      "module_autoload": true
     }
   },
   {
@@ -3513,7 +3513,7 @@
     "capability": null,
     "effects": {
       "residual": [],
-      "module_autoload": false
+      "module_autoload": true
     }
   },
   {
@@ -3538,7 +3538,7 @@
     "capability": null,
     "effects": {
       "residual": [],
-      "module_autoload": false
+      "module_autoload": true
     }
   },
   {
