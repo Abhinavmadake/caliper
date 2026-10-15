@@ -104,6 +104,8 @@ fn cell(version: Option<KernelVersion>) -> Cell {
             modules: None,
         },
         lsm: Lsm::None,
+        lsm_label: None,
+        lsm_enforcing: None,
         capabilities: Capabilities::EMPTY,
     }
 }
