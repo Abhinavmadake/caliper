@@ -25,8 +25,9 @@
 //! Syscalls, all outside `--noop` and so outside `baseline/`: `uname`,
 //! `openat`/`read`/`close` on `/proc/self/status` for the capability sets,
 //! and `openat`/`read`/`close` on `/proc/self/attr/<lsm>/current` for each
-//! LSM tried. The module set is filled in by the measurement run, which
-//! snapshots it before the first probe (`crate::residual`).
+//! LSM tried and `/sys/fs/selinux/enforce` when SELinux is active. The module
+//! set is filled in by the measurement run, which snapshots it before the first
+//! probe (`crate::residual`).
 
 use std::fmt;
 

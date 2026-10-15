@@ -99,13 +99,18 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 	}
 
 	if r.Errno == errnoEPERM && p.Oracle.Isolates == "undecidable" && p.Capability != "" {
-		if present, known := effectiveCapability(cell.Capabilities, p.Capability); known {
-			if !present {
+		if effective, bounding, known := capabilityState(cell.Capabilities, p.Capability); known {
+			// A capability can only be deliberately dropped from Effective while
+			// remaining usable through a later exec if it is still in Bounding.
+			// When it is absent from Bounding, Docker's default seccomp policy can
+			// produce this same EPERM before the kernel capability check.
+			if !effective && bounding {
 				return correlated(CapabilityMissing,
-					fmt.Sprintf("%s is absent from the process effective capability set; this correlates the EPERM with the syscall capability gate", p.Capability))
+					fmt.Sprintf("%s is absent from Effective but remains in Bounding, which correlates the EPERM with the syscall capability gate", p.Capability))
 			}
-			return correlated(Seccomp,
-				fmt.Sprintf("%s is present in the process effective capability set, so the capability gate cannot explain EPERM", p.Capability))
+
+			return undecidable([]Mechanism{Seccomp, LSM},
+				fmt.Sprintf("%s is %s the effective set and %s the bounding set; seccomp and an LSM capability or namespace hook can also return EPERM", p.Capability, membership(effective), membership(bounding)))
 		}
 	}
 
@@ -143,20 +148,31 @@ var capabilityBits = map[string]uint{
 	"CAP_PERFMON":          38,
 }
 
-func effectiveCapability(raw json.RawMessage, capability string) (present bool, known bool) {
+func capabilityState(raw json.RawMessage, capability string) (effectivePresent, boundingPresent, known bool) {
 	bit, ok := capabilityBits[capability]
 	if !ok || len(raw) == 0 {
-		return false, false
+		return false, false, false
 	}
 	var masks capabilityMasks
 	if json.Unmarshal(raw, &masks) != nil || masks.Effective == "" || masks.Bounding == "" {
-		return false, false
+		return false, false, false
 	}
 	effective, err := strconv.ParseUint(masks.Effective, 16, 64)
 	if err != nil {
-		return false, false
+		return false, false, false
 	}
-	return effective&(uint64(1)<<bit) != 0, true
+	bounding, err := strconv.ParseUint(masks.Bounding, 16, 64)
+	if err != nil {
+		return false, false, false
+	}
+	return effective&(uint64(1)<<bit) != 0, bounding&(uint64(1)<<bit) != 0, true
+}
+
+func membership(present bool) string {
+	if present {
+		return "present in"
+	}
+	return "absent from"
 }
 
 func confiningLSM(cell Cell) bool {
