@@ -30,7 +30,7 @@ on:
 permissions:
   contents: read
   packages: write
-  issues: write
+  pull-requests: write
 
 concurrency:
   group: caliper-cell-${{ github.event.pull_request.number }}
@@ -45,7 +45,6 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       JOB_NAME: caliper-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-      KUBECONFIG: ${{ runner.temp }}/caliper-kubeconfig
       CALIPER_TARGET_CONTEXT: ${{ vars.CALIPER_TARGET_CONTEXT }}
       CALIPER_NAMESPACE: ${{ vars.CALIPER_NAMESPACE || 'default' }}
       CALIPER_KUBECONFIG: ${{ secrets.CALIPER_KUBECONFIG }}
@@ -85,6 +84,8 @@ jobs:
       - name: select named target cluster
         if: steps.configuration.outputs.configured == 'true'
         run: |
+          export KUBECONFIG="$RUNNER_TEMP/caliper-kubeconfig"
+          echo "KUBECONFIG=$KUBECONFIG" >> "$GITHUB_ENV"
           install -m 600 /dev/null "$KUBECONFIG"
           printf '%s' "$CALIPER_KUBECONFIG" > "$KUBECONFIG"
           kubectl config get-contexts -o name | grep -Fx "$CALIPER_TARGET_CONTEXT"

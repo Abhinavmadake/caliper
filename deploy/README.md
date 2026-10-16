@@ -53,11 +53,13 @@ GKE on COS); and Talos, the platform the motivating result was published on.
 ## Pull request target-cluster evaluation
 
 `.github/workflows/cluster-evaluation.yml` runs the reduced corpus on a named
-Kubernetes context and posts the measured cell's fingerprint to the pull
-request. It deliberately does not measure the GitHub runner's container.
-The workflow builds the PR's probe image for amd64 only and runs the Job under
-the same unprivileged security context as `deploy/k8s/job.yaml`. The report
-records measurements; posture evaluation belongs to issue #34.
+Kubernetes context and posts that cell's evaluation to the pull request. It
+deliberately does not measure the GitHub runner's container. The workflow
+builds the PR's probe image for amd64 only and runs the Job under the same
+unprivileged security context as `deploy/k8s/job.yaml`. The report evaluates
+the fingerprint against `posture/v1` at the `restricted` tier, with
+`deploy/k8s/job.yaml` as the workload's manifest, and lists expectation
+violations, claim violations, undeclared exposures and attribution confidence.
 
 Configure these repository settings before enabling the workflow:
 
@@ -79,10 +81,13 @@ cleanly with a workflow notice. Its report comment is updated in place on later
 pushes to the same pull request. The Go reporter uses
 `control.DecodeFingerprint` and `go-github` for GitHub API calls.
 
-This work is part of issue #38; it does not close the issue until it has run
-against a real cluster. The local CI job separately enforces the proposal's under-five-second
-measurement budget with `scripts/check-reduced-runtime.sh` against the
-release binary. Kubernetes scheduling and image-pull time are outside that
+The target configured for this repository is a GKE zonal cluster on
+Container-Optimized OS (context `gke-caliper-ci`, namespace `caliper-ci`,
+which enforces the `restricted` Pod Security level).
+
+The local CI job separately enforces the proposal's under-five-second
+measurement budget with `scripts/check-reduced-runtime.sh` against the release
+binary. Kubernetes scheduling and image-pull time are outside that
 measurement budget.
 
 The cells need an amd64 host with hardware virtualisation: the Kata cell
