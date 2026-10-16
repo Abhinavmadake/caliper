@@ -130,6 +130,40 @@ func TestAttributeRecomputesFingerprintDigest(t *testing.T) {
 	}
 }
 
+func TestAttributeAssignsConfidenceToEveryResult(t *testing.T) {
+	ebadf := 9
+	fingerprint := Fingerprint{Results: []ProbeResult{
+		{ProbeID: "permitted", Verdict: "permitted"},
+		{ProbeID: "denied", Verdict: "denied", Errno: errnoEPERM},
+		{ProbeID: "killed", Verdict: "killed"},
+		{ProbeID: "unimplemented", Verdict: "unimplemented", Errno: errnoENOSYS},
+		{ProbeID: "timed-out", Verdict: "timed-out"},
+	}}
+	corpus := []ProbeMetadata{
+		{ID: "permitted", Oracle: Oracle{Isolates: "seccomp"}},
+		{ID: "denied", Oracle: Oracle{Guarantees: &ebadf, Isolates: "seccomp"}},
+		{ID: "killed", Oracle: Oracle{Isolates: "seccomp"}},
+		{ID: "unimplemented", Oracle: Oracle{Isolates: "seccomp"}},
+		{ID: "timed-out", Oracle: Oracle{Isolates: "seccomp"}},
+	}
+
+	attributed, err := Attribute(fingerprint, corpus)
+	if err != nil {
+		t.Fatalf("Attribute: %v", err)
+	}
+	for _, result := range attributed.Results {
+		if result.Attribution == nil {
+			t.Errorf("%s has no attribution", result.ProbeID)
+			continue
+		}
+		switch result.Attribution.Confidence {
+		case High, Medium, Low:
+		default:
+			t.Errorf("%s has invalid confidence %q", result.ProbeID, result.Attribution.Confidence)
+		}
+	}
+}
+
 func TestAttributeRecordedFixtures(t *testing.T) {
 	corpus := loadCorpus(t)
 	attributed := func(name string) map[string]Attribution {
