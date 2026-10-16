@@ -172,6 +172,27 @@ func TestWriteTextReportHandlesNoMeasuredResults(t *testing.T) {
 	}
 }
 
+func TestBuildReportKeepsAttributionDisabledMeasurementsReachable(t *testing.T) {
+	fingerprint := Fingerprint{Results: []ProbeResult{
+		{ProbeID: "denied-without-attribution", Verdict: "denied", Errno: 1},
+		{ProbeID: "permitted-without-attribution", Verdict: "permitted"},
+	}}
+
+	report, err := BuildReport(FindingReport{}, ClassificationResult{}, fingerprint)
+	if err != nil {
+		t.Fatalf("BuildReport: %v", err)
+	}
+	if report.Attribution.Denials != 1 || report.Attribution.Undecidable != 1 || report.Attribution.ConfidenceCounts.Unknown != 1 {
+		t.Errorf("attribution-disabled totals = %+v", report.Attribution)
+	}
+	if report.Attribution.UndecidableFraction == nil || *report.Attribution.UndecidableFraction != 1 {
+		t.Errorf("undecidable fraction = %v, want 1", report.Attribution.UndecidableFraction)
+	}
+	if fingerprint.Results[0].Attribution != nil || fingerprint.Results[1].Attribution != nil {
+		t.Error("BuildReport added attribution to an attribution-disabled measurement")
+	}
+}
+
 func TestBuildReportLabelsSameCellFingerprintsByPositionAndDigest(t *testing.T) {
 	cell := Cell{
 		Architecture: "x86_64",
