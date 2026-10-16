@@ -21,3 +21,12 @@ machine-readable and human-readable forms. Both include the
 authorization notice and the undecidable attribution fraction; its denominator
 is all denials, including SIGSYS-killed results, as specified in proposal §11.2.
 SARIF remains deferred.
+
+Attribution is an optional refinement of the raw reachability measurement.
+`Attribute` assigns every result one confidence grade: **high** for a positive
+oracle proof, **medium** for an oracle's structural reading without a guaranteed
+errno, and **low** for correlation or an unresolved denial. `BuildReport` also
+accepts fingerprints without attribution: it retains their reachability verdicts
+and reports those denials as unknown and undecidable, rather than inventing a
+mechanism. The undecidable fraction is therefore a measured result, not an
+assumption that the residual is zero.
