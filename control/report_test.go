@@ -173,7 +173,7 @@ func TestWriteTextReportHandlesNoMeasuredResults(t *testing.T) {
 }
 
 func TestBuildReportKeepsAttributionDisabledMeasurementsReachable(t *testing.T) {
-	fingerprint := Fingerprint{Results: []ProbeResult{
+	fingerprint := Fingerprint{FormatVersion: SupportedFormatVersion, Results: []ProbeResult{
 		{ProbeID: "denied-without-attribution", Verdict: "denied", Errno: 1},
 		{ProbeID: "permitted-without-attribution", Verdict: "permitted"},
 	}}
@@ -190,6 +190,25 @@ func TestBuildReportKeepsAttributionDisabledMeasurementsReachable(t *testing.T) 
 	}
 	if fingerprint.Results[0].Attribution != nil || fingerprint.Results[1].Attribution != nil {
 		t.Error("BuildReport added attribution to an attribution-disabled measurement")
+	}
+
+	posture := ReferencePosture{
+		Revision: "test", Status: "draft",
+		Tiers: []PostureTier{{Name: "test", NamedAfter: "restricted"}},
+		Assertions: []PostureAssertion{{
+			Tier: "test", Family: "test", ProbeIDs: []string{"permitted-without-attribution"},
+			Expect: "unreachable", Rationale: "reachability must remain evaluable without attribution",
+			Citations: []PostureCitation{{ID: "test", URL: "https://example.test/evidence"}},
+		}},
+	}
+	findings, err := EvaluateFindings(fingerprint, ManifestWorkload{}, "test", posture, []ProbeMetadata{{
+		ID: "permitted-without-attribution", Family: "test",
+	}})
+	if err != nil {
+		t.Fatalf("EvaluateFindings with attribution disabled: %v", err)
+	}
+	if len(findings.ExpectationViolations) != 1 || findings.ExpectationViolations[0].ProbeID != "permitted-without-attribution" {
+		t.Errorf("unattributed permitted result did not remain reachable to evaluation: %+v", findings)
 	}
 }
 
