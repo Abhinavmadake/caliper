@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
 # Ritesh Aresh Saindane, Yogesh Babaji Palve
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +19,13 @@
 . "$(dirname "$0")/common.sh"
 . "$(dirname "$0")/ubuntu.sh"
 KATA_VERSION=3.14.0
+KATA_SHA256=3ec3a62f29042ac0d72f9f28625e053e6dc9f1fe59e31ff6d9437c579821fd19
 [ -c /dev/kvm ]
 install_ubuntu_runtime "$UPDATES_CONTAINERD" "$UPDATES_RUNC"
 apt-get install -y -q xz-utils
 install_cni
 install_crictl
-curl -fsSL "https://github.com/kata-containers/kata-containers/releases/download/$KATA_VERSION/kata-static-$KATA_VERSION-amd64.tar.xz" | tar -xJ -C /
+fetch "https://github.com/kata-containers/kata-containers/releases/download/$KATA_VERSION/kata-static-$KATA_VERSION-amd64.tar.xz" "$KATA_SHA256" | tar -xJ -C /
 ln -sf /opt/kata/bin/containerd-shim-kata-v2 /usr/local/bin/
 add_handler_v3 kata io.containerd.kata.v2
 systemctl enable containerd
@@ -33,3 +35,4 @@ check_runc 1.3.4
 /opt/kata/bin/kata-runtime --version | grep -F "$KATA_VERSION"
 /opt/kata/bin/kata-runtime check --no-network-checks
 check_handler kata
+record_packages

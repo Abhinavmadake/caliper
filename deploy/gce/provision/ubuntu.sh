@@ -15,19 +15,31 @@
 
 # Sourced by the Ubuntu 24.04 cells (1, 2, 4, 5, 6).
 
+# Every apt operation reads the archive as it was at this instant, so a cell
+# rebuilt later gets the same packages even after noble-updates moves on.
+SNAPSHOT=20261016T120000Z
+
 # noble-updates (cells 1, 2, 5, 6) and the noble release pocket (cell 4).
 # shellcheck disable=SC2034
 UPDATES_CONTAINERD=2.2.1-0ubuntu1~24.04.3
+# shellcheck disable=SC2034
 UPDATES_RUNC=1.3.4-0ubuntu1~24.04.1
+# shellcheck disable=SC2034
 RELEASE_CONTAINERD=1.7.12-0ubuntu4
+# shellcheck disable=SC2034
 RELEASE_RUNC=1.1.12-0ubuntu3
 
 install_ubuntu_runtime() {
     local containerd=$1 runc=$2
     export DEBIAN_FRONTEND=noninteractive
+    # Nothing may change the cell between measurements: no unattended
+    # upgrades, no new kernel on the next boot.
+    systemctl disable --now unattended-upgrades.service apt-daily.timer apt-daily-upgrade.timer
+    echo "APT::Snapshot \"$SNAPSHOT\";" > /etc/apt/apt.conf.d/50caliper-snapshot
     apt-get update -q
-    apt-get install -y -q --allow-downgrades "containerd=$containerd" "runc=$runc" apparmor curl
-    apt-mark hold containerd runc
+    apt-get install -y -q --allow-downgrades "containerd=$containerd" "runc=$runc" apparmor curl python3
+    # shellcheck disable=SC2046
+    apt-mark hold containerd runc apparmor libseccomp2 $(dpkg-query -W -f '${Package}\n' 'linux-*' | grep -v '^$')
     aa-status --enabled
 }
 

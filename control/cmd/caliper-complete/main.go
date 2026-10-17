@@ -16,9 +16,12 @@
 // caliper-complete turns raw caliper-probe output into a fingerprint by adding
 // the cell facts the probe cannot observe, supplied by the operator, and the
 // digest. Outside Kubernetes this is how a cell's measurement is recorded.
+// -runtime-class is the RuntimeClass handler, as the Kubernetes path records
+// it; -node-kernel is the node's own release (on a cell, the "kernel" line of
+// deploy/gce/cells.sh packages), not the machine running this command.
 //
 //	caliper-complete -distribution "Ubuntu 24.04" -runtime containerd \
-//	    -runtime-version 2.2.1 -runtime-class runc -node-kernel "$(uname -r)" \
+//	    -runtime-version 2.2.1 -runtime-class runc -node-kernel 7.0.0-1014-gcp \
 //	    < raw.json > fingerprint.json
 package main
 
@@ -30,6 +33,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/Abhinavmadake/caliper/control"
 )
@@ -41,13 +45,17 @@ func main() {
 	runtimeClass := flag.String("runtime-class", "", "RuntimeClass the probe ran under")
 	nodeKernel := flag.String("node-kernel", "", "the node's own kernel release, for sandbox_claimed")
 	flag.Parse()
+	if flag.NArg() != 0 {
+		fmt.Fprintf(os.Stderr, "caliper-complete: unexpected argument %q (quote values with spaces)\n", flag.Arg(0))
+		os.Exit(2)
+	}
 
 	if err := run(os.Stdin, os.Stdout, control.CellMetadata{
 		Distribution:      operator(*distribution),
 		Runtime:           operator(*runtime),
 		RuntimeVersion:    operator(*runtimeVersion),
 		RuntimeClass:      operator(*runtimeClass),
-		NodeKernelVersion: *nodeKernel,
+		NodeKernelVersion: strings.TrimSpace(*nodeKernel),
 	}); err != nil {
 		fmt.Fprintln(os.Stderr, "caliper-complete:", err)
 		os.Exit(1)
@@ -55,6 +63,7 @@ func main() {
 }
 
 func operator(value string) *control.SourcedValue {
+	value = strings.TrimSpace(value)
 	if value == "" {
 		return nil
 	}

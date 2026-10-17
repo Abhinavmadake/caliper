@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
 # Ritesh Aresh Saindane, Yogesh Babaji Palve
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,3 +25,4 @@ install_crictl
 systemctl enable --now containerd
 check_containerd 1.7.12
 check_runc 1.1.12
+record_packages

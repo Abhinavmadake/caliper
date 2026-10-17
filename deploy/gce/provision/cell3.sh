@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
 # Ritesh Aresh Saindane, Yogesh Babaji Palve
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +18,13 @@
 # SELinux enforcing. Moves the LSM (and distribution) against cell 2.
 . "$(dirname "$0")/common.sh"
 getenforce | grep -qx Enforcing
-dnf install -y -q dnf-plugins-core container-selinux
+systemctl disable --now dnf-makecache.timer
+dnf install -y -q dnf-plugins-core python3-dnf-plugin-versionlock container-selinux
 dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
 dnf install -y -q containerd.io-2.2.1-1.el9
-dnf versionlock add containerd.io 2>/dev/null || true
+# Hold what defines the cell: runtime, policy, and the kernel it boots.
+dnf versionlock add containerd.io container-selinux selinux-policy selinux-policy-targeted libseccomp 'kernel*'
+dnf versionlock list | grep -F containerd.io-2.2.1
 # containerd.io ships a config that disables CRI; replace it.
 cat > /etc/containerd/config.toml <<'TOML'
 version = 3
@@ -32,6 +36,7 @@ install_crictl
 systemctl enable containerd
 systemctl restart containerd
 check_containerd 2.2.1
-command -v runc
-runc --version
+# containerd.io bundles its runc.
+check_runc 1.3.4
 containerd config dump | grep -F 'enable_selinux = true'
+record_packages
