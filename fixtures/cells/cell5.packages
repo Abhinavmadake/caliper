@@ -1,4 +1,4 @@
-probe ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9 (c85897b)
+probe ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9 (25897f7)
 kernel 7.0.0-1014-gcp
 containerd containerd github.com/containerd/containerd/v2 2.2.1 
 runc runc version 1.3.4-0ubuntu1~24.04.1

@@ -161,5 +161,5 @@ cd control && go run ./cmd/caliper-complete -distribution "Ubuntu 24.04" \
 `fixtures/cells/` holds a full-corpus recording of every cell, each from a
 fresh boot, completed with handler `runc` for cells 1 to 4, `runsc` for cell 5
 and `kata` for cell 6. Beside each, `cellN.packages` records the probe image
-(the amd64 digest, or the arm64 build's image ID, both from `c85897b`), the
+(the amd64 digest, or the arm64 build's image ID, both from `25897f7`), the
 cell's packages, and what containerd applied.

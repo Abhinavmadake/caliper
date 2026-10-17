@@ -31,7 +31,7 @@ set -euo pipefail
 
 PROJECT=${CALIPER_GCP_PROJECT:-caliper-ci}
 ZONE=${CALIPER_GCP_ZONE:-asia-south1-a}
-# amd64 image the cluster-evaluation workflow published for c85897b, by digest.
+# amd64 image the cluster-evaluation workflow published for 25897f7, by digest.
 IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9}
 here=$(cd "$(dirname "$0")" && pwd)
 
