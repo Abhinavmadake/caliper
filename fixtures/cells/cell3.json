@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.2.0",
   "corpus_set": "full",
-  "digest": "sha256:3ba3ecd04f7a7bb61aa8ca8671713c234dc5e076f418b56757dba83b9ee40e40",
+  "digest": "sha256:c7ecc5d75b1b91bba664c3f2cd9b42970cb8d653d5157369afc35c1c5ef4da0d",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -91,7 +91,7 @@
       "source": "operator"
     },
     "lsm": "selinux",
-    "lsm_label": "system_u:system_r:container_t:s0:c33,c217\u0000",
+    "lsm_label": "system_u:system_r:container_t:s0:c529,c652",
     "runtime_class": {
       "value": "runc",
       "source": "operator"
@@ -757,17 +757,17 @@
     {
       "probe_id": "mount.fs.proc",
       "verdict": "denied",
-      "errno": 13
+      "errno": 1
     },
     {
       "probe_id": "mount.fs.overlay",
       "verdict": "denied",
-      "errno": 13
+      "errno": 1
     },
     {
       "probe_id": "mount.fs.fuse",
       "verdict": "denied",
-      "errno": 13
+      "errno": 1
     },
     {
       "probe_id": "device.open.fuse",
@@ -811,13 +811,13 @@
     },
     {
       "probe_id": "path.masked.proc_kcore",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_keys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_latency_stats",
@@ -826,8 +826,8 @@
     },
     {
       "probe_id": "path.masked.proc_timer_list",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_timer_stats",
@@ -841,8 +841,8 @@
     },
     {
       "probe_id": "path.masked.proc_acpi",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_asound",
@@ -851,13 +851,13 @@
     },
     {
       "probe_id": "path.masked.proc_scsi",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.sys_firmware",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.sys_powercap",
@@ -866,28 +866,28 @@
     },
     {
       "probe_id": "path.readonly.proc_bus",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_fs",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_irq",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sysrq_trigger",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.control.proc_self_status",
@@ -1007,7 +1007,7 @@
     {
       "probe_id": "capability.mknod",
       "verdict": "denied",
-      "errno": 13
+      "errno": 1
     },
     {
       "probe_id": "capability.sys_ptrace",
@@ -1280,23 +1280,27 @@
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": "observed",
+      "keyrings": {
+        "unobservable": {
+          "reason": "masked"
+        }
+      },
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
       "net_namespaces": "observed"
     },
     "before": {
-      "mounts": 12,
-      "keyrings": 1,
+      "mounts": 24,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
       "net_namespaces": 1
     },
     "after": {
-      "mounts": 12,
-      "keyrings": 1,
+      "mounts": 24,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

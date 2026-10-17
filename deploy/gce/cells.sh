@@ -31,8 +31,8 @@ set -euo pipefail
 
 PROJECT=${CALIPER_GCP_PROJECT:-caliper-ci}
 ZONE=${CALIPER_GCP_ZONE:-asia-south1-a}
-# amd64 image published by the cluster-evaluation workflow, pinned by digest.
-IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:cbbbb74fda97509a0138633aab981ee3690ee13daeeeb06d27dca5cd16f161f3}
+# amd64 image the cluster-evaluation workflow published for c85897b, by digest.
+IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9}
 here=$(cd "$(dirname "$0")" && pwd)
 
 # Cells 2, 4, 5 and 6 share one image so only the runtime axis moves.

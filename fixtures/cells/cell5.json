@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.2.0",
   "corpus_set": "full",
-  "digest": "sha256:e1ba4c4a89f88cd59787adb410f09bed5064271b1a1829a7500bc6c13dfb76c7",
+  "digest": "sha256:069e9ca0f38f8c58873f16661e4d6c74885c45f8e8a31925f638f16e1b72d7f8",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -28,7 +28,7 @@
     },
     "lsm": "none",
     "runtime_class": {
-      "value": "gvisor",
+      "value": "runsc",
       "source": "operator"
     },
     "capabilities": {

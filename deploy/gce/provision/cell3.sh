@@ -24,7 +24,7 @@ dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.r
 dnf install -y -q containerd.io-2.2.1-1.el9
 # Hold what defines the cell: runtime, policy, and the kernel it boots.
 dnf versionlock add containerd.io container-selinux selinux-policy selinux-policy-targeted libseccomp 'kernel*'
-dnf versionlock list | grep -F containerd.io-2.2.1
+dnf versionlock list | grep -E '^containerd\.io-(0:)?2\.2\.1-'
 # containerd.io ships a config that disables CRI; replace it.
 cat > /etc/containerd/config.toml <<'TOML'
 version = 3

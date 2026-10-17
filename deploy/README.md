@@ -109,39 +109,48 @@ against cell 2 only the runtime moves.
 
 Provisioning fails unless the containerd on `PATH`, the running daemon and runc
 are the pinned versions (#90), and unless the cell's handler is registered.
-The cells mount nothing from the host.
+Ubuntu cells read the archive through the snapshot `20261016T120000Z`, so a cell
+rebuilt later gets the same packages; the kernel, AppArmor, libseccomp and the
+runtime are held, unattended upgrades are off, and cell 3 version-locks its
+runtime, policy and kernel. Every download is checked against a pinned hash.
+The packages that define a cell are recorded in `/etc/caliper/packages`
+(`cells.sh packages <cell>`). The cells mount nothing from the host.
 
 ```bash
 deploy/gce/cells.sh create  cell2              # VM, then provisioning
-deploy/gce/cells.sh measure cell2 > cell2.raw  # full corpus, probe output on stdout
+deploy/gce/cells.sh measure cell2 > cell2.raw  # reboot, full corpus, probe output on stdout
 deploy/gce/cells.sh stop    cell2              # always: a running VM is billed
 deploy/gce/cells.sh start   cell2              # later runs
 deploy/gce/cells.sh delete  cell2              # rollback: delete, then create again
 ```
 
-`measure` runs the probe the way the kubelet would, through containerd's CRI
-with `crictl`: a pod sandbox with its own network namespace, RuntimeDefault
-seccomp, the AppArmor default where AppArmor is on, SELinux labelling where it
-is enforcing, uid 65534, all capabilities dropped, no new privileges and a
-read-only root filesystem, as in `deploy/k8s/job.yaml`. Cells 5 and 6 pass the
-RuntimeClass handler to the sandbox. It prints the seccomp, AppArmor and SELinux
-settings containerd applied to stderr.
+`measure` reboots the cell first, so modules an earlier run autoloaded are not
+recorded as the node's, then runs `deploy/gce/measure.sh` on it. That builds
+the pod the way the kubelet builds `deploy/k8s/job.yaml`'s and runs it through
+containerd's CRI with `crictl`: its own network and PID namespaces, the
+kubelet's default masked and read-only paths, RuntimeDefault seccomp, the
+AppArmor default where AppArmor is on, SELinux labelling and a relabelled
+`/tmp` where it is enforcing, uid 65534, all capabilities dropped, no new
+privileges and a read-only root filesystem. Cells 5 and 6 pass the RuntimeClass
+handler to the sandbox. It fails if the probe fails or does not finish, and
+prints the cell's packages and what containerd applied to stderr.
 
 The amd64 cells pull the probe image published by the cluster-evaluation
 workflow, pinned by digest in `cells.sh`. That image is amd64 only, so cell 1
 takes an arm64 build:
 
 ```bash
-docker build -t caliper-probe:arm64 engine/        # on an arm64 machine
-docker save caliper-probe:arm64 -o caliper-probe-arm64.tar
+docker build -t caliper-probe:arm64-<commit> engine/   # on an arm64 machine
+docker save caliper-probe:arm64-<commit> -o caliper-probe-arm64.tar
 deploy/gce/cells.sh load cell1 caliper-probe-arm64.tar
-deploy/gce/cells.sh measure cell1 docker.io/library/caliper-probe:arm64 > cell1.raw
+deploy/gce/cells.sh measure cell1 docker.io/library/caliper-probe:arm64-<commit> > cell1.raw
 ```
 
 The probe cannot see the distribution, runtime or RuntimeClass, so the raw
 output is completed with them as operator-sourced facts, and digested, by
-`control/cmd/caliper-complete`. `measure` prints the node kernel to stderr for
-`-node-kernel`, which sets `sandbox_claimed` for cells 5 and 6.
+`control/cmd/caliper-complete`. `-runtime-class` is the RuntimeClass handler,
+as the Kubernetes path records it, and `-node-kernel` the cell's own `kernel`
+line from `cells.sh packages`, which sets `sandbox_claimed` for cells 5 and 6.
 
 ```bash
 cd control && go run ./cmd/caliper-complete -distribution "Ubuntu 24.04" \
@@ -149,6 +158,8 @@ cd control && go run ./cmd/caliper-complete -distribution "Ubuntu 24.04" \
     -node-kernel 7.0.0-1014-gcp < ../cell2.raw > ../fixtures/cells/cell2.json
 ```
 
-`fixtures/cells/` holds the first full-corpus recording of every cell (corpus
-`0.2.0`, probe image `sha256:cbbbb74f…` and its arm64 build), completed with
-RuntimeClass `runc` for cells 1 to 4, `gvisor` for cell 5 and `kata` for cell 6.
+`fixtures/cells/` holds a full-corpus recording of every cell, each from a
+fresh boot, completed with handler `runc` for cells 1 to 4, `runsc` for cell 5
+and `kata` for cell 6. Beside each, `cellN.packages` records the probe image
+(the amd64 digest, or the arm64 build's image ID, both from `c85897b`), the
+cell's packages, and what containerd applied.

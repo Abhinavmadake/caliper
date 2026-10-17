@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.2.0",
   "corpus_set": "full",
-  "digest": "sha256:d4a5a286a92a2e6044df5ba138be85d87e8a83e26d3d79ae408ca1b76ac59525",
+  "digest": "sha256:29027be07430510fcf9601d2e1f9638310ca06ea011ec66d43d43e86fe36d043",
   "cell": {
     "architecture": "aarch64",
     "kernel": {
@@ -47,7 +47,6 @@
         "sm4_ce_cipher",
         "sm4_ce_gcm",
         "stp",
-        "tls",
         "veth",
         "virtio_rng",
         "x_tables",
@@ -789,23 +788,23 @@
     },
     {
       "probe_id": "path.masked.proc_kcore",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_keys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_latency_stats",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_timer_list",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_timer_stats",
@@ -819,8 +818,8 @@
     },
     {
       "probe_id": "path.masked.proc_acpi",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_asound",
@@ -829,13 +828,13 @@
     },
     {
       "probe_id": "path.masked.proc_scsi",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.sys_firmware",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.sys_powercap",
@@ -844,28 +843,28 @@
     },
     {
       "probe_id": "path.readonly.proc_bus",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_fs",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_irq",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sysrq_trigger",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.control.proc_self_status",
@@ -1158,7 +1157,6 @@
       "sm4_ce_cipher",
       "sm4_ce_gcm",
       "stp",
-      "tls",
       "veth",
       "virtio_rng",
       "x_tables",
@@ -1225,7 +1223,6 @@
       "sm4_ce_gcm",
       "smc",
       "stp",
-      "tls",
       "udp_tunnel",
       "veth",
       "virtio_rng",
@@ -1269,23 +1266,27 @@
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": "observed",
+      "keyrings": {
+        "unobservable": {
+          "reason": "masked"
+        }
+      },
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
       "net_namespaces": "observed"
     },
     "before": {
-      "mounts": 12,
-      "keyrings": 1,
+      "mounts": 25,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
       "net_namespaces": 1
     },
     "after": {
-      "mounts": 12,
-      "keyrings": 1,
+      "mounts": 25,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

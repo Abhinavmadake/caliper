@@ -39,7 +39,7 @@ install_ubuntu_runtime() {
     apt-get update -q
     apt-get install -y -q --allow-downgrades "containerd=$containerd" "runc=$runc" apparmor curl python3
     # shellcheck disable=SC2046
-    apt-mark hold containerd runc apparmor libseccomp2 $(dpkg-query -W -f '${Package}\n' 'linux-*' | grep -v '^$')
+    apt-mark hold containerd runc apparmor libseccomp2 $(dpkg-query -W -f '${db:Status-Abbrev} ${Package}\n' 'linux-*' | awk '$1 == "ii" { print $2 }')
     aa-status --enabled
 }
 

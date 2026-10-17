@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.2.0",
   "corpus_set": "full",
-  "digest": "sha256:7e5d09f013d3de1b996742d6b245493af5255f63479b374c7183770dd36dc04a",
+  "digest": "sha256:d47be368dc3037843c35a954ac227902e18ce56b0479212b014a8bdd3ac70dfb",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -15,75 +15,43 @@
       "modules": [
         "8021q",
         "aesni_intel",
-        "af_alg",
-        "af_key",
-        "appletalk",
-        "authenc",
         "autofs4",
         "binfmt_misc",
-        "bluetooth",
         "bridge",
-        "camellia_aesni_avx2",
-        "camellia_aesni_avx_x86_64",
-        "camellia_generic",
-        "camellia_x86_64",
-        "can",
-        "can_raw",
         "cfg80211",
-        "cmac",
-        "crypto_user",
-        "dibs",
         "dm_multipath",
         "dmi_sysfs",
         "efi_pstore",
-        "fcrypt",
         "garp",
         "ghash_clmulni_intel",
         "i2c_piix4",
         "i2c_smbus",
-        "ib_core",
         "input_leds",
         "intel_rapl_common",
         "intel_rapl_msr",
         "intel_uncore_frequency_common",
-        "ip6_udp_tunnel",
         "ip_tables",
-        "kcm",
-        "krb5",
-        "krb5enc",
         "llc",
         "mac_hid",
         "mrp",
         "nf_nat",
         "nf_tables",
-        "nfc",
         "nft_chain_nat",
         "nft_compat",
         "nls_iso8859_1",
         "nvme_fabrics",
         "overlay",
-        "pcbc",
-        "phonet",
         "psmouse",
-        "psnap",
         "pvpanic",
         "pvpanic_mmio",
-        "qrtr",
         "rapl",
-        "rxrpc",
         "sch_fq_codel",
-        "scsi_transport_iscsi",
         "serio_raw",
-        "smc",
         "stp",
-        "tls",
-        "udp_tunnel",
         "veth",
         "virtio_balloon",
         "virtio_rng",
         "x_tables",
-        "xfrm_algo",
-        "xfrm_user",
         "xt_MASQUERADE",
         "xt_comment"
       ]
@@ -822,23 +790,23 @@
     },
     {
       "probe_id": "path.masked.proc_kcore",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_keys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_latency_stats",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_timer_list",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_timer_stats",
@@ -852,8 +820,8 @@
     },
     {
       "probe_id": "path.masked.proc_acpi",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_asound",
@@ -862,13 +830,13 @@
     },
     {
       "probe_id": "path.masked.proc_scsi",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.sys_firmware",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.sys_powercap",
@@ -877,28 +845,28 @@
     },
     {
       "probe_id": "path.readonly.proc_bus",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_fs",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_irq",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sysrq_trigger",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.control.proc_self_status",
@@ -1159,75 +1127,43 @@
     "before": [
       "8021q",
       "aesni_intel",
-      "af_alg",
-      "af_key",
-      "appletalk",
-      "authenc",
       "autofs4",
       "binfmt_misc",
-      "bluetooth",
       "bridge",
-      "camellia_aesni_avx2",
-      "camellia_aesni_avx_x86_64",
-      "camellia_generic",
-      "camellia_x86_64",
-      "can",
-      "can_raw",
       "cfg80211",
-      "cmac",
-      "crypto_user",
-      "dibs",
       "dm_multipath",
       "dmi_sysfs",
       "efi_pstore",
-      "fcrypt",
       "garp",
       "ghash_clmulni_intel",
       "i2c_piix4",
       "i2c_smbus",
-      "ib_core",
       "input_leds",
       "intel_rapl_common",
       "intel_rapl_msr",
       "intel_uncore_frequency_common",
-      "ip6_udp_tunnel",
       "ip_tables",
-      "kcm",
-      "krb5",
-      "krb5enc",
       "llc",
       "mac_hid",
       "mrp",
       "nf_nat",
       "nf_tables",
-      "nfc",
       "nft_chain_nat",
       "nft_compat",
       "nls_iso8859_1",
       "nvme_fabrics",
       "overlay",
-      "pcbc",
-      "phonet",
       "psmouse",
-      "psnap",
       "pvpanic",
       "pvpanic_mmio",
-      "qrtr",
       "rapl",
-      "rxrpc",
       "sch_fq_codel",
-      "scsi_transport_iscsi",
       "serio_raw",
-      "smc",
       "stp",
-      "tls",
-      "udp_tunnel",
       "veth",
       "virtio_balloon",
       "virtio_rng",
       "x_tables",
-      "xfrm_algo",
-      "xfrm_user",
       "xt_MASQUERADE",
       "xt_comment"
     ],
@@ -1295,7 +1231,6 @@
       "serio_raw",
       "smc",
       "stp",
-      "tls",
       "udp_tunnel",
       "veth",
       "virtio_balloon",
@@ -1306,28 +1241,64 @@
       "xt_MASQUERADE",
       "xt_comment"
     ],
-    "loaded_by_run": []
+    "loaded_by_run": [
+      "af_alg",
+      "af_key",
+      "appletalk",
+      "authenc",
+      "bluetooth",
+      "camellia_aesni_avx2",
+      "camellia_aesni_avx_x86_64",
+      "camellia_generic",
+      "camellia_x86_64",
+      "can",
+      "can_raw",
+      "cmac",
+      "crypto_user",
+      "dibs",
+      "fcrypt",
+      "ib_core",
+      "ip6_udp_tunnel",
+      "kcm",
+      "krb5",
+      "krb5enc",
+      "nfc",
+      "pcbc",
+      "phonet",
+      "psnap",
+      "qrtr",
+      "rxrpc",
+      "scsi_transport_iscsi",
+      "smc",
+      "udp_tunnel",
+      "xfrm_algo",
+      "xfrm_user"
+    ]
   },
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": "observed",
+      "keyrings": {
+        "unobservable": {
+          "reason": "masked"
+        }
+      },
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
       "net_namespaces": "observed"
     },
     "before": {
-      "mounts": 12,
-      "keyrings": 1,
+      "mounts": 25,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
       "net_namespaces": 1
     },
     "after": {
-      "mounts": 12,
-      "keyrings": 1,
+      "mounts": 25,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

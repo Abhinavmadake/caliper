@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.2.0",
   "corpus_set": "full",
-  "digest": "sha256:ef77a34345e5eb8ffea503263a59d851383e7c3a001568c533aa23e382908f86",
+  "digest": "sha256:9fe96aea6cc3b88bc08d1b36c332b3639479fc6e55643fd2dbcc35d7e44450c0",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -750,8 +750,8 @@
     },
     {
       "probe_id": "path.masked.proc_keys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_latency_stats",
@@ -760,8 +760,8 @@
     },
     {
       "probe_id": "path.masked.proc_timer_list",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 61
     },
     {
       "probe_id": "path.masked.proc_timer_stats",
@@ -800,23 +800,23 @@
     },
     {
       "probe_id": "path.readonly.proc_bus",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_fs",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_irq",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sys",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 30
     },
     {
       "probe_id": "path.readonly.proc_sysrq_trigger",
@@ -1081,23 +1081,27 @@
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": "observed",
+      "keyrings": {
+        "unobservable": {
+          "reason": "masked"
+        }
+      },
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
       "net_namespaces": "observed"
     },
     "before": {
-      "mounts": 12,
-      "keyrings": 2,
+      "mounts": 19,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
       "net_namespaces": 1
     },
     "after": {
-      "mounts": 12,
-      "keyrings": 2,
+      "mounts": 19,
+      "keyrings": null,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
