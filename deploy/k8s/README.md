@@ -23,7 +23,7 @@ init-container logs by label, prefixing output with the pod name to distinguish
 nodes:
 
 ```bash
-kubectl logs -l app=caliper-probe -c probe --prefix
+kubectl logs -l app=caliper-probe -c probe --prefix --tail=-1
 ```
 
 Delete a DaemonSet pod only when you intentionally want to measure that node
