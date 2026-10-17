@@ -15,7 +15,45 @@
 
 package control
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestDaemonSetRunsProbeOnceAsInitContainer(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "deploy", "k8s", "daemonset.yaml"))
+	if err != nil {
+		t.Fatalf("read DaemonSet manifest: %v", err)
+	}
+	manifest, err := ParseManifest(data)
+	if err != nil {
+		t.Fatalf("ParseManifest(DaemonSet): %v", err)
+	}
+	if len(manifest.Workloads) != 1 || manifest.Workloads[0].Kind != "DaemonSet" {
+		t.Fatalf("DaemonSet workload = %#v", manifest.Workloads)
+	}
+
+	containers := manifest.Workloads[0].Pod.Containers
+	if len(containers) != 2 {
+		t.Fatalf("DaemonSet containers = %#v, want probe init container and pause container", containers)
+	}
+	var probe, pause *ContainerSecurity
+	for i := range containers {
+		switch containers[i].Name {
+		case "probe":
+			probe = &containers[i]
+		case "pause":
+			pause = &containers[i]
+		}
+	}
+	if probe == nil || probe.Kind != "init" {
+		t.Errorf("probe = %#v, want init container", probe)
+	}
+	if pause == nil || pause.Kind != "container" {
+		t.Errorf("pause = %#v, want regular container", pause)
+	}
+}
 
 func TestParseManifestReadsNamespacePSSAndPodSecurity(t *testing.T) {
 	manifest, err := ParseManifest([]byte(`apiVersion: v1
