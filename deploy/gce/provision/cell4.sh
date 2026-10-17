@@ -13,18 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Confirms the host can run the amd64 cells, including the Kata cell (#52,
-# proposal §11.1). Exit 0 means yes.
-set -euo pipefail
 
-arch=$(uname -m)
-[ "$arch" = x86_64 ] || { echo "need x86_64, got $arch" >&2; exit 1; }
-
-[ -c /dev/kvm ] || { echo "/dev/kvm missing: no hardware virtualisation (or nested virt is off)" >&2; exit 1; }
-[ -r /dev/kvm ] && [ -w /dev/kvm ] || { echo "/dev/kvm not accessible: add yourself to the kvm group" >&2; exit 1; }
-
-flags=$(grep -c -E '(vmx|svm)' /proc/cpuinfo || true)
-[ "$flags" -gt 0 ] || { echo "no vmx/svm flag in /proc/cpuinfo" >&2; exit 1; }
-
-echo "ok: x86_64, /dev/kvm present and accessible, $flags CPU(s) with vmx/svm"
+# Cell 4: cell 2 with the noble release pocket's containerd 1.7.12 + runc
+# 1.1.12, whose RuntimeDefault predates the io_uring and AF_ALG denies.
+# Same image as cell 2, so the runtime is the only axis that moves.
+. "$(dirname "$0")/common.sh"
+. "$(dirname "$0")/ubuntu.sh"
+install_ubuntu_runtime "$RELEASE_CONTAINERD" "$RELEASE_RUNC"
+install_cni
+install_crictl
+systemctl enable --now containerd
+check_containerd 1.7.12
+check_runc 1.1.12
+record_packages

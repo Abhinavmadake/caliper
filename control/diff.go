@@ -252,7 +252,7 @@ type Kernel struct {
 	Release        string          `json:"release"`
 	Version        json.RawMessage `json:"version,omitempty"`
 	SandboxClaimed *bool           `json:"sandbox_claimed,omitempty"`
-	Modules        *[]string       `json:"modules"`
+	Modules        *[]string       `json:"modules,omitempty"`
 }
 
 // SourcedValue is a control-plane value and the source that supplied it.
