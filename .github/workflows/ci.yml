@@ -35,7 +35,7 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
           find . -type f -name '*.sh' -not -path './.git/*' -print0 \
-            | xargs -0 --no-run-if-empty shellcheck
+            | xargs -0 --no-run-if-empty shellcheck -x
       - name: validate reference posture
         run: |
           python3 - <<'PY'
