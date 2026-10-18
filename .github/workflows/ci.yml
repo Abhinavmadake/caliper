@@ -106,8 +106,8 @@ jobs:
       # rust-toolchain.toml pins the channel and installs the musl targets.
       # Tests run on the musl target too: the seccomp allowlist test execs
       # the probe binary, and the allowlist is a property of the musl build.
-      # CI deliberately builds, tests, and baselines only x86_64. aarch64 is
-      # measured on its native Cell 1 host, not emulated in GitHub Actions.
+      # This native x86_64 job has a matching native aarch64 job below. Neither
+      # architecture is emulated: syscall baselines are architecture-specific.
       - name: build and test (static musl)
         run: |
           cargo build --release --target x86_64-unknown-linux-musl --locked
@@ -145,6 +145,35 @@ jobs:
         run: |
           bash ../scripts/check-reduced-runtime.sh target/x86_64-unknown-linux-musl/release/caliper-probe
 
+  engine-arm64:
+    runs-on: ubuntu-24.04-arm
+    defaults:
+      run:
+        working-directory: engine
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      # The target is tested natively so its syscall baseline remains a
+      # measurement, not an emulated approximation.
+      - name: build and test (static musl)
+        run: |
+          cargo build --release --target aarch64-unknown-linux-musl --locked
+          cargo test --target aarch64-unknown-linux-musl --locked
+          cargo clippy --all-targets --target aarch64-unknown-linux-musl --locked -- -D warnings
+          cargo fmt --check
+      - name: frozen corpus index
+        run: |
+          target/aarch64-unknown-linux-musl/release/caliper-probe --dump-corpus | diff -u - ../corpus/index.json
+      - name: no dynamic loader
+        run: |
+          bin=target/aarch64-unknown-linux-musl/release/caliper-probe
+          file "$bin"
+          if readelf -lW "$bin" | grep -q INTERP; then echo "has PT_INTERP"; exit 1; fi
+      - name: syscall baseline
+        run: |
+          sudo apt-get install -y -qq strace
+          scripts/baseline-syscalls.sh target/aarch64-unknown-linux-musl/release/caliper-probe > /tmp/observed
+          grep -v '^#' baseline/aarch64.txt | diff -u - /tmp/observed
+
   control:
     # Activates once control/go.mod exists (week 2, issue #3).
     runs-on: ubuntu-24.04
@@ -152,7 +181,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: "1.26.0"
+          go-version: "1.26.9"
       - name: build, vet and test
         run: |
           if [ ! -f control/go.mod ]; then echo "control/ not started yet"; exit 0; fi

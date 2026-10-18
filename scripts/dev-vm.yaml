@@ -18,7 +18,7 @@
 # baseline comes from CI or from D's harness, #52).
 #
 #   limactl start --name caliper scripts/dev-vm.yaml
-#   limactl shell caliper
+#   limactl shell caliper            # ~/caliper is mounted writable at the same path
 #   limactl snapshot create caliper --tag clean
 #   limactl snapshot apply  caliper --tag clean
 #
@@ -37,6 +37,10 @@ images:
 cpus: 4
 memory: "4GiB"
 disk: "30GiB"
+
+mounts:
+  - location: "~/caliper"
+    writable: true
 
 provision:
   - mode: system
