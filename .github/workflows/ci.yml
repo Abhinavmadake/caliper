@@ -30,11 +30,12 @@ jobs:
   scripts:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: shellcheck
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
-          shellcheck scripts/*.sh
+          find . -type f -name '*.sh' -not -path './.git/*' -print0 \
+            | xargs -0 --no-run-if-empty shellcheck
       - name: validate reference posture
         run: |
           python3 - <<'PY'
@@ -101,10 +102,12 @@ jobs:
       run:
         working-directory: engine
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       # rust-toolchain.toml pins the channel and installs the musl targets.
       # Tests run on the musl target too: the seccomp allowlist test execs
       # the probe binary, and the allowlist is a property of the musl build.
+      # CI deliberately builds, tests, and baselines only x86_64. aarch64 is
+      # measured on its native Cell 1 host, not emulated in GitHub Actions.
       - name: build and test (static musl)
         run: |
           cargo build --release --target x86_64-unknown-linux-musl --locked
@@ -130,7 +133,7 @@ jobs:
           grep -v '^#' baseline/x86_64.txt | diff -u - /tmp/observed
       - name: probe image from scratch
         run: |
-          docker build -t caliper-probe .
+          docker build --platform linux/amd64 -t caliper-probe .
           docker run --rm caliper-probe --noop
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
           docker run --rm caliper-probe --run > /dev/null
@@ -146,10 +149,10 @@ jobs:
     # Activates once control/go.mod exists (week 2, issue #3).
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
         with:
-          go-version: stable
+          go-version: "1.26.0"
       - name: build, vet and test
         run: |
           if [ ! -f control/go.mod ]; then echo "control/ not started yet"; exit 0; fi
