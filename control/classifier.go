@@ -267,7 +267,7 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 	if dependency.AbsentErrno == nil || absent.Errno != *dependency.AbsentErrno {
 		return false, nil
 	}
-	if dependency.PresentIf != "" || (dependency.Since == nil && dependency.Module == "") {
+	if dependency.PresentIf != "" {
 		return true, nil
 	}
 	if dependency.Since != nil {
