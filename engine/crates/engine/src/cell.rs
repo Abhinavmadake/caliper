@@ -118,24 +118,30 @@ impl Lsm {
     /// `/proc/self/attr/<lsm>/current`; SELinux answers only through the
     /// generic `/proc/self/attr/current` (#89).
     pub fn detect() -> Lsm {
-        Lsm::from_labels(label)
+        Lsm::from_labels(read_attr)
     }
 
-    /// `has_label(dir)` says whether `/proc/self/attr/<dir>/current` is
-    /// non-empty, `""` meaning the generic file. With AppArmor and Smack
-    /// ruled out, SELinux is the only in-tree LSM left that labels it.
+    /// Reads `/proc/self/attr/<lsm>/current`, or the generic file when `lsm`
+    /// is empty. The generic file can contain non-SELinux labels (for example
+    /// `kernel` on WSL), so SELinux is identified by its colon-separated
+    /// security context rather than by the file merely being non-empty.
     /// Smack is not in the cell's enumeration and is recorded as none.
-    fn from_labels(has_label: impl Fn(&str) -> bool) -> Lsm {
-        if has_label("apparmor") {
+    fn from_labels(read_label: impl Fn(&str) -> Option<String>) -> Lsm {
+        if read_label("apparmor").is_some() {
             Lsm::Apparmor
-        } else if has_label("smack") {
+        } else if read_label("smack").is_some() {
             Lsm::None
-        } else if has_label("") {
+        } else if read_label("").is_some_and(|label| is_selinux_context(&label)) {
             Lsm::Selinux
         } else {
             Lsm::None
         }
     }
+}
+
+fn is_selinux_context(label: &str) -> bool {
+    // The MLS range is optional: user:role:type[:range].
+    label.split(':').count() >= 3
 }
 
 /// Whether `/proc/self/attr/<lsm>/current` exists and is non-empty, or the
@@ -180,10 +186,6 @@ fn clean_label(raw: &[u8]) -> Option<String> {
         .trim_matches(|c: char| c == '\0' || c.is_whitespace())
         .to_owned();
     (!label.is_empty()).then_some(label)
-}
-
-fn label(lsm: &str) -> bool {
-    read_attr(lsm).is_some()
 }
 
 fn read_selinux_enforce() -> Option<bool> {
@@ -435,11 +437,32 @@ mod tests {
 
     #[test]
     fn lsm_is_read_from_the_attr_files_that_exist() {
-        let only = |dirs: &'static [&'static str]| move |d: &str| dirs.contains(&d);
+        let only = |labels: &'static [(&'static str, &'static str)]| {
+            move |lsm: &str| {
+                labels
+                    .iter()
+                    .find(|(name, _)| *name == lsm)
+                    .map(|(_, label)| (*label).to_owned())
+            }
+        };
         // AppArmor is the major LSM, so it also answers the generic file.
-        assert_eq!(Lsm::from_labels(only(&["apparmor", ""])), Lsm::Apparmor);
-        assert_eq!(Lsm::from_labels(only(&[""])), Lsm::Selinux);
-        assert_eq!(Lsm::from_labels(only(&["smack", ""])), Lsm::None);
+        assert_eq!(
+            Lsm::from_labels(only(&[("apparmor", "unconfined"), ("", "unconfined")])),
+            Lsm::Apparmor
+        );
+        assert_eq!(
+            Lsm::from_labels(only(&[("", "system_u:system_r:container_t:s0")])),
+            Lsm::Selinux
+        );
+        assert_eq!(
+            Lsm::from_labels(only(&[("", "system_u:system_r:container_t")])),
+            Lsm::Selinux
+        );
+        assert_eq!(
+            Lsm::from_labels(only(&[("smack", "*"), ("", "kernel")])),
+            Lsm::None
+        );
+        assert_eq!(Lsm::from_labels(only(&[("", "kernel\0")])), Lsm::None);
         assert_eq!(Lsm::from_labels(only(&[])), Lsm::None);
     }
 

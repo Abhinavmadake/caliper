@@ -241,13 +241,12 @@ func divergenceClassLabel(class DivergenceClass) string {
 }
 
 func reportCellLabel(fingerprint Fingerprint, index int) (string, error) {
-	digest, err := ComputeFingerprintDigest(fingerprint)
-	if err != nil {
-		return "", fmt.Errorf("compute digest: %w", err)
+	if fingerprint.Digest == "" {
+		return fmt.Sprintf("cell-%d", index+1), nil
 	}
-	digestHex := strings.TrimPrefix(digest, "sha256:")
+	digestHex := strings.TrimPrefix(fingerprint.Digest, "sha256:")
 	if len(digestHex) < 12 {
-		return "", fmt.Errorf("computed digest %q is too short", digest)
+		return "", fmt.Errorf("fingerprint digest %q is too short", fingerprint.Digest)
 	}
 	return fmt.Sprintf("cell-%d-%s", index+1, digestHex[:12]), nil
 }

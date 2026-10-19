@@ -64,8 +64,9 @@ const (
 )
 
 // Attribute returns a copy of the fingerprint with every result attributed
-// from the probe's oracle. It needs no privilege and no information beyond
-// the verdict, the raw errno and the corpus declaration.
+// from the probe's oracle. The digest remains the identity of the source
+// fingerprint: consumers must not recompute it after decoding because
+// additive fields unknown to this control-plane version may have been dropped.
 func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 	metadata, err := metadataByID(corpus)
 	if err != nil {
@@ -82,11 +83,6 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 		results[i] = r
 	}
 	fp.Results = results
-	digest, err := ComputeFingerprintDigest(fp)
-	if err != nil {
-		return Fingerprint{}, err
-	}
-	fp.Digest = digest
 	return fp, nil
 }
 
