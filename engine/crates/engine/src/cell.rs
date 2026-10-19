@@ -176,8 +176,14 @@ fn read_attr(lsm: &str) -> Option<String> {
     if n <= 0 {
         return None;
     }
-    let n = usize::try_from(n).ok()?;
-    let label = String::from_utf8_lossy(&buf[..n]).trim().to_owned();
+    clean_label(&buf[..usize::try_from(n).ok()?])
+}
+
+/// SELinux ends the context with a NUL, AppArmor with a newline.
+fn clean_label(raw: &[u8]) -> Option<String> {
+    let label = String::from_utf8_lossy(raw)
+        .trim_matches(|c: char| c == '\0' || c.is_whitespace())
+        .to_owned();
     (!label.is_empty()).then_some(label)
 }
 
@@ -373,6 +379,19 @@ impl Cell {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn labels_lose_the_terminator_their_lsm_writes() {
+        assert_eq!(
+            clean_label(b"system_u:system_r:container_t:s0:c33,c217\0").as_deref(),
+            Some("system_u:system_r:container_t:s0:c33,c217")
+        );
+        assert_eq!(
+            clean_label(b"cri-containerd.apparmor.d (enforce)\n").as_deref(),
+            Some("cri-containerd.apparmor.d (enforce)")
+        );
+        assert_eq!(clean_label(b"\0"), None);
+    }
 
     #[test]
     fn parses_distribution_and_rc_releases() {

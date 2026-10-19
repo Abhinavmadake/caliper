@@ -16,8 +16,15 @@ kubectl logs job/caliper-probe > fingerprint.json
 
 ### For the DaemonSet
 
-The DaemonSet deploys the probe across multiple nodes. Retrieve the logs by label, prefixing the output with the pod name to distinguish logs per node:
+The DaemonSet deploys the probe across multiple nodes. The probe is an init
+container: it measures once, then the restricted pause container keeps the pod
+alive so the DaemonSet does not restart the measurement. Retrieve the completed
+init-container logs by label, prefixing output with the pod name to distinguish
+nodes:
 
 ```bash
-kubectl logs -l app=caliper-probe --prefix
+kubectl logs -l app=caliper-probe -c probe --prefix --tail=-1
 ```
+
+Delete a DaemonSet pod only when you intentionally want to measure that node
+again; its replacement will run the probe once.

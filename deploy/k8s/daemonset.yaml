@@ -14,7 +14,10 @@ spec:
         app: caliper-probe
     spec:
       automountServiceAccountToken: false
-      containers:
+      # A DaemonSet requires restartPolicy: Always. Running the probe as an
+      # init container lets it finish once, while the pause container keeps
+      # the pod alive without re-running the measurement.
+      initContainers:
       - name: probe
         image: caliper-probe
         imagePullPolicy: IfNotPresent
@@ -32,6 +35,20 @@ spec:
         volumeMounts:
         - name: tmp
           mountPath: /tmp
+      containers:
+      - name: pause
+        image: registry.k8s.io/pause:3.10
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          seccompProfile:
+            type: RuntimeDefault
+          readOnlyRootFilesystem: true
       volumes:
       - name: tmp
         emptyDir: {}

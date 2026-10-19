@@ -10,47 +10,55 @@ import (
 	"github.com/Abhinavmadake/caliper/control"
 )
 
-func TestFixturesParse(t *testing.T) {
-	fixturesDir := filepath.Join("..", "fixtures")
-
-	entries, err := os.ReadDir(fixturesDir)
-	if err != nil {
-		t.Fatalf("failed to read fixtures directory: %v", err)
-	}
-
-	found := 0
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
-			continue
+// fixtureFiles lists the recorded fingerprints: fixtures/*.json and the
+// per-cell recordings in fixtures/cells (#39).
+func fixtureFiles(t *testing.T) []string {
+	t.Helper()
+	var files []string
+	for _, dir := range []string{filepath.Join("..", "fixtures"), filepath.Join("..", "fixtures", "cells")} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("failed to read fixtures directory: %v", err)
 		}
+		for _, entry := range entries {
+			if !entry.IsDir() && filepath.Ext(entry.Name()) == ".json" {
+				files = append(files, filepath.Join(dir, entry.Name()))
+			}
+		}
+	}
+	return files
+}
 
+func TestFixturesParse(t *testing.T) {
+	found := 0
+	for _, path := range fixtureFiles(t) {
 		found++
-		path := filepath.Join(fixturesDir, entry.Name())
-		t.Run(entry.Name(), func(t *testing.T) {
+		name := filepath.Join(filepath.Base(filepath.Dir(path)), filepath.Base(path))
+		t.Run(name, func(t *testing.T) {
 			b, err := os.ReadFile(path)
 			if err != nil {
-				t.Fatalf("failed to read fixture %s: %v", entry.Name(), err)
+				t.Fatalf("failed to read fixture %s: %v", name, err)
 			}
 
 			fingerprint, err := control.DecodeFingerprint(b)
 			if err != nil {
-				t.Fatalf("failed to parse fixture %s: %v", entry.Name(), err)
+				t.Fatalf("failed to parse fixture %s: %v", name, err)
 			}
 			encoded, err := control.EncodeFingerprint(fingerprint)
 			if err != nil {
-				t.Fatalf("failed to encode fixture %s: %v", entry.Name(), err)
+				t.Fatalf("failed to encode fixture %s: %v", name, err)
 			}
 			var original, roundTripped map[string]any
 			if err := json.Unmarshal(b, &original); err != nil {
-				t.Fatalf("failed to parse original fixture %s: %v", entry.Name(), err)
+				t.Fatalf("failed to parse original fixture %s: %v", name, err)
 			}
 			if err := json.Unmarshal(encoded, &roundTripped); err != nil {
-				t.Fatalf("failed to parse encoded fixture %s: %v", entry.Name(), err)
+				t.Fatalf("failed to parse encoded fixture %s: %v", name, err)
 			}
 			if !reflect.DeepEqual(original, roundTripped) {
 				for key, originalValue := range original {
 					if !reflect.DeepEqual(originalValue, roundTripped[key]) {
-						t.Errorf("fixture %s field %q changed during round trip", entry.Name(), key)
+						t.Errorf("fixture %s field %q changed during round trip", name, key)
 					}
 				}
 				for key := range roundTripped {
@@ -58,7 +66,7 @@ func TestFixturesParse(t *testing.T) {
 						if roundTripped[key] == nil {
 							continue // A missing optional slice decodes to nil and re-encodes as null.
 						}
-						t.Errorf("fixture %s gained field %q during round trip", entry.Name(), key)
+						t.Errorf("fixture %s gained field %q during round trip", name, key)
 					}
 				}
 			}
@@ -71,18 +79,10 @@ func TestFixturesParse(t *testing.T) {
 }
 
 func TestRecordedFixtureDigestsMatchCanonicalFingerprint(t *testing.T) {
-	fixturesDir := filepath.Join("..", "fixtures")
-	entries, err := os.ReadDir(fixturesDir)
-	if err != nil {
-		t.Fatalf("failed to read fixtures directory: %v", err)
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
-			continue
-		}
-		t.Run(entry.Name(), func(t *testing.T) {
-			data, err := os.ReadFile(filepath.Join(fixturesDir, entry.Name()))
+	for _, path := range fixtureFiles(t) {
+		name := filepath.Join(filepath.Base(filepath.Dir(path)), filepath.Base(path))
+		t.Run(name, func(t *testing.T) {
+			data, err := os.ReadFile(path)
 			if err != nil {
 				t.Fatalf("failed to read fixture: %v", err)
 			}
