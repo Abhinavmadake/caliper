@@ -10,9 +10,10 @@ are resolved in a `## Decisions` section in each file, with the reasoning and
 its proposal citation kept alongside the decision — so a later reader can tell
 whether a change is a correction or a reversal.
 
-`probe.md` is frozen outright. `fingerprint.md` is fixed for week 2 purposes
-and finally frozen at the end of week 9 (§5, issue #28), after which a change
-is a new format version.
+`probe.md` is frozen outright. `fingerprint.md` was frozen at the end-of-week-9
+gate on **2026-10-11** (§5, issue #28). Changes to its established fields,
+types, meanings, requiredness, or enum spellings require a new format version.
+Only optional additive fields and enum values are compatible within version 1.
 
 §8 makes both freezes a decision of all four members. The team delegated it to
 A, who took it, and each file records that at the top: the decisions are A's

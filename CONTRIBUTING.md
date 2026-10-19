@@ -50,9 +50,10 @@ someone else's letter.
 develop against, which is the only reason they can proceed in parallel.
 
 - `spec/probe.md` is **frozen**. Changing it needs team agreement.
-- `spec/fingerprint.md` is fixed for now and **finally frozen at the end of
-  week 9** (issue #28). Until then a change is cheap; after it, a change is a
-  new format version.
+- `spec/fingerprint.md` was **frozen at the end of week 9** (issue #28, 2026-10-11).
+  Its field names, types, meanings, requiredness, and enum spellings are fixed;
+  a breaking change requires a new format version. Optional additive fields
+  and enum values may be introduced within the current version.
 
 Each file has a `## Decisions` section giving not just the decision but the
 reasoning and its proposal citation. Read that before proposing a change — it

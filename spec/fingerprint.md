@@ -1,16 +1,18 @@
 # Confinement fingerprint
 
-> **Fixed for week 2 purposes** at the gate on 2026-09-11 (issue #2). The final
-> freeze is the end of week 9 (issue #28), after which a change is a new format
-> version (§5). Until then this is the version the four workstreams develop
-> against, and a change is cheap by design.
+> **Frozen** at the end-of-week-9 gate on 2026-10-11 (issue #28), following the
+> week-2 agreement on 2026-09-11 (issue #2). This is format version 1. Any
+> change to a field's name, type, meaning, requiredness, or enum spelling is a
+> new format version (§5); only optional additive fields and enum values may
+> be introduced within version 1, under the compatibility rules below.
 >
 > §8 makes this a decision of all four members; the team delegated it to A, who
 > took it. Recorded because the authority matters to anyone reading a later
 > change.
 >
-> The three questions this file left open are resolved below, against the
-> proposal.
+> The questions this file left open are resolved below, against the proposal.
+> Field names and nesting were settled in issue #25 and are implemented by the
+> Go control plane in `control/diff.go`.
 
 A fingerprint is one measurement run. It is the unit the diff engine,
 evaluator and remediator all consume.
@@ -45,8 +47,9 @@ Four fields identify the fingerprint itself rather than the cell:
   revision without the probes that declare a module autoload (#40, §12). A
   probe it leaves out is absent from `results`, not a divergence. Absent in
   fingerprints produced before the field existed
-- `digest` — a SHA-256 over the canonical serialisation, for identity and
-  deduplication. It is **not** authenticity; see the decision below
+- `digest` — a SHA-256 over the canonical serialisation with the `digest` field
+  omitted, for identity and deduplication. It is **not** authenticity; see the
+  decision below
 
 ## Per-probe result
 
@@ -138,8 +141,7 @@ complete" only works if a fixture recorded in week 3 still parses in week 12.
 ## Serialisation conventions
 
 Normative, so that two people writing a fingerprint by hand produce the same
-bytes. These are the conventions; the field *names and nesting* are C's to
-settle in #25.
+bytes. The field names and nesting were settled in #25.
 
 - **Object keys are `snake_case`** — `format_version`, `corpus_revision`,
   `runtime_version`.
@@ -170,10 +172,11 @@ settle in #25.
   operator said so" are different evidence.
 - **Booleans are stated, not implied by absence.** A missing key means a
   producer that did not know; `false` means it knew and the answer was no.
-- Canonical form, for the `digest`: object keys sorted, no insignificant
-  whitespace.
+- Canonical form, for the `digest`: omit the `digest` field, encode as UTF-8
+  JSON with object keys sorted lexicographically, no insignificant whitespace,
+  and no HTML escaping. Hash those bytes with SHA-256 and prefix the lowercase
+  hexadecimal digest with `sha256:`.
 
-`examples/fingerprint.json` is a worked example against these conventions. It
-is **illustrative, not normative** — the shape of the object is #25's to
-decide, and the example is there so that #3's fixtures and C's first parser
-start from the same picture rather than two different guesses.
+`examples/fingerprint.json` is a worked example against these conventions.
+Its field names and nesting follow issue #25 and the control-plane schema;
+fixtures under `fixtures/` are recorded engine runs used by the Go consumer.
