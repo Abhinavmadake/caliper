@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
 # Ritesh Aresh Saindane, Yogesh Babaji Palve
 #
