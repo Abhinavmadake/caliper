@@ -50,7 +50,7 @@ someone else's letter.
 develop against, which is the only reason they can proceed in parallel.
 
 - `spec/probe.md` is **frozen**. Changing it needs team agreement.
-- `spec/fingerprint.md` was **frozen at the end of week 9** (issue #28, 2026-10-11).
+- `spec/fingerprint.md` is **frozen when PR #141 merges** (issue #28).
   Its field names, types, meanings, requiredness, and enum spellings are fixed;
   a breaking change requires a new format version. Optional additive fields
   and enum values may be introduced within the current version.

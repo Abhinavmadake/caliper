@@ -20,8 +20,8 @@ survival, timeouts, verdict classification and side-effect accounting — and a
 ten-probe reference corpus running end to end from image start to emitted
 document. The committed corpus families and the Go control plane are next.
 Progress is tracked in the issues, one milestone per freeze gate. The
-fingerprint format reached its week-9 freeze on 2026-10-11; the remaining gate
-checks are tracked in issue #28. The proposal is in `docs/`.
+fingerprint format freeze is recorded by PR #141; the remaining gate checks
+are tracked in issue #28. The proposal is in `docs/`.
 
 Working on this? Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first — `main` is
 protected, so you branch and open a pull request rather than pushing.
@@ -74,8 +74,8 @@ the issue's assignee is the person.
 `spec/` is the contract the four workstreams develop against. The probe
 engine and corpus produce a fingerprint; the diff engine, evaluator and
 remediator consume one. Everything else can proceed in parallel once a first
-version was agreed in week 2. The fingerprint format was frozen at the end of
-week 9; breaking changes require a new format version.
+version was agreed in week 2. The fingerprint format freeze is recorded by
+PR #141; breaking changes require a new format version.
 
 ## Scope
 

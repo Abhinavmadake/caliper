@@ -1,7 +1,7 @@
 # Confinement fingerprint
 
-> **Frozen** at the end-of-week-9 gate on 2026-10-11 (issue #28), following the
-> week-2 agreement on 2026-09-11 (issue #2). This is format version 1. Any
+> **Frozen** when PR #141 merges (issue #28), following the week-2 agreement
+> on 2026-09-11 (issue #2). This is format version 1. Any
 > change to a field's name, type, meaning, requiredness, or enum spelling is a
 > new format version (§5); only optional additive fields and enum values may
 > be introduced within version 1, under the compatibility rules below.
@@ -47,9 +47,9 @@ Four fields identify the fingerprint itself rather than the cell:
   revision without the probes that declare a module autoload (#40, §12). A
   probe it leaves out is absent from `results`, not a divergence. Absent in
   fingerprints produced before the field existed
-- `digest` — a SHA-256 over the canonical serialisation with the `digest` field
-  omitted, for identity and deduplication. It is **not** authenticity; see the
-  decision below
+- `digest` — a SHA-256 over the complete canonical fingerprint document with
+  this field omitted, for identity and deduplication. It is **not** authenticity;
+  see the decision below
 
 ## Per-probe result
 
@@ -116,6 +116,14 @@ needs the same handle. It answers "are these two runs the same run", not "did
 this come from someone I trust". Documented as such so the distinction is not
 quietly lost.
 
+The producer computes the digest once, over the complete document it emits,
+excluding only `digest`. A consumer must preserve the supplied digest and must
+not recompute it after decoding. Version 1 permits optional additive fields;
+an older consumer may ignore such fields and cannot reproduce the original
+document's digest from its narrower in-memory schema. A transformation that
+creates a new fingerprint document is a producer and computes a new digest
+before emitting that document.
+
 ### JSON, additive-only within a format version
 
 serde on the Rust side, `encoding/json` on the Go side — §10 names serde for
@@ -172,7 +180,8 @@ bytes. The field names and nesting were settled in #25.
   operator said so" are different evidence.
 - **Booleans are stated, not implied by absence.** A missing key means a
   producer that did not know; `false` means it knew and the answer was no.
-- Canonical form, for the `digest`: omit the `digest` field, encode as UTF-8
+- Canonical form, for the producer's `digest`: omit the `digest` field from the
+  complete fingerprint document, encode as UTF-8
   JSON with object keys sorted lexicographically, no insignificant whitespace,
   and no HTML escaping. Hash those bytes with SHA-256 and prefix the lowercase
   hexadecimal digest with `sha256:`.

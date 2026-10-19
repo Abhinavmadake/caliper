@@ -107,7 +107,7 @@ func TestCorrelationUsesProcessCapabilitiesAndLSMLabel(t *testing.T) {
 	}
 }
 
-func TestAttributeRecomputesFingerprintDigest(t *testing.T) {
+func TestAttributePreservesSourceFingerprintDigest(t *testing.T) {
 	fingerprint := testFingerprint([]ProbeResult{{ProbeID: "p", Verdict: "denied", Errno: 1}})
 	fingerprint.Digest = "sha256:stale"
 
@@ -118,15 +118,8 @@ func TestAttributeRecomputesFingerprintDigest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Attribute: %v", err)
 	}
-	want, err := ComputeFingerprintDigest(attributed)
-	if err != nil {
-		t.Fatalf("ComputeFingerprintDigest: %v", err)
-	}
-	if attributed.Digest != want {
-		t.Errorf("digest = %q, want recomputed %q", attributed.Digest, want)
-	}
-	if attributed.Digest == "sha256:stale" {
-		t.Error("Attribute retained the stale digest")
+	if attributed.Digest != fingerprint.Digest {
+		t.Errorf("digest = %q, want source digest %q", attributed.Digest, fingerprint.Digest)
 	}
 }
 

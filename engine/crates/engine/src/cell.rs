@@ -140,7 +140,8 @@ impl Lsm {
 }
 
 fn is_selinux_context(label: &str) -> bool {
-    label.split(':').count() >= 4
+    // The MLS range is optional: user:role:type[:range].
+    label.split(':').count() >= 3
 }
 
 /// Whether `/proc/self/attr/<lsm>/current` exists and is non-empty, or the
@@ -451,6 +452,10 @@ mod tests {
         );
         assert_eq!(
             Lsm::from_labels(only(&[("", "system_u:system_r:container_t:s0")])),
+            Lsm::Selinux
+        );
+        assert_eq!(
+            Lsm::from_labels(only(&[("", "system_u:system_r:container_t")])),
             Lsm::Selinux
         );
         assert_eq!(
