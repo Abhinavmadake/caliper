@@ -30,8 +30,8 @@ const (
 
 // Remediation is the minimal seccomp policy derived from a finding report.
 // SPO is the primary distribution format: unlike a Localhost profile, the
-// operator distributes it to every node. Localhost is included for runtimes
-// that consume an OCI seccomp JSON document directly.
+// operator distributes it to every node. Both rendered outputs retain the
+// supplied RuntimeDefault policy and add only the measured closures.
 type Remediation struct {
 	PostureRevision string              `json:"posture_revision"`
 	Tier            string              `json:"tier"`
@@ -53,21 +53,16 @@ type ObjectMeta struct {
 	Name string `yaml:"name" json:"name"`
 }
 
-// LocalhostProfile is an overlay for the OCI RuntimeDefault profile selected
-// by a Kubernetes Localhost seccompProfile. A Localhost document cannot refer
-// to RuntimeDefault itself, so a deployer must merge these rules into the
-// runtime's profile before placing it on a node.
+// LocalhostProfile has the OCI seccomp profile shape used by Kubernetes'
+// Localhost seccompProfile type.
 type LocalhostProfile struct {
-	BaseProfileName string        `json:"base_profile_name"`
-	Syscalls        []SeccompRule `json:"syscalls"`
+	DefaultAction string        `json:"defaultAction"`
+	Syscalls      []SeccompRule `json:"syscalls"`
 }
 
 type SeccompSpec struct {
-	// BaseProfileName identifies the SPO copy of RuntimeDefault. Extending it
-	// preserves the runtime's existing policy rather than replacing it with an
-	// allow-all profile.
-	BaseProfileName string        `yaml:"baseProfileName" json:"baseProfileName"`
-	Syscalls        []SeccompRule `yaml:"syscalls" json:"syscalls"`
+	DefaultAction string        `yaml:"defaultAction" json:"defaultAction"`
+	Syscalls      []SeccompRule `yaml:"syscalls" json:"syscalls"`
 }
 
 type SeccompRule struct {
@@ -101,11 +96,17 @@ type NotClosable struct {
 }
 
 // GenerateRemediation emits a policy only for expectation violations from the
-// stated posture revision. Claim violations and undeclared exposures have no
-// independent posture authority and are intentionally not turned into policy.
-func GenerateRemediation(report FindingReport) (Remediation, error) {
+// stated posture revision. runtimeDefault is the actual profile selected by
+// the target runtime, obtained from that runtime rather than guessed from a
+// Kubernetes RuntimeDefault declaration. Claim violations and undeclared
+// exposures have no independent posture authority and are intentionally not
+// turned into policy.
+func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) (Remediation, error) {
 	if report.PostureRevision == "" || report.Tier == "" {
 		return Remediation{}, fmt.Errorf("finding report posture_revision and tier are required")
+	}
+	if runtimeDefault.DefaultAction == "" || len(runtimeDefault.Syscalls) == 0 {
+		return Remediation{}, fmt.Errorf("runtime default profile requires defaultAction and an allowlist")
 	}
 
 	name := "caliper-" + safeProfileName(report.PostureRevision)
@@ -117,13 +118,13 @@ func GenerateRemediation(report FindingReport) (Remediation, error) {
 			Kind:       "SeccompProfile",
 			Metadata:   ObjectMeta{Name: name},
 			Spec: SeccompSpec{
-				BaseProfileName: "runtime-default",
-				Syscalls:        []SeccompRule{},
+				DefaultAction: runtimeDefault.DefaultAction,
+				Syscalls:      append([]SeccompRule(nil), runtimeDefault.Syscalls...),
 			},
 		},
 		Localhost: LocalhostProfile{
-			BaseProfileName: "runtime-default",
-			Syscalls:        []SeccompRule{},
+			DefaultAction: runtimeDefault.DefaultAction,
+			Syscalls:      append([]SeccompRule(nil), runtimeDefault.Syscalls...),
 		},
 		Closures:    []RemediationAction{},
 		NotClosable: []NotClosable{},
@@ -176,9 +177,7 @@ func GenerateRemediation(report FindingReport) (Remediation, error) {
 // Operator custom resource.
 func (r Remediation) RenderSPO() ([]byte, error) { return yaml.Marshal(r.SPO) }
 
-// RenderLocalhost renders the secondary Localhost overlay. It intentionally
-// contains no defaultAction: setting one would replace RuntimeDefault instead
-// of extending it.
+// RenderLocalhost renders the secondary OCI Localhost seccomp profile.
 func (r Remediation) RenderLocalhost() ([]byte, error) {
 	return json.MarshalIndent(r.Localhost, "", "  ")
 }
@@ -204,9 +203,9 @@ func remediationRule(id string) (SeccompRule, bool) {
 	case "clone.flags.newuser":
 		return cloneNamespaceRule("clone"), true
 	case "capability.sys_time":
-		return deny("settimeofday", "clock_settime", "adjtimex"), true
+		return deny("settimeofday", "clock_settime", "clock_adjtime", "adjtimex"), true
 	case "capability.sys_boot":
-		return deny("reboot"), true
+		return deny("reboot", "kexec_load", "kexec_file_load"), true
 	case "capability.sys_module":
 		return deny("finit_module", "init_module", "delete_module"), true
 	case "capability.sys_rawio":

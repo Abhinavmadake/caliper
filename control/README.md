@@ -33,9 +33,10 @@ assumption that the residual is zero.
 
 `GenerateRemediation` turns posture expectation violations into the smallest
 available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
-resource that extends the operator's RuntimeDefault base profile, which the
-Security Profiles Operator distributes to nodes; it also renders a Localhost
-overlay for deployment systems that merge it into a runtime default profile.
+resource, which the Security Profiles Operator distributes to nodes; it also
+renders an OCI Localhost profile. The generator takes the target runtime's
+actual RuntimeDefault profile as input, retains its default action and
+allowlist, then adds only the measured closure rules.
 Socket families, netlink protocols, and clone/unshare flags use seccomp-BPF
 argument comparisons. A pathname, device, mount type, or other pointer-backed
 datum is reported as not closable instead of emitting an over-broad rule.
