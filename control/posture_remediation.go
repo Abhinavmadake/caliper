@@ -275,6 +275,7 @@ func cloneRules(rules []SeccompRule) []SeccompRule {
 // a conditional ERRNO cannot override libseccomp's unconditional ALLOW.
 func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 	if len(closure.Names) == 1 && closure.Names[0] == "socket" && len(closure.Args) > 0 {
+		rules = splitAllowedSyscall(rules, "socket")
 		// A netlink closure has two discriminators. Keep ordinary families in
 		// the existing rule, and collect allowed netlink protocols in one
 		// separate rule so multiple exclusions remain an AND, not an OR.
@@ -307,6 +308,19 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 		}
 		return rules
 	}
+	if len(closure.Names) == 1 && (closure.Names[0] == "clone" || closure.Names[0] == "unshare") && len(closure.Args) > 0 {
+		name := closure.Names[0]
+		rules = splitAllowedSyscall(rules, name)
+		for i := range rules {
+			if rules[i].Action == "SCMP_ACT_ALLOW" && len(rules[i].Names) == 1 && rules[i].Names[0] == name {
+				zero := uint64(0)
+				rules[i].Args = append(rules[i].Args, SeccompArgument{
+					Index: closure.Args[0].Index, Op: "SCMP_CMP_MASKED_EQ", Value: closure.Args[0].Value, ValueTwo: &zero,
+				})
+			}
+		}
+		return rules
+	}
 	for i := range rules {
 		if rules[i].Action != "SCMP_ACT_ALLOW" {
 			continue
@@ -326,6 +340,36 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 		}
 	}
 	return filtered
+}
+
+// splitAllowedSyscall moves one syscall into its own copies of the matching
+// ALLOW rules. Seccomp arguments apply to every name in a rule, so attaching a
+// socket or clone constraint to a mixed rule would accidentally constrain
+// unrelated calls such as read, close, or futex.
+func splitAllowedSyscall(rules []SeccompRule, syscall string) []SeccompRule {
+	var split []SeccompRule
+	for i := range rules {
+		if rules[i].Action != "SCMP_ACT_ALLOW" || !contains(rules[i].Names, syscall) {
+			continue
+		}
+		copy := rules[i]
+		copy.Names = []string{syscall}
+		split = append(split, copy)
+		remaining := rules[i].Names[:0]
+		for _, name := range rules[i].Names {
+			if name != syscall {
+				remaining = append(remaining, name)
+			}
+		}
+		rules[i].Names = remaining
+	}
+	filtered := rules[:0]
+	for _, rule := range rules {
+		if len(rule.Names) != 0 {
+			filtered = append(filtered, rule)
+		}
+	}
+	return append(filtered, split...)
 }
 
 func contains(values []string, wanted string) bool {

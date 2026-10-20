@@ -37,9 +37,10 @@ func runtimeDefault() LocalhostProfile {
 		DefaultErrnoRet: &errnoRet,
 		ArchMap:         []ArchMap{{Architecture: "SCMP_ARCH_X86_64", SubArchitectures: []string{"SCMP_ARCH_X86", "SCMP_ARCH_X32"}}},
 		Syscalls: []SeccompRule{
-			{Names: []string{"read", "write", "exit", "exit_group"}, Action: "SCMP_ACT_ALLOW"},
+			{Names: []string{"read", "write", "close", "futex", "socket"}, Action: "SCMP_ACT_ALLOW"},
 			{Names: []string{"process_vm_readv", "process_vm_writev", "ptrace"}, Action: "SCMP_ACT_ALLOW", Includes: &SeccompFilter{MinKernel: "4.8"}},
-			{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{Index: 0, Op: "SCMP_CMP_NE", Value: 40}}},
+			{Names: []string{"clone", "clone3", "unshare"}, Action: "SCMP_ACT_ALLOW", Includes: &SeccompFilter{Caps: []string{"CAP_SYS_ADMIN"}}},
+			{Names: []string{"clone"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: 2114060288}}, Excludes: &SeccompFilter{Caps: []string{"CAP_SYS_ADMIN"}}},
 		},
 	}
 }
@@ -89,7 +90,7 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	foundRuntimeAllowlist := false
 	var socketRules []SeccompRule
 	for _, rule := range decoded.Spec.Syscalls {
-		if rule.Action == "SCMP_ACT_ALLOW" && strings.Join(rule.Names, ",") == "read,write,exit,exit_group" {
+		if rule.Action == "SCMP_ACT_ALLOW" && strings.Join(rule.Names, ",") == "read,write,close,futex" {
 			foundRuntimeAllowlist = true
 		}
 		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" {
@@ -134,6 +135,32 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	}
 	if len(local.Syscalls) != len(decoded.Spec.Syscalls) {
 		t.Errorf("Localhost has %d rules, SPO has %d", len(local.Syscalls), len(decoded.Spec.Syscalls))
+	}
+}
+
+func TestGenerateRemediationRestrictsCloneAndUnshareWithoutDeletingThem(t *testing.T) {
+	report := FindingReport{PostureRevision: "v1", Tier: "untrusted-multi-tenant", ExpectationViolations: []Finding{
+		expectation("clone.flags.newuser"), expectation("unshare.flags.newuser"),
+	}}
+	remediation, err := GenerateRemediation(report, runtimeDefault())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, syscall := range []string{"clone", "unshare"} {
+		found := false
+		for _, rule := range remediation.Localhost.Syscalls {
+			if rule.Action != "SCMP_ACT_ALLOW" || len(rule.Names) != 1 || rule.Names[0] != syscall {
+				continue
+			}
+			for _, arg := range rule.Args {
+				if arg.Op == "SCMP_CMP_MASKED_EQ" && arg.Value == 0x10000000 && arg.ValueTwo != nil && *arg.ValueTwo == 0 {
+					found = true
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s no longer has a RuntimeDefault allow rule excluding CLONE_NEWUSER", syscall)
+		}
 	}
 }
 
