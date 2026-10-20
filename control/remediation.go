@@ -17,7 +17,6 @@ package control
 
 import (
 	"fmt"
-	"reflect"
 )
 
 // RemediationClosure is the measured outcome of applying remediation to one
@@ -64,8 +63,8 @@ type ClosureCounts struct {
 // MeasureRemediationClosure evaluates re-probing results against the original
 // classified divergences. The probe must have been rerun on the same
 // self-managed cell that was open before remediation. Seccomp-attributed
-// divergences are counted as closed only when the measured verdict changes to
-// the original denied-side verdict; policy text alone never counts as closure.
+// divergences are counted as closed only when the re-probe is no longer
+// permitted; policy text alone never counts as closure.
 func MeasureRemediationClosure(classification ClassificationResult, left, right, reprobe Fingerprint, selfManagedNode bool) (RemediationMetric, error) {
 	if !selfManagedNode {
 		return RemediationMetric{}, fmt.Errorf("remediation closure verification requires a self-managed node (proposal §12)")
@@ -103,7 +102,7 @@ func MeasureRemediationClosure(classification ClassificationResult, left, right,
 		if openIsLeft {
 			target = left.Cell
 		}
-		if !reflect.DeepEqual(target, reprobe.Cell) {
+		if !sameCellIdentity(target, reprobe.Cell) {
 			return RemediationMetric{}, fmt.Errorf("re-probe cell does not match the previously open cell for probe %q", item.ProbeID)
 		}
 		observed, measured := results[item.ProbeID]
@@ -119,12 +118,17 @@ func MeasureRemediationClosure(classification ClassificationResult, left, right,
 		}
 		verdict := observed.Verdict
 		observation.Observed = &verdict
-		if observed.Verdict == observation.Expected {
+		switch observed.Verdict {
+		case "denied", "killed":
 			observation.Closure = ClosureClosed
 			metric.addClosure(mechanism, true, true)
-		} else {
+		case "permitted":
 			observation.Closure = ClosureOpen
-			observation.Reason = "re-probed verdict still differs from the original denied-side verdict"
+			observation.Reason = "re-probed operation is still permitted"
+			metric.addClosure(mechanism, true, false)
+		default:
+			observation.Closure = ClosureUnknown
+			observation.Reason = fmt.Sprintf("re-probe verdict %q does not establish whether the operation is permitted", observed.Verdict)
 			metric.addClosure(mechanism, true, false)
 		}
 		metric.Observations = append(metric.Observations, observation)
@@ -137,6 +141,34 @@ func MeasureRemediationClosure(classification ClassificationResult, left, right,
 		metric.OtherMechanisms[mechanism] = counts
 	}
 	return metric, nil
+}
+
+// sameCellIdentity compares stable environment identity. SELinux MCS labels,
+// kernel module snapshots, capabilities, and sandbox observations can vary
+// between runs or as a result of remediation, so they do not identify a cell.
+func sameCellIdentity(a, b Cell) bool {
+	return a.Architecture == b.Architecture &&
+		a.Kernel.Release == b.Kernel.Release &&
+		equalSourcedValue(a.Distribution, b.Distribution) &&
+		equalSourcedValue(a.Runtime, b.Runtime) &&
+		equalSourcedValue(a.RuntimeVersion, b.RuntimeVersion) &&
+		equalSourcedValue(a.RuntimeClass, b.RuntimeClass) &&
+		a.LSM == b.LSM &&
+		equalBoolPointer(a.LSMEnforcing, b.LSMEnforcing)
+}
+
+func equalSourcedValue(a, b *SourcedValue) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.Value == b.Value
+}
+
+func equalBoolPointer(a, b *bool) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
 }
 
 func remediationTarget(divergence Divergence) (RemediationObservation, bool, Mechanism, bool) {

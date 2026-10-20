@@ -35,9 +35,12 @@ Remediation closure is measured from the original fingerprints and a new
 fingerprint captured after the generated policy has been installed. For each
 policy-explained denied/permitted pair, `MeasureRemediationClosure` requires a
 known denial mechanism and a re-probe from the previously open cell. A
-seccomp-attributed probe is closed only when its re-probed verdict matches the
-original denied verdict; missing re-probes remain in the denominator as
-unclosed. The JSON and text report expose the seccomp rate with its 100 per
+seccomp-attributed probe is closed when its re-probed verdict is denied or
+killed; a permitted re-probe remains open. Missing re-probes remain in the
+denominator as unclosed. The re-probe must match the same cell's architecture,
+kernel release, runtime, runtime class, distribution, and LSM identity; volatile
+MCS labels and module snapshots are ignored. The JSON and text report expose the
+seccomp rate with its 100 per
 cent target, and rates for LSM, capability and mount attribution without a
 success threshold. Unattributed policy divergences are listed separately.
 Verification requires the operator to declare `self-managed-node`, following
