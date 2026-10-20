@@ -34,6 +34,18 @@ type Report struct {
 	Findings       FindingReport        `json:"findings"`
 	Classification ClassificationResult `json:"classification"`
 	Attribution    AttributionReport    `json:"attribution"`
+	Remediation    *RemediationMetric   `json:"remediation,omitempty"`
+}
+
+// AddRemediationClosure measures the supplied post-remediation fingerprint
+// and attaches the result to a report for JSON and human-readable output.
+func AddRemediationClosure(report Report, classification ClassificationResult, left, right, reprobe Fingerprint, selfManagedNode bool) (Report, error) {
+	metric, err := MeasureRemediationClosure(classification, left, right, reprobe, selfManagedNode)
+	if err != nil {
+		return Report{}, err
+	}
+	report.Remediation = &metric
+	return report, nil
 }
 
 // AttributionReport summarizes uncertainty across denied and killed probe
@@ -197,10 +209,46 @@ func WriteTextReport(w io.Writer, report Report) error {
 			mechanism,
 			marker)
 	}
+	if report.Remediation != nil {
+		fmt.Fprintf(&b, "\nRemediation closure (self-managed node: %t)\n", report.Remediation.SelfManagedNode)
+		writeClosureCounts(&b, "seccomp", report.Remediation.Seccomp)
+		mechanisms := make([]string, 0, len(report.Remediation.OtherMechanisms))
+		for mechanism := range report.Remediation.OtherMechanisms {
+			mechanisms = append(mechanisms, string(mechanism))
+		}
+		sort.Strings(mechanisms)
+		for _, mechanism := range mechanisms {
+			writeClosureCounts(&b, mechanism, report.Remediation.OtherMechanisms[Mechanism(mechanism)])
+		}
+		fmt.Fprintf(&b, "  Unattributed divergences: %d\n", report.Remediation.Unattributed)
+		for _, observation := range report.Remediation.Observations {
+			mechanism := "unknown"
+			if observation.Mechanism != nil {
+				mechanism = string(*observation.Mechanism)
+			}
+			fmt.Fprintf(&b, "  %s: %s (%s)", observation.ProbeID, observation.Closure, mechanism)
+			if observation.Reason != "" {
+				fmt.Fprintf(&b, " — %s", observation.Reason)
+			}
+			b.WriteByte('\n')
+		}
+	}
 	if _, err := io.WriteString(w, b.String()); err != nil {
 		return fmt.Errorf("write text report: %w", err)
 	}
 	return nil
+}
+
+func writeClosureCounts(b *strings.Builder, name string, counts ClosureCounts) {
+	if counts.Rate == nil {
+		fmt.Fprintf(b, "  %s: n/a (0 eligible probes)\n", name)
+		return
+	}
+	if counts.SuccessThreshold != nil {
+		fmt.Fprintf(b, "  %s: %d/%d closed (%.1f%%; target %.1f%%)\n", name, counts.Closed, counts.Eligible, *counts.Rate*100, *counts.SuccessThreshold*100)
+		return
+	}
+	fmt.Fprintf(b, "  %s: %d/%d closed (%.1f%%; reported without a threshold)\n", name, counts.Closed, counts.Eligible, *counts.Rate*100)
 }
 
 func writeFindings(b *strings.Builder, title string, findings []Finding) {

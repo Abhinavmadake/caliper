@@ -30,3 +30,25 @@ accepts fingerprints without attribution: it retains their reachability verdicts
 and reports those denials as unknown and undecidable, rather than inventing a
 mechanism. The undecidable fraction is therefore a measured result, not an
 assumption that the residual is zero.
+
+Remediation closure is measured from the original fingerprints and a new
+fingerprint captured after the generated policy has been installed. For each
+policy-explained denied/permitted pair, `MeasureRemediationClosure` requires a
+known denial mechanism and a re-probe from the previously open cell. A
+seccomp-attributed probe is closed only when its re-probed verdict matches the
+original denied verdict; missing re-probes remain in the denominator as
+unclosed. The JSON and text report expose the seccomp rate with its 100 per
+cent target, and rates for LSM, capability and mount attribution without a
+success threshold. Unattributed policy divergences are listed separately.
+Verification requires the operator to declare `self-managed-node`, following
+proposal §§11.2 and 12; managed-cluster measurements cannot satisfy this gate.
+
+`cmd/caliper-remediation-report` runs the complete metric from three
+fingerprints and the corpus index:
+
+```sh
+cd control
+go run ./cmd/caliper-remediation-report \
+  -left before-a.json -right before-b.json -reprobe after.json \
+  -self-managed-node -format json
+```
