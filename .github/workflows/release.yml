@@ -1,0 +1,102 @@
+# Copyright 2026 Abhinav Ajit Madake, Sahil Tatyabhau Waje,
+# Ritesh Aresh Saindane, Yogesh Babaji Palve
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.ref }}
+      - name: normalize image name
+        id: image-name
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: echo "image=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: "1.26.9"
+      - name: install pinned Cosign
+        run: go install github.com/sigstore/cosign/v2/cmd/cosign@v2.5.3
+      - name: build and publish multi-architecture probe image
+        id: image
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        with:
+          context: engine
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.image-name.outputs.image }}:${{ github.ref_name }}
+          provenance: true
+      - name: sign the immutable image digest
+        env:
+          IMAGE: ${{ steps.image-name.outputs.image }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+        run: cosign sign --yes "$IMAGE@$DIGEST"
+      - name: verify the published signature
+        env:
+          IMAGE: ${{ steps.image-name.outputs.image }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+          TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          cosign verify \
+            --certificate-identity "https://github.com/$REPOSITORY/.github/workflows/release.yml@refs/tags/$TAG" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE@$DIGEST"
+      - name: package released posture and corpus index
+        run: |
+          tar -czf "$RUNNER_TEMP/caliper-${GITHUB_REF_NAME}-reference.tar.gz" \
+            posture/v1 posture/CHANGELOG.md corpus/index.json spec/probe.md
+      - name: publish GitHub release with reference artefacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE: ${{ steps.image-name.outputs.image }}
+          DIGEST: ${{ steps.image.outputs.digest }}
+          TAG: ${{ github.ref_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          CALIPER probe image: `$IMAGE@$DIGEST` (linux/amd64, linux/arm64).
+
+          Verify its keyless Cosign signature:
+
+          ```sh
+          cosign verify --certificate-identity "https://github.com/$REPOSITORY/.github/workflows/release.yml@refs/tags/$TAG" --certificate-oidc-issuer https://token.actions.githubusercontent.com "$IMAGE@$DIGEST"
+          ```
+
+          The attached reference archive contains the released posture revision, its changelog, the frozen corpus index, and the probe specification.
+          EOF
+          gh release create "$TAG" \
+            "$RUNNER_TEMP/caliper-${TAG}-reference.tar.gz" \
+            --title "CALIPER $TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --verify-tag

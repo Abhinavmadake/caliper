@@ -24,6 +24,24 @@ non-reclaimable side effect (`spec/probe.md`); the engine reports it from a
 before/after module snapshot, and the alert-safe reduced corpus omits these
 probes or runs them only on request.
 
+## Release safety review
+
+The committed probe implementations and generated index were reviewed for the
+release checklist in issue #50. The corpus is measurement code: it contains no
+exploit code and no operation whose success grants privilege. The eight
+committed families measure socket and netlink reachability, io_uring support
+through `IORING_REGISTER_PROBE` without submitting queue entries, filesystem
+and path reachability, namespace flag handling, device access, and capability
+checks. Capability probes use arguments that stop before the privileged
+operation takes effect or limit any successful change to the forked child;
+the device-node probe removes the node before returning. Fork isolation and
+declared residual effects are part of the engine contract. The module autoload
+side effect described above is disclosed and measured, not treated as
+reversible.
+
+Deferred families are never executed. They remain marked `deferred` in the
+index and appear under `unmeasured` in a fingerprint.
+
 **Deferred set**, specified in the same format so it is additive work rather
 than redesign, entered only if the committed set is complete and the schedule
 is intact: ioctl request codes, bpf commands and program types, keyctl

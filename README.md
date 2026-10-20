@@ -17,9 +17,9 @@ differs across environments and what minimal policy change closes the gap.
 **Status:** interfaces frozen (`spec/`); probe engine in and tested on a
 static musl build with a syscall-baseline check in CI — fork isolation, SIGSYS
 survival, timeouts, verdict classification and side-effect accounting — and a
-ten-probe reference corpus running end to end from image start to emitted
-document. The committed corpus families and the Go control plane are next.
-Progress is tracked in the issues, one milestone per freeze gate. The
+185-probe reference corpus running end to end from image start to emitted
+document. The Go control plane is in place. Progress is tracked in the issues,
+one milestone per freeze gate. The
 fingerprint format freeze is recorded by PR #141; the remaining gate checks
 are tracked in issue #28. The proposal is in `docs/`.
 
@@ -94,6 +94,30 @@ kernel to autoload the module for it. The engine records the loaded module set
 before and after a run and reports the difference.
 
 Intended for infrastructure you own or have written authorisation to test.
+
+## Releases
+
+Pushing a `v*` tag publishes a multi-architecture probe image to
+`ghcr.io/abhinavmadake/caliper:<tag>`, signs the immutable image digest with
+keyless Cosign, and creates a GitHub release. Each GitHub release includes an
+archive of the released reference posture, its changelog, the frozen corpus
+index, and the probe specification. The release notes include the image digest
+and the exact workflow identity to verify it. For example, replace `vX.Y.Z`
+with the release tag and run:
+
+```sh
+IMAGE=ghcr.io/abhinavmadake/caliper
+TAG=vX.Y.Z
+cosign verify \
+  --certificate-identity "https://github.com/Abhinavmadake/caliper/.github/workflows/release.yml@refs/tags/$TAG" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  "$IMAGE:$TAG"
+```
+
+For reproducible deployments, use the `sha256` digest printed in the GitHub
+release notes instead of the mutable image tag. The signature is attached to
+that digest. Substitute the release's full `sha256:...` value for the tag in
+the verification command when you need to verify that exact image build.
 
 ## Licence
 
