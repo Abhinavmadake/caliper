@@ -121,9 +121,11 @@ func EncodeFingerprint(fingerprint Fingerprint) ([]byte, error) {
 	return data, nil
 }
 
-// ComputeFingerprintDigest returns the SHA-256 identity digest of a fingerprint
-// without its digest field. Object keys are sorted by encoding/json's map
-// encoding, output is compact, and HTML characters are not escaped.
+// ComputeFingerprintDigest computes the SHA-256 identity digest when the
+// producer creates a complete fingerprint. Consumers must preserve the
+// supplied digest instead of recomputing it after decoding: fields added by a
+// newer producer may be unknown to this schema and therefore omitted here.
+// Object keys are sorted, output is compact, and HTML characters are not escaped.
 func ComputeFingerprintDigest(fingerprint Fingerprint) (string, error) {
 	fingerprint.Digest = ""
 	data, err := json.Marshal(fingerprint)

@@ -236,6 +236,8 @@ func TestBuildReportLabelsSameCellFingerprintsByPositionAndDigest(t *testing.T) 
 	if err != nil {
 		t.Fatalf("ComputeFingerprintDigest(second) error = %v", err)
 	}
+	first.Digest = firstDigest
+	second.Digest = secondDigest
 
 	report, err := BuildReport(FindingReport{}, ClassificationResult{}, first, second)
 	if err != nil {
