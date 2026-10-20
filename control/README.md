@@ -30,3 +30,11 @@ accepts fingerprints without attribution: it retains their reachability verdicts
 and reports those denials as unknown and undecidable, rather than inventing a
 mechanism. The undecidable fraction is therefore a measured result, not an
 assumption that the residual is zero.
+
+`GenerateRemediation` turns posture expectation violations into the smallest
+available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
+resource, which the Security Profiles Operator distributes to nodes; it also
+renders an equivalent Localhost OCI profile for runtimes that require one.
+Socket families, netlink protocols, and clone/unshare flags use seccomp-BPF
+argument comparisons. A pathname, device, mount type, or other pointer-backed
+datum is reported as not closable instead of emitting an over-broad rule.
