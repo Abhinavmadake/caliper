@@ -89,6 +89,25 @@ engine is written the way it is.
 **Probe image.** `docker build -t caliper-probe engine/` then
 `docker run --rm caliper-probe --noop`.
 
+**The GKE cluster.** Each member has access to the `caliper-ci` namespace on
+the GKE cluster that pull requests are evaluated on (`deploy/README.md`), with
+the same role as CI:
+
+```sh
+gcloud components install gke-gcloud-auth-plugin
+gcloud container clusters get-credentials caliper-ci --zone asia-south1-a --project caliper-ci
+kubectl get jobs -n caliper-ci
+```
+
+The role covers Jobs only, in that namespace: create, watch and delete Jobs,
+read their pods, pod logs and events. Nothing else: no pods created directly,
+no exec, no secrets, no other namespace, nothing cluster-wide, and in the
+Google Cloud project only fetching the cluster's credentials. The namespace
+enforces the `restricted` Pod Security level, so a Job must look like
+`deploy/k8s/job.yaml`: non-root, all capabilities dropped, RuntimeDefault
+seccomp, no privilege escalation. The cluster is one `e2-medium` node; delete
+a Job once you have its logs.
+
 ## Commits
 
 Present tense, say what changed and why, and wrap the body. The why matters more
