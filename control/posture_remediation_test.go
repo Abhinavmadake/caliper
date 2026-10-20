@@ -27,13 +27,20 @@ func expectation(id string) Finding {
 	return Finding{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "untrusted-multi-tenant", Family: "test", ProbeID: id, Verdict: "permitted"}
 }
 
+// runtimeDefault is the relevant excerpt of Moby's published RuntimeDefault
+// profile: default errno 1, its architecture map, capability gate, and the
+// existing socket allow condition. These are the fields a toy allowlist loses.
 func runtimeDefault() LocalhostProfile {
+	errnoRet := uint64(1)
 	return LocalhostProfile{
-		DefaultAction: "SCMP_ACT_ERRNO",
-		Syscalls: []SeccompRule{{
-			Names:  []string{"read", "write", "exit", "exit_group"},
-			Action: "SCMP_ACT_ALLOW",
-		}},
+		DefaultAction:   "SCMP_ACT_ERRNO",
+		DefaultErrnoRet: &errnoRet,
+		ArchMap:         []ArchMap{{Architecture: "SCMP_ARCH_X86_64", SubArchitectures: []string{"SCMP_ARCH_X86", "SCMP_ARCH_X32"}}},
+		Syscalls: []SeccompRule{
+			{Names: []string{"read", "write", "exit", "exit_group"}, Action: "SCMP_ACT_ALLOW"},
+			{Names: []string{"process_vm_readv", "process_vm_writev", "ptrace"}, Action: "SCMP_ACT_ALLOW", Includes: &SeccompFilter{MinKernel: "4.8"}},
+			{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{Index: 0, Op: "SCMP_CMP_NE", Value: 40}}},
+		},
 	}
 }
 
@@ -76,14 +83,40 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if decoded.Spec.DefaultAction != "SCMP_ACT_ERRNO" {
 		t.Errorf("SPO default action = %q, want RuntimeDefault action", decoded.Spec.DefaultAction)
 	}
+	if decoded.Spec.DefaultErrnoRet == nil || *decoded.Spec.DefaultErrnoRet != 1 || len(decoded.Spec.ArchMap) != 1 {
+		t.Errorf("SPO lost RuntimeDefault errno or architecture data: %#v", decoded.Spec)
+	}
 	foundRuntimeAllowlist := false
+	var socketRules []SeccompRule
 	for _, rule := range decoded.Spec.Syscalls {
 		if rule.Action == "SCMP_ACT_ALLOW" && strings.Join(rule.Names, ",") == "read,write,exit,exit_group" {
 			foundRuntimeAllowlist = true
 		}
+		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" {
+			socketRules = append(socketRules, rule)
+		}
 	}
 	if !foundRuntimeAllowlist {
 		t.Errorf("SPO did not retain the RuntimeDefault allowlist: %#v", decoded.Spec.Syscalls)
+	}
+	for _, rule := range decoded.Spec.Syscalls {
+		if contains(rule.Names, "process_vm_readv") && (rule.Includes == nil || rule.Includes.MinKernel != "4.8") {
+			t.Errorf("SPO lost RuntimeDefault include gate: %#v", rule)
+		}
+	}
+	hasAFALGExclusion := false
+	for _, socketRule := range socketRules {
+		for _, arg := range socketRule.Args {
+			hasAFALGExclusion = hasAFALGExclusion || (arg.Index == 0 && arg.Op == "SCMP_CMP_NE" && arg.Value == 38)
+		}
+	}
+	if !hasAFALGExclusion {
+		t.Errorf("socket rules = %#v, want RuntimeDefault allow excluding AF_ALG", socketRules)
+	}
+	for _, rule := range decoded.Spec.Syscalls {
+		if rule.Action == "SCMP_ACT_ERRNO" && len(rule.Names) == 1 && rule.Names[0] == "socket" {
+			t.Error("AF_ALG must rewrite the existing socket allow rule, not add an ERRNO rule")
+		}
 	}
 	localhost, err := remediation.RenderLocalhost()
 	if err != nil {
@@ -95,6 +128,9 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	}
 	if local.DefaultAction != "SCMP_ACT_ERRNO" {
 		t.Errorf("Localhost default action = %q, want RuntimeDefault action", local.DefaultAction)
+	}
+	if local.DefaultErrnoRet == nil || *local.DefaultErrnoRet != 1 || len(local.ArchMap) != 1 {
+		t.Errorf("Localhost lost RuntimeDefault errno or architecture data: %#v", local)
 	}
 	if len(local.Syscalls) != len(decoded.Spec.Syscalls) {
 		t.Errorf("Localhost has %d rules, SPO has %d", len(local.Syscalls), len(decoded.Spec.Syscalls))

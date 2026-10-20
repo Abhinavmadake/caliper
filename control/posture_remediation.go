@@ -56,13 +56,24 @@ type ObjectMeta struct {
 // LocalhostProfile has the OCI seccomp profile shape used by Kubernetes'
 // Localhost seccompProfile type.
 type LocalhostProfile struct {
-	DefaultAction string        `json:"defaultAction"`
-	Syscalls      []SeccompRule `json:"syscalls"`
+	DefaultAction   string        `json:"defaultAction"`
+	DefaultErrnoRet *uint64       `json:"defaultErrnoRet,omitempty"`
+	Architectures   []string      `json:"architectures,omitempty"`
+	ArchMap         []ArchMap     `json:"archMap,omitempty"`
+	Syscalls        []SeccompRule `json:"syscalls"`
 }
 
 type SeccompSpec struct {
-	DefaultAction string        `yaml:"defaultAction" json:"defaultAction"`
-	Syscalls      []SeccompRule `yaml:"syscalls" json:"syscalls"`
+	DefaultAction   string        `yaml:"defaultAction" json:"defaultAction"`
+	DefaultErrnoRet *uint64       `yaml:"defaultErrnoRet,omitempty" json:"defaultErrnoRet,omitempty"`
+	Architectures   []string      `yaml:"architectures,omitempty" json:"architectures,omitempty"`
+	ArchMap         []ArchMap     `yaml:"archMap,omitempty" json:"archMap,omitempty"`
+	Syscalls        []SeccompRule `yaml:"syscalls" json:"syscalls"`
+}
+
+type ArchMap struct {
+	Architecture     string   `yaml:"architecture" json:"architecture"`
+	SubArchitectures []string `yaml:"subArchitectures,omitempty" json:"subArchitectures,omitempty"`
 }
 
 type SeccompRule struct {
@@ -70,6 +81,17 @@ type SeccompRule struct {
 	Action   string            `yaml:"action" json:"action"`
 	ErrnoRet *uint64           `yaml:"errnoRet,omitempty" json:"errnoRet,omitempty"`
 	Args     []SeccompArgument `yaml:"args,omitempty" json:"args,omitempty"`
+	Includes *SeccompFilter    `yaml:"includes,omitempty" json:"includes,omitempty"`
+	Excludes *SeccompFilter    `yaml:"excludes,omitempty" json:"excludes,omitempty"`
+	Comment  string            `yaml:"comment,omitempty" json:"comment,omitempty"`
+}
+
+// SeccompFilter is the capability, architecture, and kernel-version gate
+// carried by a runtime's default profile.
+type SeccompFilter struct {
+	Caps      []string `yaml:"caps,omitempty" json:"caps,omitempty"`
+	Arches    []string `yaml:"arches,omitempty" json:"arches,omitempty"`
+	MinKernel string   `yaml:"minKernel,omitempty" json:"minKernel,omitempty"`
 }
 
 type SeccompArgument struct {
@@ -118,13 +140,19 @@ func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) 
 			Kind:       "SeccompProfile",
 			Metadata:   ObjectMeta{Name: name},
 			Spec: SeccompSpec{
-				DefaultAction: runtimeDefault.DefaultAction,
-				Syscalls:      append([]SeccompRule(nil), runtimeDefault.Syscalls...),
+				DefaultAction:   runtimeDefault.DefaultAction,
+				DefaultErrnoRet: runtimeDefault.DefaultErrnoRet,
+				Architectures:   runtimeDefault.Architectures,
+				ArchMap:         runtimeDefault.ArchMap,
+				Syscalls:        cloneRules(runtimeDefault.Syscalls),
 			},
 		},
 		Localhost: LocalhostProfile{
-			DefaultAction: runtimeDefault.DefaultAction,
-			Syscalls:      append([]SeccompRule(nil), runtimeDefault.Syscalls...),
+			DefaultAction:   runtimeDefault.DefaultAction,
+			DefaultErrnoRet: runtimeDefault.DefaultErrnoRet,
+			Architectures:   runtimeDefault.Architectures,
+			ArchMap:         runtimeDefault.ArchMap,
+			Syscalls:        cloneRules(runtimeDefault.Syscalls),
 		},
 		Closures:    []RemediationAction{},
 		NotClosable: []NotClosable{},
@@ -156,15 +184,15 @@ func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) 
 			continue
 		}
 		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: finding.ProbeID, Rule: rule})
-		remediation.SPO.Spec.Syscalls = append(remediation.SPO.Spec.Syscalls, rule)
-		remediation.Localhost.Syscalls = append(remediation.Localhost.Syscalls, rule)
+		remediation.SPO.Spec.Syscalls = applyClosure(remediation.SPO.Spec.Syscalls, rule)
+		remediation.Localhost.Syscalls = applyClosure(remediation.Localhost.Syscalls, rule)
 	}
 	if userNamespace {
 		enosys := uint64(38)
 		clone3 := SeccompRule{Names: []string{"clone3"}, Action: seccompErrno, ErrnoRet: &enosys}
 		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: "clone3.user_namespace_bypass", Rule: clone3})
-		remediation.SPO.Spec.Syscalls = append(remediation.SPO.Spec.Syscalls, clone3)
-		remediation.Localhost.Syscalls = append(remediation.Localhost.Syscalls, clone3)
+		remediation.SPO.Spec.Syscalls = applyClosure(remediation.SPO.Spec.Syscalls, clone3)
+		remediation.Localhost.Syscalls = applyClosure(remediation.Localhost.Syscalls, clone3)
 	}
 	sort.Slice(remediation.Closures, func(i, j int) bool { return remediation.Closures[i].ProbeID < remediation.Closures[j].ProbeID })
 	sort.Slice(remediation.NotClosable, func(i, j int) bool { return remediation.NotClosable[i].ProbeID < remediation.NotClosable[j].ProbeID })
@@ -233,6 +261,80 @@ func netlinkRule(protocol uint64) SeccompRule {
 		{Index: 0, Op: "SCMP_CMP_EQ", Value: 16}, // AF_NETLINK
 		{Index: 2, Op: "SCMP_CMP_EQ", Value: protocol},
 	}}
+}
+
+func cloneRules(rules []SeccompRule) []SeccompRule {
+	data, _ := json.Marshal(rules)
+	var copied []SeccompRule
+	_ = json.Unmarshal(data, &copied)
+	return copied
+}
+
+// applyClosure removes closed syscalls from RuntimeDefault's allowlist. For a
+// socket-family closure it rewrites the existing socket ALLOW rule instead:
+// a conditional ERRNO cannot override libseccomp's unconditional ALLOW.
+func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
+	if len(closure.Names) == 1 && closure.Names[0] == "socket" && len(closure.Args) > 0 {
+		// A netlink closure has two discriminators. Keep ordinary families in
+		// the existing rule, and collect allowed netlink protocols in one
+		// separate rule so multiple exclusions remain an AND, not an OR.
+		if len(closure.Args) == 2 && closure.Args[0].Index == 0 && closure.Args[0].Value == 16 {
+			var netlink *SeccompRule
+			for i := range rules {
+				if rules[i].Action == "SCMP_ACT_ALLOW" && len(rules[i].Names) == 1 && rules[i].Names[0] == "socket" && len(rules[i].Args) > 0 && rules[i].Args[0].Index == 0 && rules[i].Args[0].Op == "SCMP_CMP_EQ" && rules[i].Args[0].Value == 16 {
+					netlink = &rules[i]
+				}
+			}
+			for i := range rules {
+				if rules[i].Action == "SCMP_ACT_ALLOW" && contains(rules[i].Names, "socket") && (netlink == nil || &rules[i] != netlink) {
+					rules[i].Args = append(rules[i].Args, SeccompArgument{Index: 0, Op: "SCMP_CMP_NE", Value: 16})
+				}
+			}
+			if netlink == nil {
+				rules = append(rules, SeccompRule{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{Index: 0, Op: "SCMP_CMP_EQ", Value: 16}}})
+				netlink = &rules[len(rules)-1]
+			}
+			netlink.Args = append(netlink.Args, SeccompArgument{Index: 2, Op: "SCMP_CMP_NE", Value: closure.Args[1].Value})
+			return rules
+		}
+		for i := range rules {
+			if rules[i].Action != "SCMP_ACT_ALLOW" || !contains(rules[i].Names, "socket") {
+				continue
+			}
+			rules[i].Args = append(rules[i].Args, SeccompArgument{
+				Index: closure.Args[0].Index, Op: "SCMP_CMP_NE", Value: closure.Args[0].Value,
+			})
+		}
+		return rules
+	}
+	for i := range rules {
+		if rules[i].Action != "SCMP_ACT_ALLOW" {
+			continue
+		}
+		remaining := rules[i].Names[:0]
+		for _, name := range rules[i].Names {
+			if !contains(closure.Names, name) {
+				remaining = append(remaining, name)
+			}
+		}
+		rules[i].Names = remaining
+	}
+	filtered := rules[:0]
+	for _, rule := range rules {
+		if len(rule.Names) != 0 {
+			filtered = append(filtered, rule)
+		}
+	}
+	return filtered
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 func notClosableReason(id string) string {
