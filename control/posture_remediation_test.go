@@ -38,7 +38,7 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if remediation.SPO.Kind != "SeccompProfile" || remediation.SPO.Metadata.Name != "caliper-v1" {
 		t.Fatalf("SPO = %#v", remediation.SPO)
 	}
-	if len(remediation.Closures) != 4 || len(remediation.NotClosable) != 0 {
+	if len(remediation.Closures) != 5 || len(remediation.NotClosable) != 0 {
 		t.Fatalf("closures/not closable = %d/%d", len(remediation.Closures), len(remediation.NotClosable))
 	}
 	var afalg, netlink, unshare bool
@@ -49,7 +49,7 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 		case "netlink.protocol.crypto":
 			netlink = len(closure.Rule.Args) == 2 && closure.Rule.Args[0].Value == 16 && closure.Rule.Args[1].Value == 21
 		case "unshare.flags.newuser":
-			unshare = closure.Rule.Args[0].Op == "SCMP_CMP_MASKED_EQ" && closure.Rule.Args[0].Value == 0x10000000
+			unshare = closure.Rule.Args[0].Op == "SCMP_CMP_MASKED_EQ" && closure.Rule.Args[0].Value == 0x10000000 && closure.Rule.Args[0].ValueTwo != nil && *closure.Rule.Args[0].ValueTwo == 0x10000000
 		}
 	}
 	if !afalg || !netlink || !unshare {
@@ -63,8 +63,8 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if err := yaml.Unmarshal(spo, &decoded); err != nil {
 		t.Fatalf("parse SPO YAML: %v", err)
 	}
-	if decoded.Spec.DefaultAction != seccompAllow {
-		t.Errorf("SPO default action = %q", decoded.Spec.DefaultAction)
+	if decoded.Spec.BaseProfileName != "runtime-default" {
+		t.Errorf("SPO base profile = %q, want RuntimeDefault", decoded.Spec.BaseProfileName)
 	}
 	localhost, err := remediation.RenderLocalhost()
 	if err != nil {
@@ -74,8 +74,45 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if err := json.Unmarshal(localhost, &local); err != nil {
 		t.Fatalf("parse Localhost JSON: %v", err)
 	}
+	if local.BaseProfileName != "runtime-default" {
+		t.Errorf("Localhost base profile = %q, want RuntimeDefault", local.BaseProfileName)
+	}
 	if len(local.Syscalls) != len(decoded.Spec.Syscalls) {
 		t.Errorf("Localhost has %d rules, SPO has %d", len(local.Syscalls), len(decoded.Spec.Syscalls))
+	}
+}
+
+func TestGenerateRemediationClosesClone3AndCapabilityEquivalents(t *testing.T) {
+	report := FindingReport{PostureRevision: "v1", Tier: "restricted", ExpectationViolations: []Finding{
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "clone", ProbeID: "clone.flags.newuser", Verdict: "permitted"},
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "capability", ProbeID: "capability.sys_time", Verdict: "permitted"},
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "capability", ProbeID: "capability.sys_module", Verdict: "permitted"},
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "capability", ProbeID: "capability.sys_rawio", Verdict: "permitted"},
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "capability", ProbeID: "capability.sys_ptrace", Verdict: "permitted"},
+	}}
+	remediation, err := GenerateRemediation(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := map[string]SeccompRule{}
+	for _, closure := range remediation.Closures {
+		rules[closure.ProbeID] = closure.Rule
+	}
+	if clone3, ok := rules["clone3.user_namespace_bypass"]; !ok || clone3.ErrnoRet == nil || *clone3.ErrnoRet != 38 {
+		t.Errorf("clone3 closure = %#v, want ENOSYS", clone3)
+	}
+	for probe, want := range map[string][]string{
+		"capability.sys_time":   {"settimeofday", "clock_settime", "adjtimex"},
+		"capability.sys_module": {"finit_module", "init_module", "delete_module"},
+		"capability.sys_rawio":  {"iopl", "ioperm"},
+		"capability.sys_ptrace": {"process_vm_readv", "process_vm_writev", "ptrace"},
+	} {
+		got := strings.Join(rules[probe].Names, ",")
+		for _, syscall := range want {
+			if !strings.Contains(got, syscall) {
+				t.Errorf("%s rule %q lacks %q", probe, got, syscall)
+			}
+		}
 	}
 }
 

@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	seccompAllow = "SCMP_ACT_ALLOW"
 	seccompErrno = "SCMP_ACT_ERRNO"
 )
 
@@ -54,28 +53,35 @@ type ObjectMeta struct {
 	Name string `yaml:"name" json:"name"`
 }
 
-// LocalhostProfile has the OCI seccomp profile shape used by Kubernetes'
-// Localhost seccompProfile type.
+// LocalhostProfile is an overlay for the OCI RuntimeDefault profile selected
+// by a Kubernetes Localhost seccompProfile. A Localhost document cannot refer
+// to RuntimeDefault itself, so a deployer must merge these rules into the
+// runtime's profile before placing it on a node.
 type LocalhostProfile struct {
-	DefaultAction string        `json:"defaultAction"`
-	Syscalls      []SeccompRule `json:"syscalls"`
+	BaseProfileName string        `json:"base_profile_name"`
+	Syscalls        []SeccompRule `json:"syscalls"`
 }
 
 type SeccompSpec struct {
-	DefaultAction string        `yaml:"defaultAction" json:"defaultAction"`
-	Syscalls      []SeccompRule `yaml:"syscalls" json:"syscalls"`
+	// BaseProfileName identifies the SPO copy of RuntimeDefault. Extending it
+	// preserves the runtime's existing policy rather than replacing it with an
+	// allow-all profile.
+	BaseProfileName string        `yaml:"baseProfileName" json:"baseProfileName"`
+	Syscalls        []SeccompRule `yaml:"syscalls" json:"syscalls"`
 }
 
 type SeccompRule struct {
-	Names  []string          `yaml:"names" json:"names"`
-	Action string            `yaml:"action" json:"action"`
-	Args   []SeccompArgument `yaml:"args,omitempty" json:"args,omitempty"`
+	Names    []string          `yaml:"names" json:"names"`
+	Action   string            `yaml:"action" json:"action"`
+	ErrnoRet *uint64           `yaml:"errnoRet,omitempty" json:"errnoRet,omitempty"`
+	Args     []SeccompArgument `yaml:"args,omitempty" json:"args,omitempty"`
 }
 
 type SeccompArgument struct {
-	Index uint64 `yaml:"index" json:"index"`
-	Op    string `yaml:"op" json:"op"`
-	Value uint64 `yaml:"value" json:"value"`
+	Index    uint64  `yaml:"index" json:"index"`
+	Op       string  `yaml:"op" json:"op"`
+	Value    uint64  `yaml:"value" json:"value"`
+	ValueTwo *uint64 `yaml:"valueTwo,omitempty" json:"valueTwo,omitempty"`
 }
 
 // RemediationAction connects a generated rule to the measured probe which
@@ -110,14 +116,21 @@ func GenerateRemediation(report FindingReport) (Remediation, error) {
 			APIVersion: "security-profiles-operator.x-k8s.io/v1beta1",
 			Kind:       "SeccompProfile",
 			Metadata:   ObjectMeta{Name: name},
-			Spec:       SeccompSpec{DefaultAction: seccompAllow, Syscalls: []SeccompRule{}},
+			Spec: SeccompSpec{
+				BaseProfileName: "runtime-default",
+				Syscalls:        []SeccompRule{},
+			},
 		},
-		Localhost:   LocalhostProfile{DefaultAction: seccompAllow, Syscalls: []SeccompRule{}},
+		Localhost: LocalhostProfile{
+			BaseProfileName: "runtime-default",
+			Syscalls:        []SeccompRule{},
+		},
 		Closures:    []RemediationAction{},
 		NotClosable: []NotClosable{},
 	}
 
 	seen := map[string]struct{}{}
+	userNamespace := false
 	for _, finding := range report.ExpectationViolations {
 		if err := finding.Validate(); err != nil {
 			return Remediation{}, fmt.Errorf("invalid expectation finding: %w", err)
@@ -129,6 +142,9 @@ func GenerateRemediation(report FindingReport) (Remediation, error) {
 			continue
 		}
 		seen[finding.ProbeID] = struct{}{}
+		if finding.ProbeID == "unshare.flags.newuser" || finding.ProbeID == "clone.flags.newuser" {
+			userNamespace = true
+		}
 
 		rule, closable := remediationRule(finding.ProbeID)
 		if !closable {
@@ -142,6 +158,13 @@ func GenerateRemediation(report FindingReport) (Remediation, error) {
 		remediation.SPO.Spec.Syscalls = append(remediation.SPO.Spec.Syscalls, rule)
 		remediation.Localhost.Syscalls = append(remediation.Localhost.Syscalls, rule)
 	}
+	if userNamespace {
+		enosys := uint64(38)
+		clone3 := SeccompRule{Names: []string{"clone3"}, Action: seccompErrno, ErrnoRet: &enosys}
+		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: "clone3.user_namespace_bypass", Rule: clone3})
+		remediation.SPO.Spec.Syscalls = append(remediation.SPO.Spec.Syscalls, clone3)
+		remediation.Localhost.Syscalls = append(remediation.Localhost.Syscalls, clone3)
+	}
 	sort.Slice(remediation.Closures, func(i, j int) bool { return remediation.Closures[i].ProbeID < remediation.Closures[j].ProbeID })
 	sort.Slice(remediation.NotClosable, func(i, j int) bool { return remediation.NotClosable[i].ProbeID < remediation.NotClosable[j].ProbeID })
 	sortRules(remediation.SPO.Spec.Syscalls)
@@ -153,7 +176,9 @@ func GenerateRemediation(report FindingReport) (Remediation, error) {
 // Operator custom resource.
 func (r Remediation) RenderSPO() ([]byte, error) { return yaml.Marshal(r.SPO) }
 
-// RenderLocalhost renders the secondary OCI seccomp profile.
+// RenderLocalhost renders the secondary Localhost overlay. It intentionally
+// contains no defaultAction: setting one would replace RuntimeDefault instead
+// of extending it.
 func (r Remediation) RenderLocalhost() ([]byte, error) {
 	return json.MarshalIndent(r.Localhost, "", "  ")
 }
@@ -175,19 +200,19 @@ func remediationRule(id string) (SeccompRule, bool) {
 	case "netlink.protocol.rdma":
 		return netlinkRule(20), true
 	case "unshare.flags.newuser":
-		return argument([]string{"unshare"}, SeccompArgument{Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: 0x10000000}), true
+		return cloneNamespaceRule("unshare"), true
 	case "clone.flags.newuser":
-		return argument([]string{"clone"}, SeccompArgument{Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: 0x10000000}), true
+		return cloneNamespaceRule("clone"), true
 	case "capability.sys_time":
-		return deny("settimeofday"), true
+		return deny("settimeofday", "clock_settime", "adjtimex"), true
 	case "capability.sys_boot":
 		return deny("reboot"), true
 	case "capability.sys_module":
-		return deny("finit_module"), true
+		return deny("finit_module", "init_module", "delete_module"), true
 	case "capability.sys_rawio":
-		return deny("iopl"), true
+		return deny("iopl", "ioperm"), true
 	case "capability.sys_ptrace":
-		return deny("process_vm_readv"), true
+		return deny("process_vm_readv", "process_vm_writev", "ptrace"), true
 	}
 	if strings.HasPrefix(id, "io_uring.") {
 		// io_uring operation codes are written through pointers and are not
@@ -195,6 +220,13 @@ func remediationRule(id string) (SeccompRule, bool) {
 		return deny("io_uring_setup", "io_uring_enter", "io_uring_register"), true
 	}
 	return SeccompRule{}, false
+}
+
+func cloneNamespaceRule(syscall string) SeccompRule {
+	cloneNewUser := uint64(0x10000000)
+	return SeccompRule{Names: []string{syscall}, Action: seccompErrno, Args: []SeccompArgument{{
+		Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: cloneNewUser, ValueTwo: &cloneNewUser,
+	}}}
 }
 
 func netlinkRule(protocol uint64) SeccompRule {
