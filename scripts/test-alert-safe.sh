@@ -51,7 +51,14 @@ ALERT_PATTERN='AF_ALG|"eventName"[[:space:]]*:[[:space:]]*"(init_module|finit_mo
 BEFORE_REDUCED=$(( $(docker logs tracee 2>&1 | wc -l) ))
 
 echo "Running reduced corpus (should be alert-safe)..."
-docker run --rm caliper-probe --reduced > /dev/null
+# 3 is a completed run with defects (caliper-probe --help); this test is
+# about the alerts the run raises.
+status=0
+docker run --rm caliper-probe --reduced > /dev/null || status=$?
+if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then
+    echo "ERROR: reduced corpus failed (status $status)."
+    exit 1
+fi
 
 # Allow Tracee to flush events
 sleep 3
