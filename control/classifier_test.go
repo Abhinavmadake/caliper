@@ -348,3 +348,16 @@ func assertClass(t *testing.T, result ClassificationResult, id string, want Dive
 	}
 	t.Errorf("no classified divergence for %q: %#v", id, result.Divergences)
 }
+
+func TestAlsoAbsentErrnoExplainsAProtocolModuleBoundary(t *testing.T) {
+	eafnosupport, eprotonosupport := 97, 93
+	modules := []string{"can"}
+	probe := ProbeMetadata{ID: "socket.family.af_can", Arch: Applicability{All: true},
+		Kernel: KernelDependency{AbsentErrno: &eafnosupport, AlsoAbsent: &eprotonosupport, Module: "can"}}
+	left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: probe.ID, Verdict: "unimplemented", Errno: eprotonosupport}})
+	right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: probe.ID, Verdict: "permitted"}})
+	none := []string{}
+	left.Cell.Kernel.Modules = &none
+	right.Cell.Kernel.Modules = &modules
+	assertClass(t, mustClassify(t, left, right, []ProbeMetadata{probe}), probe.ID, KernelVersionExplained)
+}

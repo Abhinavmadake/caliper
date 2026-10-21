@@ -389,8 +389,9 @@ fstype!(
 
 /// Where a mount probe mounts: a directory the child makes and removes
 /// under `/tmp`, which the probe image carries writable for exactly this
-/// (`Dockerfile`). `ENOENT` from `mkdir` is the target unresolvable and
-/// the probe's answer; `mount(2)` is never reached.
+/// (`Dockerfile`). Making it is setup: a failure there, `ENOENT` with no
+/// writable `/tmp` for instance, is recorded as setup failing, not as
+/// `mount(2)`'s answer, which is never reached (#96).
 const MOUNT_DIR: &std::ffi::CStr = c"/tmp/caliper-mount";
 /// Two lower layers for the overlay probe, made and removed alongside.
 const LOWER_A: &std::ffi::CStr = c"/tmp/caliper-mount/a";
@@ -483,7 +484,8 @@ fn mount_fuse() -> RawResult {
 }
 
 macro_rules! mount_probe {
-    ($konst:ident, $f:ident, $id:literal, $desc:literal, $guarantees:expr, $reason:literal) => {
+    ($konst:ident, $f:ident, $id:literal, $desc:literal, $guarantees:expr,
+     autoload: $autoload:expr, $reason:literal) => {
         pub const $konst: Probe = Probe {
             id: $id,
             family: "mount",
@@ -500,7 +502,7 @@ macro_rules! mount_probe {
             capability: Some(Capability::SysAdmin),
             effects: SideEffects::Declared {
                 residual: &[ResidualClass::Mounts],
-                module_autoload: false,
+                module_autoload: $autoload,
             },
             run: $f,
         };
@@ -513,6 +515,7 @@ mount_probe!(
     "mount.fs.proc",
     "mount(none, /tmp/caliper-mount, proc): a second procfs, unmounted by the child",
     None,
+    autoload: false,
     "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN, \
      before get_fs_type reads the type: EPERM is the capability or a filter, not \
      separable. With the capability the mount happens and the child unmounts it; the \
@@ -525,6 +528,8 @@ mount_probe!(
     "mount.fs.overlay",
     "mount(none, /tmp/caliper-mount, overlay, lowerdir=a:b): a read-only overlay, unmounted by the child",
     None,
+    // get_fs_type loads fs-overlay past the capability check (#96).
+    autoload: true,
     "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN, \
      before get_fs_type reads the type. With the capability, ovl_get_tree mounts a \
      read-only overlay over two empty lower layers and the child unmounts it; the \
@@ -534,6 +539,8 @@ mount_probe!(
 mount_probe!(MOUNT_FUSE, mount_fuse, "mount.fs.fuse",
     "mount(none, /tmp/caliper-mount, fuse): fuse without a descriptor, guaranteed EINVAL past the capability",
     Some(Errno::EINVAL),
+    // get_fs_type loads fs-fuse past the capability check (#96).
+    autoload: true,
     "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN. \
      With it, get_fs_type finds fuse, security_sb_mount runs, and fuse_get_tree \
      rejects a mount with no fd= option with EINVAL: the guarantee is produced after \

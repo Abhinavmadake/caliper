@@ -374,6 +374,62 @@ pub struct Cell {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lsm_enforcing: Option<bool>,
     pub capabilities: Capabilities,
+    /// The kernel's own limits on creating a user namespace, which answer a
+    /// user-namespace probe before or instead of a filter (#96).
+    pub user_namespaces: UserNamespaces,
+}
+
+/// Each value is the sysctl's, `None` (and left out) where the kernel has no
+/// such sysctl or it cannot be read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
+pub struct UserNamespaces {
+    /// `user.max_user_namespaces`: 0 makes every creation ENOSPC.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<u64>,
+    /// Debian's `kernel.unprivileged_userns_clone`: 0 makes an unprivileged
+    /// creation EPERM.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unprivileged_clone: Option<u64>,
+    /// Ubuntu's `kernel.apparmor_restrict_unprivileged_userns`: 1 has
+    /// AppArmor refuse an unprivileged creation without a userns rule.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apparmor_restricted: Option<u64>,
+}
+
+impl UserNamespaces {
+    pub fn detect() -> UserNamespaces {
+        UserNamespaces {
+            max: read_number(c"/proc/sys/user/max_user_namespaces"),
+            unprivileged_clone: read_number(c"/proc/sys/kernel/unprivileged_userns_clone"),
+            apparmor_restricted: read_number(
+                c"/proc/sys/kernel/apparmor_restrict_unprivileged_userns",
+            ),
+        }
+    }
+}
+
+/// A sysctl holding one decimal number, read with the run path's raw
+/// openat/read/close.
+fn read_number(path: &std::ffi::CStr) -> Option<u64> {
+    // SAFETY: a NUL-terminated path and constant flags.
+    let fd = unsafe {
+        libc::syscall(
+            libc::SYS_openat,
+            libc::AT_FDCWD,
+            path.as_ptr(),
+            libc::O_RDONLY | libc::O_CLOEXEC,
+        )
+    } as libc::c_int;
+    if fd < 0 {
+        return None;
+    }
+    let mut buf = [0u8; 32];
+    // SAFETY: fd is open and buf is a valid buffer.
+    let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
+    // SAFETY: fd is a descriptor this function owns and closes once.
+    unsafe { libc::close(fd) };
+    let n = usize::try_from(n).ok()?;
+    std::str::from_utf8(&buf[..n]).ok()?.trim().parse().ok()
 }
 
 impl Cell {
@@ -399,6 +455,7 @@ impl Cell {
             lsm_label,
             lsm_enforcing,
             capabilities: Capabilities::detect(),
+            user_namespaces: UserNamespaces::detect(),
         })
     }
 }

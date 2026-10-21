@@ -28,8 +28,9 @@
 //! the same way.
 //!
 //! What the answers mean, per `io_uring/io_uring.c` and
-//! `io_uring/register.c` (6.x): `io_uring_setup` has no LSM hook; it checks
-//! `kernel.io_uring_disabled` first (since 6.6: `2` answers `EPERM` to
+//! `io_uring/register.c` (6.x): before 6.15 `io_uring_setup` has no LSM hook
+//! (from 6.15 `security_uring_allowed` runs first, recorded as the
+//! dependency's `lsm_hook_since`); it checks `kernel.io_uring_disabled` first (since 6.6: `2` answers `EPERM` to
 //! everyone, `1` to callers without `CAP_SYS_ADMIN` or the configured
 //! group), then the parameters. `IORING_REGISTER_PROBE` has no hook and no
 //! capability check. So an `EPERM` on any opcode probe is a filter on
@@ -143,9 +144,11 @@ macro_rules! opcode {
             oracle: Oracle {
                 guarantees: None,
                 isolates: Isolates::Seccomp,
-                reason: "io_uring_setup has no LSM hook and IORING_REGISTER_PROBE no hook or \
-                         capability check before the SUPPORTED bit is read, so EPERM is a filter \
-                         at entry on either syscall; since 6.6 the kernel.io_uring_disabled \
+                reason: "Before 6.15 io_uring_setup has no LSM hook, and IORING_REGISTER_PROBE \
+                         has no hook or capability check before the SUPPORTED bit is read, so \
+                         EPERM is a filter at entry on either syscall; from 6.15 \
+                         security_uring_allowed runs at setup first, so EPERM is seccomp or an \
+                         LSM; since 6.6 the kernel.io_uring_disabled \
                          sysctl also answers EPERM at setup, and on such a cell the filter is not \
                          isolated. A clear SUPPORTED bit is returned as ENODATA, which \
                          io_uring_register never produces for an accepted ring: absence, read as \
@@ -188,12 +191,22 @@ const CONFIG_GATED: KernelDependency = KernelDependency {
     module: None,
     present_if: Some("/proc/sys/kernel/io_uring_disabled"),
     encoded_absent: None,
+    also_absent: None,
+    lsm_hook_since: None,
 };
 
-/// As [`CONFIG_GATED`], plus the clear SUPPORTED bit's `ENODATA`.
+/// As [`CONFIG_GATED`], for probes that call io_uring_setup: since 6.15 its
+/// io_uring_allowed() ends in security_uring_allowed(), an LSM hook before
+/// any parameter is checked (#96).
+const SETUP_GATED: KernelDependency = KernelDependency {
+    lsm_hook_since: Some((6, 15)),
+    ..CONFIG_GATED
+};
+
+/// As [`SETUP_GATED`], plus the clear SUPPORTED bit's `ENODATA`.
 const OPCODE_GATED: KernelDependency = KernelDependency {
     encoded_absent: Some(Errno::ENODATA),
-    ..CONFIG_GATED
+    ..SETUP_GATED
 };
 
 pub const REGISTER_PROBE: Probe = Probe {
@@ -225,12 +238,13 @@ pub const SETUP_ZERO_ENTRIES: Probe = Probe {
     description: "io_uring_setup(0, &params): guaranteed EINVAL, no ring is created",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: CONFIG_GATED,
+    kernel: SETUP_GATED,
     oracle: Oracle {
         guarantees: Some(Errno::EINVAL),
         isolates: Isolates::Seccomp,
-        reason: "io_uring_create rejects zero entries with EINVAL and io_uring_setup has no \
-                 LSM hook. Since 6.6 the kernel.io_uring_disabled sysctl makes the kernel \
+        reason: "io_uring_create rejects zero entries with EINVAL, and before 6.15 \
+                 io_uring_setup has no LSM hook; from 6.15 security_uring_allowed runs \
+                 before the parameters, so EPERM is seccomp or an LSM. Since 6.6 the kernel.io_uring_disabled sysctl makes the kernel \
                  itself answer EPERM before that check; on such a cell EPERM does not \
                  isolate the filter",
     },

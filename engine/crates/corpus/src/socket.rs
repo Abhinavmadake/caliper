@@ -202,6 +202,16 @@ const CAN_RAW: libc::c_int = 1;
 /// answer when nothing intercepts it. `$kernel` says what `EAFNOSUPPORT`
 /// means, `$isolates` what `EPERM` can be pinned to, `$autoload` whether the
 /// family is a module the call can make the kernel load.
+/// A family whose protocols are modules of their own: `EAFNOSUPPORT` is
+/// the family absent, `EPROTONOSUPPORT` the protocol absent with the family
+/// present. Both are absence, not policy (#96).
+const fn protocol_module(module: &'static str) -> KernelDependency {
+    KernelDependency {
+        also_absent: Some(Errno::EPROTONOSUPPORT),
+        ..KernelDependency::module(module, Errno::EAFNOSUPPORT)
+    }
+}
+
 macro_rules! family {
     ($konst:ident, $f:ident, $id:literal, ($af:expr, $ty:expr, $proto:expr),
      $desc:literal, kernel: $kernel:expr, isolates: $isolates:expr,
@@ -260,8 +270,10 @@ family!(AF_KEY, af_key, "socket.family.af_key",
 
 family!(AF_BLUETOOTH_RFCOMM, af_bluetooth_rfcomm, "socket.family.af_bluetooth",
     (libc::AF_BLUETOOTH, libc::SOCK_STREAM, BTPROTO_RFCOMM),
-    "socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM): the Bluetooth stack is reachable",
-    kernel: KernelDependency::module("bluetooth", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
+    "socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM): the Bluetooth stack is reachable. \
+     Only from the host network namespace: in any other, bt_sock_create answers \
+     EAFNOSUPPORT whatever the policy",
+    kernel: protocol_module("bluetooth"), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "bt_sock_create runs after security_socket_create, loads bt-proto-3 (rfcomm) if \
              unregistered, and rfcomm_sock_create checks no capability for SOCK_STREAM; \
@@ -271,7 +283,7 @@ family!(AF_BLUETOOTH_RFCOMM, af_bluetooth_rfcomm, "socket.family.af_bluetooth",
 family!(AF_CAN_RAW, af_can_raw, "socket.family.af_can",
     (libc::AF_CAN, libc::SOCK_RAW, CAN_RAW),
     "socket(AF_CAN, SOCK_RAW, CAN_RAW): the CAN bus stack is reachable",
-    kernel: KernelDependency::module("can", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
+    kernel: protocol_module("can"), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "can_create runs after security_socket_create, loads can-proto-1 (can_raw) if \
              unregistered, and raw_init checks no capability; EPERM is seccomp or an LSM. \
@@ -332,12 +344,14 @@ family!(AF_IEEE802154, af_ieee802154, "socket.family.af_ieee802154",
 
 family!(AF_NFC, af_nfc, "socket.family.af_nfc",
     (libc::AF_NFC, libc::SOCK_STREAM, 1),
-    "socket(AF_NFC, SOCK_STREAM, NFC_SOCKPROTO_LLCP): the NFC stack is reachable",
-    kernel: KernelDependency::module("nfc", Errno::EAFNOSUPPORT), isolates: Isolates::SeccompOrLsm,
+    "socket(AF_NFC, SOCK_STREAM, NFC_SOCKPROTO_LLCP): the NFC stack is reachable. Only \
+     from the host network namespace: in any other, nfc_sock_create answers EAFNOSUPPORT \
+     whatever the policy",
+    kernel: protocol_module("nfc"), isolates: Isolates::SeccompOrLsm,
     capability: None, autoload: true,
     reason: "nfc_sock_create runs after security_socket_create; the LLCP protocol checks no \
              capability (raw would need CAP_NET_RAW). EPERM is seccomp or an LSM. \
-             EAFNOSUPPORT is nfc absent (net-pf-39)");
+             EAFNOSUPPORT is nfc absent (net-pf-39); EPROTONOSUPPORT is LLCP absent");
 
 family!(AF_VSOCK, af_vsock, "socket.family.af_vsock",
     (libc::AF_VSOCK, libc::SOCK_STREAM, 0),

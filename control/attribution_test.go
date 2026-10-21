@@ -207,3 +207,59 @@ func TestAttributeRecordedFixtures(t *testing.T) {
 		}
 	}
 }
+
+func TestLSMHookSinceTurnsSeccompIntoSeccompOrLSM(t *testing.T) {
+	einval := 22
+	since := KernelVersion{6, 15}
+	probe := ProbeMetadata{ID: "io_uring.setup.zero_entries", Family: "io_uring",
+		Kernel: KernelDependency{LSMHookSince: &since},
+		Oracle: Oracle{Guarantees: &einval, Isolates: "seccomp"}}
+	denied := ProbeResult{ProbeID: probe.ID, Verdict: "denied", Errno: errnoEPERM}
+	for _, test := range []struct {
+		release string
+		want    string
+	}{
+		{"6.8.0-142-generic", "seccomp"},
+		{"7.0.0-1014-gcp", "seccomp-or-lsm"},
+		{"unparseable", "seccomp-or-lsm"},
+	} {
+		fp := Fingerprint{Cell: Cell{Kernel: Kernel{Release: test.release}}, Results: []ProbeResult{denied}}
+		got, err := Attribute(fp, []ProbeMetadata{probe})
+		if err != nil {
+			t.Fatal(err)
+		}
+		a := got.Results[0].Attribution
+		mechanismSeccomp := a.Mechanism != nil && *a.Mechanism == Seccomp
+		if (test.want == "seccomp") != mechanismSeccomp || (test.want != "seccomp") != a.Undecidable {
+			t.Errorf("%s: attribution = %+v, want %s", test.release, a, test.want)
+		}
+	}
+}
+
+func TestUserNamespaceLimitsWidenOrExplainTheDenial(t *testing.T) {
+	zero, one := uint64(0), uint64(1)
+	probe := ProbeMetadata{ID: "unshare.flags.newuser", Family: "clone", Oracle: Oracle{Isolates: "seccomp-or-lsm"}}
+	attribute := func(errno int, limits UserNamespaces, lsm string) Attribution {
+		fp := Fingerprint{
+			Cell:    Cell{LSM: lsm, UserNamespaces: &limits},
+			Results: []ProbeResult{{ProbeID: probe.ID, Verdict: "denied", Errno: errno}},
+		}
+		got, err := Attribute(fp, []ProbeMetadata{probe})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return *got.Results[0].Attribution
+	}
+
+	if a := attribute(errnoENOSPC, UserNamespaces{Max: &zero}, "none"); a.Mechanism == nil || *a.Mechanism != KernelLimit {
+		t.Errorf("max_user_namespaces=0 ENOSPC = %+v, want kernel-limit", a)
+	}
+	a := attribute(errnoEPERM, UserNamespaces{UnprivilegedClone: &zero, ApparmorRestricted: &one}, "apparmor")
+	want := []Mechanism{Seccomp, KernelLimit, LSM}
+	if !a.Undecidable || !reflect.DeepEqual(a.Candidates, want) {
+		t.Errorf("restricted EPERM = %+v, want undecidable %v", a, want)
+	}
+	if a := attribute(errnoEPERM, UserNamespaces{Max: &one, UnprivilegedClone: &one}, "apparmor"); reflect.DeepEqual(a.Candidates, want) {
+		t.Errorf("no limit set should not add candidates: %+v", a)
+	}
+}
