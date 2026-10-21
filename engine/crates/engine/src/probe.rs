@@ -123,6 +123,19 @@ pub struct KernelDependency {
     /// fingerprint.
     #[serde(serialize_with = "errno_as_int")]
     pub absent_errno: Option<Errno>,
+    /// A second errno absence produces, read the same way: a family whose
+    /// protocol module is missing answers `EPROTONOSUPPORT` where the family
+    /// itself missing answers `EAFNOSUPPORT` (#96).
+    #[serde(
+        serialize_with = "errno_as_int",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub also_absent: Option<Errno>,
+    /// The release from which an LSM hook runs before the oracle's point, so
+    /// that on it and later an `EPERM` the oracle reads as `seccomp` is
+    /// seccomp or an LSM (#96: io_uring_setup, 6.15).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lsm_hook_since: Option<(u32, u32)>,
     /// A loaded kernel module whose presence is required by this probe.
     /// `None` when the dependency is not a single named module.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -146,6 +159,8 @@ impl KernelDependency {
     pub const NONE: KernelDependency = KernelDependency {
         since: None,
         absent_errno: None,
+        also_absent: None,
+        lsm_hook_since: None,
         module: None,
         present_if: None,
         encoded_absent: None,
@@ -156,6 +171,8 @@ impl KernelDependency {
         KernelDependency {
             since: None,
             absent_errno: Some(absent_errno),
+            also_absent: None,
+            lsm_hook_since: None,
             module: Some(module),
             present_if: None,
             encoded_absent: None,
@@ -169,7 +186,10 @@ impl KernelDependency {
         if self.encoded_absent.is_some_and(|e| e as i32 == errno) {
             return true;
         }
-        if self.absent_errno.is_none_or(|e| e as i32 != errno) {
+        if [self.absent_errno, self.also_absent]
+            .iter()
+            .all(|absent| absent.is_none_or(|e| e as i32 != errno))
+        {
             return false;
         }
         if self.present_if.is_some_and(exists) {

@@ -104,7 +104,18 @@ func (a Applicability) Includes(architecture string) bool {
 type KernelDependency struct {
 	Since       *KernelVersion `json:"since"`
 	AbsentErrno *int           `json:"absent_errno"`
-	Module      string         `json:"module,omitempty"`
+	// AlsoAbsent is a second errno absence produces, read like AbsentErrno.
+	AlsoAbsent *int   `json:"also_absent,omitempty"`
+	Module     string `json:"module,omitempty"`
+	// LSMHookSince is the release from which an LSM hook runs before the
+	// oracle's point, so a seccomp reading becomes seccomp or an LSM.
+	LSMHookSince *KernelVersion `json:"lsm_hook_since,omitempty"`
+}
+
+// absent reports whether errno is one the dependency reads as absence.
+func (d KernelDependency) absent(errno int) bool {
+	return (d.AbsentErrno != nil && errno == *d.AbsentErrno) ||
+		(d.AlsoAbsent != nil && errno == *d.AlsoAbsent)
 }
 
 // KernelVersion is the major/minor release used by a version-gated probe.
@@ -237,18 +248,18 @@ func sandboxed(runtimeClass string) bool {
 }
 
 func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) (bool, error) {
-	if dependency.AbsentErrno == nil {
+	if dependency.AbsentErrno == nil && dependency.AlsoAbsent == nil {
 		return false, nil
 	}
 	// A kernel dependency explains absence only when the other environment
 	// permits the probe. Denied, killed, and timed-out results indicate a policy
 	// or execution difference, not a kernel-version boundary.
 	if d.Left.Verdict == "unimplemented" {
-		if d.Left.Errno != *dependency.AbsentErrno || d.Right.Verdict != "permitted" {
+		if !dependency.absent(d.Left.Errno) || d.Right.Verdict != "permitted" {
 			return false, nil
 		}
 	} else if d.Right.Verdict == "unimplemented" {
-		if d.Right.Errno != *dependency.AbsentErrno || d.Left.Verdict != "permitted" {
+		if !dependency.absent(d.Right.Errno) || d.Left.Verdict != "permitted" {
 			return false, nil
 		}
 	} else {

@@ -28,7 +28,7 @@
 use std::collections::BTreeMap;
 use std::time::Duration;
 
-use caliper_engine::cell::{Arch, Capabilities, Cell, Kernel, KernelVersion, Lsm};
+use caliper_engine::cell::{Arch, Capabilities, Cell, Kernel, KernelVersion, Lsm, UserNamespaces};
 use caliper_engine::harness::Outcome;
 use caliper_engine::measurement::{measure, Measurement, FORMAT_VERSION};
 use caliper_engine::verdict::{classify, Verdict};
@@ -107,6 +107,7 @@ fn cell(version: Option<KernelVersion>) -> Cell {
         lsm_label: None,
         lsm_enforcing: None,
         capabilities: Capabilities::EMPTY,
+        user_namespaces: UserNamespaces::default(),
     }
 }
 

@@ -39,6 +39,13 @@ As agreed by all members and documented in `spec/probe.md`, the `ENOSYS` error r
 - **What it proves:**
   - If the probe returns `EPERM` instead of the guaranteed `EBADF`, it proves interception occurred before descriptor resolution. Since `seccomp` acts on the syscall entry before `fd` resolution, this EBADF oracle **isolates seccomp**. Any `EPERM` is definitively from a seccomp filter and not from an LSM or capability check.
 
+- **Kernel 6.15 and later:** `io_uring_setup` calls `security_uring_allowed()`
+  before checking its parameters, so for the setup and opcode probes an `EPERM`
+  is seccomp or an LSM from 6.15 on. The probes record this as the kernel
+  dependency's `lsm_hook_since: [6, 15]`, and attribution applies it to the
+  cell's kernel. `io_uring.register.probe` is unaffected: its `EBADF` comes from
+  `io_uring_register`, which has no such hook.
+
 ## 4. Capability Effects
 
 Capability probes deliberately use `Isolates::Undecidable`: the syscall's

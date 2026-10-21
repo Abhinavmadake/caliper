@@ -26,9 +26,11 @@ use caliper_engine::{
 
 use crate::common::{result, ONE_CALL};
 
-/// Bit 0 is not an unshare flag (`check_unshare_flags`), and `CLONE_NEWUSER`
-/// alongside it is the flag a policy is most likely to match on.
-const INVALID_UNSHARE: libc::c_int = libc::CLONE_NEWUSER | 0x1;
+/// Bit 0 is not an unshare flag (`check_unshare_flags`). Alone: with
+/// `CLONE_NEWUSER` set too, a kernel that gates user namespaces itself
+/// (Debian's `unprivileged_userns_clone=0`) could answer EPERM, which this
+/// oracle would blame on a filter (#96).
+const INVALID_UNSHARE: libc::c_int = 0x1;
 
 fn unshare_invalid() -> RawResult {
     // SAFETY: one integer argument.
@@ -128,7 +130,7 @@ pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
     id: "unshare.flags.invalid",
     family: "clone",
     status: Status::Committed,
-    description: "unshare(CLONE_NEWUSER | 0x1): an invalid flag set, guaranteed EINVAL",
+    description: "unshare(0x1): an invalid flag set, guaranteed EINVAL",
     risk: ONE_CALL,
     arch: Applicability::All,
     kernel: KernelDependency::NONE,
@@ -140,7 +142,7 @@ pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
                  flag, so EINVAL comes before create_user_ns and its LSM hook, and only a \
                  filter at syscall entry answers EPERM first",
     },
-    // CLONE_NEWUSER needs no capability; the flags that do are the
+    // No namespace flag, so no capability; the flags that need one are the
     // committed family's.
     capability: None,
     effects: SideEffects::NONE,

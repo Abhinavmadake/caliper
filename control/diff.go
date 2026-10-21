@@ -196,18 +196,28 @@ type Cell struct {
 	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
 	RuntimeClass   *SourcedValue   `json:"runtime_class,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	UserNamespaces *UserNamespaces `json:"user_namespaces,omitempty"`
+}
+
+// UserNamespaces are the kernel's own limits on creating a user namespace,
+// as the probe read them; a sysctl the kernel lacks is nil.
+type UserNamespaces struct {
+	Max                *uint64 `json:"max,omitempty"`
+	UnprivilegedClone  *uint64 `json:"unprivileged_clone,omitempty"`
+	ApparmorRestricted *uint64 `json:"apparmor_restricted,omitempty"`
 }
 
 // ProbeCell contains the identity measured inside the workload. Runtime,
 // distribution and RuntimeClass are intentionally absent: the probe cannot
 // observe them reliably and the control plane supplies them.
 type ProbeCell struct {
-	Architecture string          `json:"architecture"`
-	Kernel       Kernel          `json:"kernel"`
-	LSM          string          `json:"lsm"`
-	LSMLabel     *string         `json:"lsm_label,omitempty"`
-	LSMEnforcing *bool           `json:"lsm_enforcing,omitempty"`
-	Capabilities json.RawMessage `json:"capabilities,omitempty"`
+	Architecture   string          `json:"architecture"`
+	Kernel         Kernel          `json:"kernel"`
+	LSM            string          `json:"lsm"`
+	LSMLabel       *string         `json:"lsm_label,omitempty"`
+	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
+	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	UserNamespaces *UserNamespaces `json:"user_namespaces,omitempty"`
 }
 
 // CellMetadata contains identity supplied by the control plane. Values that
@@ -245,6 +255,7 @@ func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
 		LSMEnforcing:   probe.LSMEnforcing,
 		RuntimeClass:   metadata.RuntimeClass,
 		Capabilities:   probe.Capabilities,
+		UserNamespaces: probe.UserNamespaces,
 	}
 }
 

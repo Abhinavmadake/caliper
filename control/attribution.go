@@ -30,6 +30,8 @@ const (
 	LSM               Mechanism = "lsm"
 	CapabilityMissing Mechanism = "capability"
 	Mount             Mechanism = "mount"
+	// KernelLimit is the kernel's own limit, such as a user-namespace sysctl.
+	KernelLimit Mechanism = "kernel-limit"
 )
 
 // Confidence grades an attribution. High is a positive proof; medium is the
@@ -58,6 +60,7 @@ type Attribution struct {
 const (
 	errnoENOENT  = 2
 	errnoEPERM   = 1
+	errnoENOSPC  = 28
 	errnoENOSYS  = 38
 	errnoENODATA = 61
 	errnoEROFS   = 30
@@ -78,6 +81,7 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 		if !ok {
 			return Fingerprint{}, fmt.Errorf("no corpus metadata for probe %q", r.ProbeID)
 		}
+		probe = withKernelHooks(probe, fp.Cell.Kernel.Release)
 		a := correlate(attribute(r, probe), r, probe, fp.Cell)
 		r.Attribution = &a
 		results[i] = r
@@ -115,11 +119,32 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 		}
 	}
 
+	if strings.Contains(p.ID, "newuser") && cell.UserNamespaces != nil {
+		if a, ok := userNamespaceLimit(r, cell); ok {
+			return a
+		}
+	}
+
 	if r.Errno == 13 && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
 		return correlated(LSM,
 			fmt.Sprintf("EACCES follows the security-module hook and %s is enforcing label %q", cell.LSM, *cell.LSMLabel))
 	}
 	return a
+}
+
+// withKernelHooks applies a dependency's lsm_hook_since: on that release or
+// later, or when the release cannot be read, a seccomp oracle reads as
+// seccomp or an LSM.
+func withKernelHooks(p ProbeMetadata, release string) ProbeMetadata {
+	since := p.Kernel.LSMHookSince
+	if since == nil || p.Oracle.Isolates != "seccomp" {
+		return p
+	}
+	if version, known := parseKernelVersion(release); known && before(version, *since) {
+		return p
+	}
+	p.Oracle.Isolates = "seccomp-or-lsm"
+	return p
 }
 
 func correlated(mechanism Mechanism, reason string) Attribution {
@@ -266,4 +291,32 @@ func errnoName(n int) string {
 		return name
 	}
 	return fmt.Sprintf("errno %d", n)
+}
+
+// userNamespaceLimit reads a user-namespace probe's denial against the
+// kernel's own limits recorded in the cell (#96). ENOSPC with no namespaces
+// allowed is the limit; an EPERM while a limit is set could be the limit, an
+// LSM or a filter, so it is undecidable between them rather than seccomp.
+func userNamespaceLimit(r ProbeResult, cell Cell) (Attribution, bool) {
+	limits := cell.UserNamespaces
+	if r.Errno == errnoENOSPC && limits.Max != nil && *limits.Max == 0 {
+		return correlated(KernelLimit, "user.max_user_namespaces is 0, and the kernel answers ENOSPC to every user-namespace creation"), true
+	}
+	if r.Errno != errnoEPERM {
+		return Attribution{}, false
+	}
+	candidates := []Mechanism{Seccomp}
+	var reasons []string
+	if limits.UnprivilegedClone != nil && *limits.UnprivilegedClone == 0 {
+		candidates = append(candidates, KernelLimit)
+		reasons = append(reasons, "kernel.unprivileged_userns_clone is 0")
+	}
+	if limits.ApparmorRestricted != nil && *limits.ApparmorRestricted == 1 && cell.LSM == "apparmor" {
+		candidates = append(candidates, LSM)
+		reasons = append(reasons, "kernel.apparmor_restrict_unprivileged_userns is 1")
+	}
+	if len(reasons) == 0 {
+		return Attribution{}, false
+	}
+	return undecidable(candidates, "EPERM on a user-namespace creation: "+strings.Join(reasons, " and ")+", so it is the kernel's limit, an LSM or a filter"), true
 }

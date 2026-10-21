@@ -2,3 +2,4 @@
 # Append a line when the corpus changes; never edit an old one
 # (engine/crates/probe/tests/corpus_revision.rs).
 0.2.0 faa5ab4f553c825d
+0.3.0 982f15b86dbd3a74
