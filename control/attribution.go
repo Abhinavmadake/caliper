@@ -119,8 +119,8 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 		}
 	}
 
-	if strings.Contains(p.ID, "newuser") && cell.UserNamespaces != nil {
-		if a, ok := userNamespaceLimit(r, cell); ok {
+	if p.Kernel.UserNamespaceLimits && cell.UserNamespaces != nil {
+		if a, ok := userNamespaceLimit(a, r, cell); ok {
 			return a
 		}
 	}
@@ -295,9 +295,10 @@ func errnoName(n int) string {
 
 // userNamespaceLimit reads a user-namespace probe's denial against the
 // kernel's own limits recorded in the cell (#96). ENOSPC with no namespaces
-// allowed is the limit; an EPERM while a limit is set could be the limit, an
-// LSM or a filter, so it is undecidable between them rather than seccomp.
-func userNamespaceLimit(r ProbeResult, cell Cell) (Attribution, bool) {
+// allowed is the limit; an EPERM while a limit is set could be the limit or
+// whatever the oracle already allowed, so the limit widens the oracle's
+// candidates rather than replacing them.
+func userNamespaceLimit(a Attribution, r ProbeResult, cell Cell) (Attribution, bool) {
 	limits := cell.UserNamespaces
 	if r.Errno == errnoENOSPC && limits.Max != nil && *limits.Max == 0 {
 		return correlated(KernelLimit, "user.max_user_namespaces is 0, and the kernel answers ENOSPC to every user-namespace creation"), true
@@ -305,18 +306,48 @@ func userNamespaceLimit(r ProbeResult, cell Cell) (Attribution, bool) {
 	if r.Errno != errnoEPERM {
 		return Attribution{}, false
 	}
-	candidates := []Mechanism{Seccomp}
+	candidates := append([]Mechanism(nil), a.Candidates...)
+	if a.Mechanism != nil {
+		candidates = append(candidates, *a.Mechanism)
+	}
 	var reasons []string
 	if limits.UnprivilegedClone != nil && *limits.UnprivilegedClone == 0 {
-		candidates = append(candidates, KernelLimit)
+		candidates = appendMechanism(candidates, KernelLimit)
 		reasons = append(reasons, "kernel.unprivileged_userns_clone is 0")
 	}
 	if limits.ApparmorRestricted != nil && *limits.ApparmorRestricted == 1 && cell.LSM == "apparmor" {
-		candidates = append(candidates, LSM)
+		candidates = appendMechanism(candidates, LSM)
 		reasons = append(reasons, "kernel.apparmor_restrict_unprivileged_userns is 1")
 	}
 	if len(reasons) == 0 {
 		return Attribution{}, false
 	}
-	return undecidable(candidates, "EPERM on a user-namespace creation: "+strings.Join(reasons, " and ")+", so it is the kernel's limit, an LSM or a filter"), true
+	return undecidable(candidates, "EPERM on a user-namespace creation: "+strings.Join(reasons, " and ")+", so it is "+mechanismList(candidates)), true
+}
+
+func appendMechanism(mechanisms []Mechanism, m Mechanism) []Mechanism {
+	for _, have := range mechanisms {
+		if have == m {
+			return mechanisms
+		}
+	}
+	return append(mechanisms, m)
+}
+
+var mechanismPhrases = map[Mechanism]string{
+	Seccomp: "a filter", LSM: "an LSM", CapabilityMissing: "a missing capability",
+	Mount: "a mount", KernelLimit: "the kernel's limit",
+}
+
+// mechanismList names the candidates in prose: "a filter, an LSM or the
+// kernel's limit".
+func mechanismList(mechanisms []Mechanism) string {
+	phrases := make([]string, len(mechanisms))
+	for i, m := range mechanisms {
+		phrases[i] = mechanismPhrases[m]
+	}
+	if len(phrases) < 2 {
+		return strings.Join(phrases, "")
+	}
+	return strings.Join(phrases[:len(phrases)-1], ", ") + " or " + phrases[len(phrases)-1]
 }

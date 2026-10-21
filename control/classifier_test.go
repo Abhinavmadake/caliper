@@ -351,13 +351,18 @@ func assertClass(t *testing.T, result ClassificationResult, id string, want Dive
 
 func TestAlsoAbsentErrnoExplainsAProtocolModuleBoundary(t *testing.T) {
 	eafnosupport, eprotonosupport := 97, 93
-	modules := []string{"can"}
 	probe := ProbeMetadata{ID: "socket.family.af_can", Arch: Applicability{All: true},
-		Kernel: KernelDependency{AbsentErrno: &eafnosupport, AlsoAbsent: &eprotonosupport, Module: "can"}}
-	left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: probe.ID, Verdict: "unimplemented", Errno: eprotonosupport}})
-	right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: probe.ID, Verdict: "permitted"}})
-	none := []string{}
-	left.Cell.Kernel.Modules = &none
-	right.Cell.Kernel.Modules = &modules
-	assertClass(t, mustClassify(t, left, right, []ProbeMetadata{probe}), probe.ID, KernelVersionExplained)
+		Kernel: KernelDependency{AbsentErrno: &eafnosupport, AlsoAbsent: &eprotonosupport, Module: "can", ProtocolModule: "can_raw"}}
+	classify := func(errno int, leftModules, rightModules []string) ClassificationResult {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: probe.ID, Verdict: "unimplemented", Errno: errno}})
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: probe.ID, Verdict: "permitted"}})
+		left.Cell.Kernel.Modules = &leftModules
+		right.Cell.Kernel.Modules = &rightModules
+		return mustClassify(t, left, right, []ProbeMetadata{probe})
+	}
+	// EPROTONOSUPPORT means the family is loaded on both sides: only the
+	// protocol's module can tell them apart.
+	assertClass(t, classify(eprotonosupport, []string{"can"}, []string{"can", "can_raw"}), probe.ID, KernelVersionExplained)
+	assertClass(t, classify(eprotonosupport, []string{"can", "can_raw"}, []string{"can", "can_raw"}), probe.ID, PolicyExplained)
+	assertClass(t, classify(eafnosupport, []string{}, []string{"can", "can_raw"}), probe.ID, KernelVersionExplained)
 }

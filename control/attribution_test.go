@@ -238,7 +238,8 @@ func TestLSMHookSinceTurnsSeccompIntoSeccompOrLSM(t *testing.T) {
 
 func TestUserNamespaceLimitsWidenOrExplainTheDenial(t *testing.T) {
 	zero, one := uint64(0), uint64(1)
-	probe := ProbeMetadata{ID: "unshare.flags.newuser", Family: "clone", Oracle: Oracle{Isolates: "seccomp-or-lsm"}}
+	probe := ProbeMetadata{ID: "unshare.flags.newuser", Family: "clone", Oracle: Oracle{Isolates: "seccomp-or-lsm"},
+		Kernel: KernelDependency{UserNamespaceLimits: true}}
 	attribute := func(errno int, limits UserNamespaces, lsm string) Attribution {
 		fp := Fingerprint{
 			Cell:    Cell{LSM: lsm, UserNamespaces: &limits},
@@ -255,9 +256,14 @@ func TestUserNamespaceLimitsWidenOrExplainTheDenial(t *testing.T) {
 		t.Errorf("max_user_namespaces=0 ENOSPC = %+v, want kernel-limit", a)
 	}
 	a := attribute(errnoEPERM, UserNamespaces{UnprivilegedClone: &zero, ApparmorRestricted: &one}, "apparmor")
-	want := []Mechanism{Seccomp, KernelLimit, LSM}
+	want := []Mechanism{Seccomp, LSM, KernelLimit}
 	if !a.Undecidable || !reflect.DeepEqual(a.Candidates, want) {
 		t.Errorf("restricted EPERM = %+v, want undecidable %v", a, want)
+	}
+	// The limit widens the oracle's reading: an LSM other than AppArmor's
+	// sysctl stays a candidate.
+	if a := attribute(errnoEPERM, UserNamespaces{UnprivilegedClone: &zero}, "selinux"); !reflect.DeepEqual(a.Candidates, want) {
+		t.Errorf("unprivileged_userns_clone=0 under SELinux = %+v, want %v", a, want)
 	}
 	if a := attribute(errnoEPERM, UserNamespaces{Max: &one, UnprivilegedClone: &one}, "apparmor"); reflect.DeepEqual(a.Candidates, want) {
 		t.Errorf("no limit set should not add candidates: %+v", a)
