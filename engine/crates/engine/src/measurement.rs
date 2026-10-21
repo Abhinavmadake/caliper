@@ -41,7 +41,7 @@ use serde::Serialize;
 
 use crate::cell::Cell;
 use crate::effects::ResidualClass;
-use crate::harness::run_isolated;
+use crate::harness::{run_isolated, Fault};
 use crate::probe::Probe;
 use crate::residual::{janitor, loaded_modules, ModuleDelta, ObservabilityMap, Removal, Snapshot};
 use crate::verdict::{classify, Measured, NotMeasured, Verdict};
@@ -78,6 +78,9 @@ pub enum Unmeasurable {
     NotMeasured(NotMeasured),
     /// The harness itself failed — fork, pidfd or wait.
     Harness(#[serde(serialize_with = "errno_as_int")] nix::errno::Errno),
+    /// Not run: an earlier probe's child could not be reaped, and anything
+    /// it does later would land in this probe's snapshots (#99).
+    AfterUnreaped,
 }
 
 fn errno_as_int<S: serde::Serializer>(e: &nix::errno::Errno, s: S) -> Result<S::Ok, S::Error> {
@@ -193,6 +196,8 @@ impl Measurement {
         let mut leaks = Vec::new();
         let mut unverifiable = Vec::new();
         let mut per_probe_sum = [0i64; ResidualClass::ALL.len()];
+        // Set once a child outlives its probe: from then on nothing forks.
+        let mut unreaped = false;
 
         for probe in probes {
             // A probe that is refused or not applicable never forks, so
@@ -201,6 +206,7 @@ impl Measurement {
             // nothing.
             let outcome = match decided_without_running(probe, &cell) {
                 Some(decided) => decided,
+                None if unreaped => Err(Unmeasurable::AfterUnreaped),
                 None => {
                     for class in ResidualClass::ALL {
                         if probe.effects.declares(class) && run_before.get(class).count().is_none()
@@ -213,9 +219,16 @@ impl Measurement {
                     }
                     let before = Snapshot::take();
                     let outcome = run_and_classify(probe, &cell);
+                    unreaped = matches!(
+                        outcome,
+                        Err(Unmeasurable::NotMeasured(NotMeasured::Fault(
+                            Fault::Unreaped
+                        )))
+                    );
                     // Returns only after waitpid has reaped the child, so
                     // this is the kernel's state after teardown, not on
-                    // exit.
+                    // exit — unless the child is unreaped, and then the
+                    // run stops forking.
                     let after = Snapshot::take();
                     for (class, delta) in ResidualClass::ALL.iter().zip(before.delta(&after)) {
                         if let Some(delta) = delta {
