@@ -17,21 +17,22 @@
 
 #![cfg(target_os = "linux")]
 
+mod common;
+
 use serde_json::Value;
 use std::collections::BTreeMap;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 const PROBE: &str = env!("CARGO_BIN_EXE_caliper-probe");
 
 fn run_probe() -> Value {
-    let out = Command::new(PROBE)
-        .arg("--run")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .output()
-        .expect("spawn caliper-probe");
-    assert!(out.status.success(), "caliper-probe --run failed");
-    serde_json::from_slice(&out.stdout).expect("output is JSON")
+    let (status, doc) = common::settled(|| {
+        let mut cmd = Command::new(PROBE);
+        cmd.arg("--run");
+        cmd
+    });
+    assert!(status.success(), "caliper-probe --run: {status:?}");
+    doc
 }
 
 #[test]

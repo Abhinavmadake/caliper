@@ -22,13 +22,14 @@
 
 #![cfg(target_os = "linux")]
 
+mod common;
+
 use std::collections::BTreeMap;
 use std::io::Cursor;
 use std::os::unix::process::CommandExt;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use seccompiler::{apply_filter, compile_from_json, BpfProgram, TargetArch};
-use serde_json::Value;
 
 const PROBE: &str = env!("CARGO_BIN_EXE_caliper-probe");
 
@@ -42,23 +43,20 @@ fn results() -> BTreeMap<String, (String, u64)> {
 }
 
 fn results_under(filter: Option<BpfProgram>) -> BTreeMap<String, (String, u64)> {
-    let mut cmd = Command::new(PROBE);
-    if let Some(filter) = filter {
-        // SAFETY: prctl and seccomp on a program built before the fork.
-        unsafe {
-            cmd.pre_exec(move || {
-                apply_filter(&filter).map_err(|e| std::io::Error::other(e.to_string()))
-            });
+    let (status, doc) = common::settled(|| {
+        let mut cmd = Command::new(PROBE);
+        if let Some(filter) = filter.clone() {
+            // SAFETY: prctl and seccomp on a program built before the fork.
+            unsafe {
+                cmd.pre_exec(move || {
+                    apply_filter(&filter).map_err(|e| std::io::Error::other(e.to_string()))
+                });
+            }
         }
-    }
-    let out = cmd
-        .arg("--run")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit())
-        .output()
-        .expect("spawn caliper-probe");
-    assert!(out.status.success(), "caliper-probe --run failed");
-    let doc: Value = serde_json::from_slice(&out.stdout).expect("output is JSON");
+        cmd.arg("--run");
+        cmd
+    });
+    assert!(status.success(), "caliper-probe --run: {status:?}");
     doc["results"]
         .as_array()
         .unwrap()

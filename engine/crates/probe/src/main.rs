@@ -37,7 +37,15 @@ usage: caliper-probe <mode>
   --dump-corpus    emit the compiled-in corpus as JSON. An output, never an
                    input (spec/probe.md)
   --version        print the version and exit
+
+exit status: 0 measured; 3 measured with defects (a probe other than a
+deferred one unmeasured, or an undeclared object left behind), the document
+still written; 1 could not measure; 2 usage
 ";
+
+/// Measured, but the run has defects worth failing on (#99): the document
+/// is complete and on stdout.
+const EXIT_DEFECTS: u8 = 3;
 
 fn main() -> ExitCode {
     if let Err(e) = caliper_engine::init() {
@@ -114,7 +122,17 @@ fn run(reduced: bool) -> ExitCode {
             );
         }
     }
-    emit(&m)
+    let defects = m
+        .unmeasured
+        .iter()
+        .any(|u| u.why != Unmeasurable::Deferred)
+        // A negative delta is something gone, not something left behind.
+        || m.residual.leaks.iter().any(|l| !l.declared && l.delta > 0);
+    match (write_json(&m), defects) {
+        (false, _) => ExitCode::FAILURE,
+        (true, true) => ExitCode::from(EXIT_DEFECTS),
+        (true, false) => ExitCode::SUCCESS,
+    }
 }
 
 fn dump_corpus() -> ExitCode {
@@ -122,16 +140,24 @@ fn dump_corpus() -> ExitCode {
 }
 
 fn emit<T: serde::Serialize + ?Sized>(value: &T) -> ExitCode {
+    if write_json(value) {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
+}
+
+fn write_json<T: serde::Serialize + ?Sized>(value: &T) -> bool {
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     match serde_json::to_writer_pretty(&mut out, value) {
         Ok(()) => {
             let _ = out.write_all(b"\n");
-            ExitCode::SUCCESS
+            true
         }
         Err(e) => {
             eprintln!("caliper-probe: {e}");
-            ExitCode::FAILURE
+            false
         }
     }
 }

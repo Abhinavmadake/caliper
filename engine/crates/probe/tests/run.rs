@@ -25,10 +25,12 @@
 
 #![cfg(target_os = "linux")]
 
+mod common;
+
 use std::collections::BTreeMap;
 use std::io;
 use std::os::unix::process::CommandExt;
-use std::process::{Command, Stdio};
+use std::process::Command;
 
 use seccompiler::{apply_filter, BpfProgram, SeccompAction, SeccompFilter, TargetArch};
 use serde_json::Value;
@@ -46,8 +48,9 @@ const PROBED: &[libc::c_long] = &[
     libc::SYS_socket,
     libc::SYS_io_uring_register,
     libc::SYS_io_uring_setup,
+    // Not mkdirat: it is the mount probes' helper, and a kill there is
+    // recorded as setup, not as a kill of mount(2) (#96).
     libc::SYS_mount,
-    libc::SYS_mkdirat,
     libc::SYS_unshare,
     libc::SYS_clone3,
     libc::SYS_fstatfs,
@@ -80,27 +83,23 @@ fn kill_probed() -> BpfProgram {
 /// Run `caliper-probe <mode>`, with `filter` installed in the child before
 /// exec, and parse what it printed.
 fn run(mode: &str, filter: Option<BpfProgram>) -> Value {
-    let mut cmd = Command::new(PROBE);
-    cmd.arg(mode)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit());
-    if let Some(filter) = filter {
-        // SAFETY: pre_exec runs in the forked child; apply_filter is two
-        // syscalls on a program built before the fork, and the error path
-        // constructs nothing that allocates.
-        unsafe {
-            cmd.pre_exec(move || {
-                apply_filter(&filter).map_err(|_| io::Error::from_raw_os_error(libc::EPERM))
-            });
+    let (status, doc) = common::settled(|| {
+        let mut cmd = Command::new(PROBE);
+        cmd.arg(mode);
+        if let Some(filter) = filter.clone() {
+            // SAFETY: pre_exec runs in the forked child; apply_filter is two
+            // syscalls on a program built before the fork, and the error path
+            // constructs nothing that allocates.
+            unsafe {
+                cmd.pre_exec(move || {
+                    apply_filter(&filter).map_err(|_| io::Error::from_raw_os_error(libc::EPERM))
+                });
+            }
         }
-    }
-    let out = cmd.output().expect("spawn caliper-probe");
-    assert!(
-        out.status.success(),
-        "caliper-probe {mode} failed: {:?}",
-        out.status
-    );
-    serde_json::from_slice(&out.stdout).expect("output is JSON")
+        cmd
+    });
+    assert!(status.success(), "caliper-probe {mode}: {status:?}");
+    doc
 }
 
 #[repr(C)]
@@ -143,23 +142,20 @@ unsafe fn drop_all_capabilities() -> io::Result<()> {
 }
 
 fn run_without_capabilities() -> Value {
-    let mut cmd = Command::new(PROBE);
-    cmd.arg("--run")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::inherit());
-    // SAFETY: capset is the only operation before exec and does not allocate.
-    unsafe {
-        cmd.pre_exec(|| drop_all_capabilities());
-    }
-    let out = cmd
-        .output()
-        .expect("spawn caliper-probe without capabilities");
+    let (status, doc) = common::settled(|| {
+        let mut cmd = Command::new(PROBE);
+        cmd.arg("--run");
+        // SAFETY: capset is the only operation before exec and does not allocate.
+        unsafe {
+            cmd.pre_exec(|| drop_all_capabilities());
+        }
+        cmd
+    });
     assert!(
-        out.status.success(),
-        "caliper-probe --run without capabilities failed: {:?}",
-        out.status
+        status.success(),
+        "caliper-probe --run without capabilities: {status:?}"
     );
-    serde_json::from_slice(&out.stdout).expect("output is JSON")
+    doc
 }
 
 const VERDICTS: &[&str] = &[
