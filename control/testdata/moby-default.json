@@ -1,0 +1,67 @@
+{
+  "defaultAction": "SCMP_ACT_ERRNO",
+  "defaultErrnoRet": 1,
+  "archMap": [
+    {
+      "architecture": "SCMP_ARCH_X86_64",
+      "subArchitectures": ["SCMP_ARCH_X86", "SCMP_ARCH_X32"]
+    },
+    {
+      "architecture": "SCMP_ARCH_AARCH64",
+      "subArchitectures": ["SCMP_ARCH_ARM"]
+    }
+  ],
+  "syscalls": [
+    {
+      "names": ["read", "write", "close", "futex"],
+      "action": "SCMP_ACT_ALLOW"
+    },
+    {
+      "names": ["process_vm_readv", "process_vm_writev", "ptrace"],
+      "action": "SCMP_ACT_ALLOW",
+      "includes": {"minKernel": "4.8"}
+    },
+    {
+      "names": ["socket"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [{"index": 0, "value": 3, "op": "SCMP_CMP_LT"}]
+    },
+    {
+      "names": ["socket"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [{"index": 0, "value": 7, "op": "SCMP_CMP_EQ"}]
+    },
+    {
+      "names": ["socket"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [{"index": 0, "value": 16, "op": "SCMP_CMP_EQ"}]
+    },
+    {
+      "names": ["socket"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [{"index": 0, "value": 39, "op": "SCMP_CMP_EQ"}]
+    },
+    {
+      "names": ["socket"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [{"index": 0, "value": 41, "op": "SCMP_CMP_EQ"}]
+    },
+    {
+      "names": ["arch_prctl"],
+      "action": "SCMP_ACT_ALLOW",
+      "includes": {"arches": ["amd64", "x32"]}
+    },
+    {
+      "names": ["clone"],
+      "action": "SCMP_ACT_ALLOW",
+      "args": [{"index": 0, "value": 2114060288, "op": "SCMP_CMP_MASKED_EQ"}],
+      "excludes": {"caps": ["CAP_SYS_ADMIN"], "arches": ["s390", "s390x"]}
+    },
+    {
+      "names": ["clone3"],
+      "action": "SCMP_ACT_ERRNO",
+      "errnoRet": 38,
+      "excludes": {"caps": ["CAP_SYS_ADMIN"]}
+    }
+  ]
+}
