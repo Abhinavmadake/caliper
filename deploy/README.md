@@ -160,6 +160,13 @@ cd control && go run ./cmd/caliper-complete -distribution "Ubuntu 24.04" \
 
 `fixtures/cells/` holds a full-corpus recording of every cell, each from a
 fresh boot, completed with handler `runc` for cells 1 to 4, `runsc` for cell 5
-and `kata` for cell 6. Beside each, `cellN.packages` records the probe image
-(the amd64 digest, or the arm64 build's image ID, both from `25897f7`), the
-cell's packages, and what containerd applied.
+and `kata` for cell 6, and `cell2-hardened.json`: cell 2 under
+`engine/fixtures/seccomp/hardened.json` as a Localhost profile, the hardened
+counterpart of `cell2.json` (`cells.sh measure cell2 <image> <profile>`).
+Beside each, `cellN.packages` records the probe image, the cell's packages,
+and what containerd applied. They are corpus `0.3.0`, measured with images
+built locally from `529048c`: amd64 `sha256:b50f2503…` and arm64
+`sha256:c1bab330…` (the `.packages` files have the full IDs).
+`fixtures/x86_64-apparmor*.json` are the earlier Lima recordings under Docker,
+kept with their tests; the hardened one predates the clone rules in
+`hardened.json`.

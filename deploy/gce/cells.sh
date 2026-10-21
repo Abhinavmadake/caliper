@@ -19,8 +19,10 @@
 #   cells.sh create  <cell>          VM from a pinned image, then provision
 #   cells.sh provision <cell>        re-run the cell's provisioning script
 #   cells.sh load    <cell> <tar>    import an image archive (docker save), e.g. arm64 for cell1
-#   cells.sh measure <cell> [image]  reboot, then run the probe through CRI (measure.sh);
-#                                    raw probe output on stdout
+#   cells.sh measure <cell> [image] [profile.json]
+#                                    reboot, then run the probe through CRI (measure.sh),
+#                                    under RuntimeDefault or the given Localhost seccomp
+#                                    profile; raw probe output on stdout
 #   cells.sh packages <cell>         the cell's recorded kernel and package versions
 #   cells.sh stop    <cell>          stop billing for CPU and memory
 #   cells.sh start   <cell>
@@ -107,20 +109,25 @@ reboot_cell() {
 }
 
 measure() {
-    local image=${2:-$IMAGE} dir
+    local image=${2:-$IMAGE} profile=${3:-} dir ref=""
     reboot_cell
-    dir=$(upload "$here/measure.sh")
-    on "sudo bash $dir/measure.sh '$image' '$handler'; rc=\$?; rm -rf $dir; exit \$rc"
+    if [ -n "$profile" ]; then
+        dir=$(upload "$here/measure.sh" "$profile")
+        ref="$dir/$(basename "$profile")"
+    else
+        dir=$(upload "$here/measure.sh")
+    fi
+    on "sudo bash $dir/measure.sh '$image' '$handler' '$ref'; rc=\$?; rm -rf $dir; exit \$rc"
 }
 
-[ $# -ge 2 ] || { sed -n '17,30p' "$0" >&2; exit 2; }
+[ $# -ge 2 ] || { sed -n '17,32p' "$0" >&2; exit 2; }
 cmd=$1
 cell "$2"
 case "$cmd" in
     create) create "$2" ;;
     provision) provision "$2" ;;
     load) load "$2" "${3:?archive}" ;;
-    measure) measure "$2" "${3:-}" ;;
+    measure) measure "$2" "${3:-}" "${4:-}" ;;
     packages) on "cat /etc/caliper/packages" ;;
     stop) gc compute instances stop "$vm" --zone "$ZONE" ;;
     start) gc compute instances start "$vm" --zone "$ZONE" ;;
