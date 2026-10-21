@@ -47,7 +47,6 @@ use std::time::Duration;
 
 use nix::errno::Errno;
 use nix::sys::signal::{kill, Signal};
-use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
 
 use crate::probe::{Probe, RawResult};
@@ -60,6 +59,9 @@ const MAX_ERRNO: i32 = 200;
 const EXIT_PANIC: i32 = 253;
 /// The probe returned an errno outside `1..=MAX_ERRNO`.
 const EXIT_ERRNO_RANGE: i32 = 254;
+/// How long a SIGKILLed child may take to be reapable. A child stuck in an
+/// uninterruptible sleep would otherwise hang the run (#99).
+const KILL_GRACE: Duration = Duration::from_secs(10);
 
 /// How the child ended: the wait status decoded, and nothing more. Turning
 /// this into a verdict is #8's job.
@@ -126,7 +128,7 @@ pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::R
         // not become a hang.
         let err = Errno::last();
         let _ = kill(Pid::from_raw(pid), Signal::SIGKILL);
-        let _ = waitpid(Pid::from_raw(pid), None);
+        let _ = reap(pid);
         return Err(err);
     }
     let outcome = wait_bounded(Pid::from_raw(pid), pidfd, timeout);
@@ -144,8 +146,11 @@ fn child(f: &dyn Fn() -> RawResult) -> ! {
     std::panic::set_hook(Box::new(|_| unsafe { libc::_exit(EXIT_PANIC) }));
     let code = match f() {
         Ok(()) => 0,
-        Err(errno) => match errno as i32 {
-            n @ 1..=MAX_ERRNO => n,
+        // nix maps an errno it has no name for to 0; the raw value is still
+        // in errno, from the call that failed (#99).
+        // SAFETY: reads this thread's errno.
+        Err(errno) => match (errno as i32, unsafe { *libc::__errno_location() }) {
+            (0, n @ 1..=MAX_ERRNO) | (n @ 1..=MAX_ERRNO, _) => n,
             _ => EXIT_ERRNO_RANGE,
         },
     };
@@ -156,6 +161,43 @@ fn child(f: &dyn Fn() -> RawResult) -> ! {
 
 /// Wait for the child up to `timeout`, killing it on expiry.
 fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<Outcome> {
+    let ready = match poll_exit(pidfd, timeout) {
+        Ok(ready) => ready,
+        Err(err) => {
+            // The child is still ours to reap: kill it first, so a poll
+            // failure leaves neither a running child nor a zombie (#99).
+            let _ = kill_and_reap(pid, pidfd);
+            return Err(err);
+        }
+    };
+    if !ready {
+        kill_and_reap(pid, pidfd)?;
+        return Ok(Outcome::TimedOut);
+    }
+    let status = reap(pid.as_raw())?;
+    Ok(if libc::WIFEXITED(status) {
+        match libc::WEXITSTATUS(status) {
+            0 => Outcome::Returned { errno: 0 },
+            n @ 1..=MAX_ERRNO => Outcome::Returned { errno: n },
+            EXIT_PANIC => Outcome::Fault(Fault::Panicked),
+            EXIT_ERRNO_RANGE => Outcome::Fault(Fault::ErrnoOutOfRange),
+            n => Outcome::Fault(Fault::UnknownExit(n)),
+        }
+    } else if libc::WIFSIGNALED(status) {
+        // Raw signal number: nix's waitpid rejects real-time signals, which
+        // made such a death a harness error (#99).
+        Outcome::Signaled {
+            signal: libc::WTERMSIG(status),
+        }
+    } else {
+        // Stopped/continued are not requested (no WUNTRACED/WCONTINUED), so
+        // this does not happen; recorded rather than assumed.
+        Outcome::Fault(Fault::UnknownExit(-1))
+    })
+}
+
+/// Whether the pidfd became readable (the child exited) within `timeout`.
+fn poll_exit(pidfd: libc::c_int, timeout: Duration) -> nix::Result<bool> {
     let mut pfd = libc::pollfd {
         fd: pidfd,
         events: libc::POLLIN,
@@ -170,7 +212,7 @@ fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<
     // same deadline instead of starting a fresh one, and the risk class's
     // timeout is a hard bound — readable against a `timed-out` verdict, as
     // spec/probe.md decision 2 requires. musl's wrapper passes a copy.
-    let ready = loop {
+    loop {
         // SAFETY: one valid pollfd, a valid mutable timespec, no sigmask.
         let r = unsafe {
             libc::syscall(
@@ -183,26 +225,35 @@ fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<
             )
         };
         match r {
-            0 => break false,
-            r if r > 0 => break true,
+            0 => return Ok(false),
+            r if r > 0 => return Ok(true),
             _ if Errno::last() == Errno::EINTR => continue,
             _ => return Err(Errno::last()),
         }
-    };
-    if !ready {
-        kill(pid, Signal::SIGKILL)?;
-        waitpid(pid, None)?;
-        return Ok(Outcome::TimedOut);
     }
-    Ok(match waitpid(pid, None)? {
-        WaitStatus::Exited(_, 0) => Outcome::Returned { errno: 0 },
-        WaitStatus::Exited(_, n @ 1..=MAX_ERRNO) => Outcome::Returned { errno: n },
-        WaitStatus::Exited(_, EXIT_PANIC) => Outcome::Fault(Fault::Panicked),
-        WaitStatus::Exited(_, EXIT_ERRNO_RANGE) => Outcome::Fault(Fault::ErrnoOutOfRange),
-        WaitStatus::Exited(_, n) => Outcome::Fault(Fault::UnknownExit(n)),
-        WaitStatus::Signaled(_, sig, _) => Outcome::Signaled { signal: sig as i32 },
-        // Stopped/continued are not requested (no WUNTRACED/WCONTINUED), so
-        // this does not happen; recorded rather than assumed.
-        _ => Outcome::Fault(Fault::UnknownExit(-1)),
-    })
+}
+
+/// SIGKILL the child and reap it, waiting at most [`KILL_GRACE`]. A child
+/// that is still not reapable is left as an error rather than a hang.
+fn kill_and_reap(pid: Pid, pidfd: libc::c_int) -> nix::Result<()> {
+    kill(pid, Signal::SIGKILL)?;
+    if !poll_exit(pidfd, KILL_GRACE)? {
+        return Err(Errno::ETIMEDOUT);
+    }
+    reap(pid.as_raw()).map(|_| ())
+}
+
+/// waitpid for one child, retried on EINTR; the raw wait status.
+fn reap(pid: libc::pid_t) -> nix::Result<libc::c_int> {
+    let mut status = 0;
+    loop {
+        // SAFETY: a child of this process and a valid status pointer.
+        let r = unsafe { libc::waitpid(pid, &mut status, 0) };
+        if r == pid {
+            return Ok(status);
+        }
+        if Errno::last() != Errno::EINTR {
+            return Err(Errno::last());
+        }
+    }
 }

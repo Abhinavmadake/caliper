@@ -161,3 +161,31 @@ fn an_errno_the_encoding_cannot_carry_is_a_fault_not_a_measurement() {
     let out = run_isolated(&probe("errno-4095", out_of_range)).unwrap();
     assert_eq!(out, Outcome::Fault(Fault::ErrnoOutOfRange));
 }
+
+fn dies_of_a_realtime_signal() -> RawResult {
+    let sig = libc::SIGRTMIN() + 1;
+    raw(unsafe { libc::syscall(libc::SYS_kill, libc::syscall(libc::SYS_getpid), sig) })
+}
+
+fn errno_nix_cannot_name() -> RawResult {
+    // 150 is inside the exit-code encoding but no errno nix knows.
+    unsafe { *libc::__errno_location() = 150 };
+    Err(Errno::UnknownErrno)
+}
+
+#[test]
+fn a_realtime_signal_death_is_recorded_not_a_harness_error() {
+    let out = run_isolated(&probe("rt-signal", dies_of_a_realtime_signal)).unwrap();
+    assert_eq!(
+        out,
+        Outcome::Signaled {
+            signal: libc::SIGRTMIN() + 1
+        }
+    );
+}
+
+#[test]
+fn an_errno_nix_cannot_name_keeps_its_value() {
+    let out = run_isolated(&probe("errno-150", errno_nix_cannot_name)).unwrap();
+    assert_eq!(out, Outcome::Returned { errno: 150 });
+}
