@@ -418,6 +418,9 @@ fn rmdir(path: &std::ffi::CStr) {
 /// The kernel's answer is `mount(2)`'s; the clean-up is the child's own and
 /// the residual snapshot is what says whether it worked.
 fn mount_type(fstype: &std::ffi::CStr, data: Option<&std::ffi::CStr>) -> RawResult {
+    // The directories are helpers: an error or a kill there is not
+    // mount(2)'s answer (#96).
+    caliper_engine::harness::setup();
     let made = mkdir(MOUNT_DIR);
     if made < 0 && Errno::last() != Errno::EEXIST {
         return Err(Errno::last());
@@ -427,6 +430,7 @@ fn mount_type(fstype: &std::ffi::CStr, data: Option<&std::ffi::CStr>) -> RawResu
         mkdir(LOWER_A);
         mkdir(LOWER_B);
     }
+    caliper_engine::harness::probing();
     // SAFETY: NUL-terminated string constants, a null or constant data
     // pointer, all of which mount(2) accepts.
     let r = unsafe {

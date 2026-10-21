@@ -86,6 +86,12 @@ pub enum Outcome {
 pub enum Fault {
     Panicked,
     ErrnoOutOfRange,
+    /// A helper call before the probed operation failed with this errno:
+    /// not the probed operation's answer (#96, #99).
+    SetupFailed(i32),
+    /// The child died of this signal before reaching the probed operation,
+    /// for instance a filter killing a helper: not a kill of the operation.
+    SetupKilled(i32),
     /// An exit code outside the encoding — cannot happen from this harness's
     /// own child, recorded rather than guessed at.
     UnknownExit(i32),
@@ -106,10 +112,78 @@ pub fn run_isolated(probe: &Probe) -> nix::Result<Outcome> {
     run_isolated_with(&probe.run, probe.risk.timeout())
 }
 
+/// Where a probe's child got to, shared with the parent through an
+/// anonymous shared page mapped for that one run: a probe with helper calls
+/// marks [`setup`] first and [`probing`] just before the operation it
+/// measures. Plain stores, so marking issues no syscall. The page's address
+/// is thread-local, which fork copies into the child, so concurrent callers
+/// (libtest's threads) each see only their own run.
+const STAGE_PROBING: u8 = 0;
+const STAGE_SETUP: u8 = 1;
+
+thread_local! {
+    static STAGE: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn stage_at(addr: usize) -> Option<&'static std::sync::atomic::AtomicU8> {
+    // SAFETY: a live, page-aligned mapping of this run, accessed atomically.
+    (addr != 0).then(|| unsafe { &*(addr as *const std::sync::atomic::AtomicU8) })
+}
+
+fn mark(value: u8) {
+    if let Some(s) = stage_at(STAGE.with(std::cell::Cell::get)) {
+        s.store(value, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// In a probe's child: the calls that follow are helpers, not the measured
+/// operation. Their failure or a death among them is recorded as such.
+pub fn setup() {
+    mark(STAGE_SETUP);
+}
+
+/// In a probe's child: the next call is the measured operation.
+pub fn probing() {
+    mark(STAGE_PROBING);
+}
+
 /// Run `f` in a forked child, bounded by `timeout`, and report how the
 /// child ended. `run_isolated` is this with the probe's function and risk
 /// class; the janitor passes a removal.
 pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::Result<Outcome> {
+    // SAFETY: a fresh anonymous shared page, unmapped below.
+    let page = unsafe {
+        libc::mmap(
+            std::ptr::null_mut(),
+            4096,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_SHARED | libc::MAP_ANONYMOUS,
+            -1,
+            0,
+        )
+    };
+    let addr = if page == libc::MAP_FAILED {
+        0
+    } else {
+        page as usize
+    };
+    STAGE.with(|s| s.set(addr));
+    let outcome = fork_and_wait(f, timeout);
+    STAGE.with(|s| s.set(0));
+    let in_setup =
+        stage_at(addr).is_some_and(|s| s.load(std::sync::atomic::Ordering::SeqCst) == STAGE_SETUP);
+    if addr != 0 {
+        // SAFETY: the page mapped above; the child that shared it is reaped.
+        unsafe { libc::munmap(page, 4096) };
+    }
+    Ok(match outcome? {
+        Outcome::Returned { errno } if in_setup => Outcome::Fault(Fault::SetupFailed(errno)),
+        Outcome::Signaled { signal } if in_setup => Outcome::Fault(Fault::SetupKilled(signal)),
+        other => other,
+    })
+}
+
+fn fork_and_wait(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::Result<Outcome> {
     // SAFETY: the engine is single-threaded, and the child calls nothing but
     // `f` and _exit. See the module comment for why this is fork(2) and not
     // a raw clone.

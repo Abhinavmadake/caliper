@@ -189,3 +189,39 @@ fn an_errno_nix_cannot_name_keeps_its_value() {
     let out = run_isolated(&probe("errno-150", errno_nix_cannot_name)).unwrap();
     assert_eq!(out, Outcome::Returned { errno: 150 });
 }
+
+fn fails_in_setup() -> RawResult {
+    caliper_engine::harness::setup();
+    raw(unsafe { libc::syscall(libc::SYS_close, -1) })
+}
+
+fn dies_in_setup() -> RawResult {
+    caliper_engine::harness::setup();
+    raw(unsafe {
+        libc::syscall(
+            libc::SYS_kill,
+            libc::syscall(libc::SYS_getpid),
+            libc::SIGKILL,
+        )
+    })
+}
+
+fn setup_then_probed_errno() -> RawResult {
+    caliper_engine::harness::setup();
+    caliper_engine::harness::probing();
+    ebadf()
+}
+
+#[test]
+fn a_failure_or_death_in_setup_is_not_the_probed_answer() {
+    let failed = run_isolated(&probe("setup-fails", fails_in_setup)).unwrap();
+    assert_eq!(failed, Outcome::Fault(Fault::SetupFailed(libc::EBADF)));
+    let killed = run_isolated(&probe("setup-dies", dies_in_setup)).unwrap();
+    assert_eq!(killed, Outcome::Fault(Fault::SetupKilled(libc::SIGKILL)));
+    // Past setup, the errno is the probed operation's again.
+    let probed = run_isolated(&probe("setup-then-probe", setup_then_probed_errno)).unwrap();
+    assert_eq!(probed, Outcome::Returned { errno: libc::EBADF });
+    // And the next probe starts clean.
+    let next = run_isolated(&probe("after-setup", ebadf)).unwrap();
+    assert_eq!(next, Outcome::Returned { errno: libc::EBADF });
+}
