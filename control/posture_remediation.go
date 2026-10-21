@@ -16,6 +16,7 @@
 package control
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -59,7 +60,7 @@ type LocalhostProfile struct {
 	DefaultAction   string        `json:"defaultAction"`
 	DefaultErrnoRet *uint64       `json:"defaultErrnoRet,omitempty"`
 	Architectures   []string      `json:"architectures,omitempty"`
-	ArchMap         []ArchMap     `json:"archMap,omitempty"`
+	ArchMap         []ArchMap     `json:"-"`
 	Syscalls        []SeccompRule `json:"syscalls"`
 }
 
@@ -67,7 +68,7 @@ type SeccompSpec struct {
 	DefaultAction   string        `yaml:"defaultAction" json:"defaultAction"`
 	DefaultErrnoRet *uint64       `yaml:"defaultErrnoRet,omitempty" json:"defaultErrnoRet,omitempty"`
 	Architectures   []string      `yaml:"architectures,omitempty" json:"architectures,omitempty"`
-	ArchMap         []ArchMap     `yaml:"archMap,omitempty" json:"archMap,omitempty"`
+	ArchMap         []ArchMap     `yaml:"-" json:"-"`
 	Syscalls        []SeccompRule `yaml:"syscalls" json:"syscalls"`
 }
 
@@ -81,9 +82,9 @@ type SeccompRule struct {
 	Action   string            `yaml:"action" json:"action"`
 	ErrnoRet *uint64           `yaml:"errnoRet,omitempty" json:"errnoRet,omitempty"`
 	Args     []SeccompArgument `yaml:"args,omitempty" json:"args,omitempty"`
-	Includes *SeccompFilter    `yaml:"includes,omitempty" json:"includes,omitempty"`
-	Excludes *SeccompFilter    `yaml:"excludes,omitempty" json:"excludes,omitempty"`
-	Comment  string            `yaml:"comment,omitempty" json:"comment,omitempty"`
+	Includes *SeccompFilter    `yaml:"-" json:"-"`
+	Excludes *SeccompFilter    `yaml:"-" json:"-"`
+	Comment  string            `yaml:"-" json:"-"`
 }
 
 // SeccompFilter is the capability, architecture, and kernel-version gate
@@ -92,6 +93,14 @@ type SeccompFilter struct {
 	Caps      []string `yaml:"caps,omitempty" json:"caps,omitempty"`
 	Arches    []string `yaml:"arches,omitempty" json:"arches,omitempty"`
 	MinKernel string   `yaml:"minKernel,omitempty" json:"minKernel,omitempty"`
+}
+
+// RemediationTarget is the concrete runtime environment against which source
+// profile gates are resolved before a portable OCI/SPO profile is emitted.
+type RemediationTarget struct {
+	Architecture string
+	Capabilities []string
+	Kernel       string
 }
 
 type SeccompArgument struct {
@@ -123,15 +132,22 @@ type NotClosable struct {
 // Kubernetes RuntimeDefault declaration. Claim violations and undeclared
 // exposures have no independent posture authority and are intentionally not
 // turned into policy.
-func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) (Remediation, error) {
+func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile, target RemediationTarget) (Remediation, error) {
 	if report.PostureRevision == "" || report.Tier == "" {
 		return Remediation{}, fmt.Errorf("finding report posture_revision and tier are required")
 	}
 	if runtimeDefault.DefaultAction == "" || len(runtimeDefault.Syscalls) == 0 {
 		return Remediation{}, fmt.Errorf("runtime default profile requires defaultAction and an allowlist")
 	}
+	if runtimeDefault.DefaultAction != seccompErrno {
+		return Remediation{}, fmt.Errorf("runtime default action must be %s, got %q", seccompErrno, runtimeDefault.DefaultAction)
+	}
+	if target.Architecture == "" || target.Kernel == "" {
+		return Remediation{}, fmt.Errorf("remediation target architecture and kernel are required")
+	}
+	runtimeRules := resolveRuntimeRules(runtimeDefault.Syscalls, target)
 
-	name := "caliper-" + safeProfileName(report.PostureRevision)
+	name := remediationProfileName(report, runtimeRules, target)
 	remediation := Remediation{
 		PostureRevision: report.PostureRevision,
 		Tier:            report.Tier,
@@ -142,17 +158,15 @@ func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) 
 			Spec: SeccompSpec{
 				DefaultAction:   runtimeDefault.DefaultAction,
 				DefaultErrnoRet: runtimeDefault.DefaultErrnoRet,
-				Architectures:   runtimeDefault.Architectures,
-				ArchMap:         runtimeDefault.ArchMap,
-				Syscalls:        cloneRules(runtimeDefault.Syscalls),
+				Architectures:   []string{target.Architecture},
+				Syscalls:        runtimeRules,
 			},
 		},
 		Localhost: LocalhostProfile{
 			DefaultAction:   runtimeDefault.DefaultAction,
 			DefaultErrnoRet: runtimeDefault.DefaultErrnoRet,
-			Architectures:   runtimeDefault.Architectures,
-			ArchMap:         runtimeDefault.ArchMap,
-			Syscalls:        cloneRules(runtimeDefault.Syscalls),
+			Architectures:   []string{target.Architecture},
+			Syscalls:        cloneRules(runtimeRules),
 		},
 		Closures:    []RemediationAction{},
 		NotClosable: []NotClosable{},
@@ -161,6 +175,9 @@ func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) 
 	seen := map[string]struct{}{}
 	userNamespace := false
 	for _, finding := range report.ExpectationViolations {
+		if finding.Kind != ExpectationViolation {
+			return Remediation{}, fmt.Errorf("finding %q is not an expectation violation", finding.ProbeID)
+		}
 		if err := finding.Validate(); err != nil {
 			return Remediation{}, fmt.Errorf("invalid expectation finding: %w", err)
 		}
@@ -191,8 +208,8 @@ func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile) 
 		enosys := uint64(38)
 		clone3 := SeccompRule{Names: []string{"clone3"}, Action: seccompErrno, ErrnoRet: &enosys}
 		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: "clone3.user_namespace_bypass", Rule: clone3})
-		remediation.SPO.Spec.Syscalls = applyClosure(remediation.SPO.Spec.Syscalls, clone3)
-		remediation.Localhost.Syscalls = applyClosure(remediation.Localhost.Syscalls, clone3)
+		remediation.SPO.Spec.Syscalls = append(applyClosure(remediation.SPO.Spec.Syscalls, clone3), clone3)
+		remediation.Localhost.Syscalls = append(applyClosure(remediation.Localhost.Syscalls, clone3), clone3)
 	}
 	sort.Slice(remediation.Closures, func(i, j int) bool { return remediation.Closures[i].ProbeID < remediation.Closures[j].ProbeID })
 	sort.Slice(remediation.NotClosable, func(i, j int) bool { return remediation.NotClosable[i].ProbeID < remediation.NotClosable[j].ProbeID })
@@ -264,10 +281,61 @@ func netlinkRule(protocol uint64) SeccompRule {
 }
 
 func cloneRules(rules []SeccompRule) []SeccompRule {
-	data, _ := json.Marshal(rules)
-	var copied []SeccompRule
-	_ = json.Unmarshal(data, &copied)
+	copied := make([]SeccompRule, len(rules))
+	for i, rule := range rules {
+		copied[i] = rule
+		copied[i].Names = append([]string(nil), rule.Names...)
+		copied[i].Args = append([]SeccompArgument(nil), rule.Args...)
+		if rule.Includes != nil {
+			includes := *rule.Includes
+			includes.Caps = append([]string(nil), rule.Includes.Caps...)
+			includes.Arches = append([]string(nil), rule.Includes.Arches...)
+			copied[i].Includes = &includes
+		}
+		if rule.Excludes != nil {
+			excludes := *rule.Excludes
+			excludes.Caps = append([]string(nil), rule.Excludes.Caps...)
+			excludes.Arches = append([]string(nil), rule.Excludes.Arches...)
+			copied[i].Excludes = &excludes
+		}
+	}
 	return copied
+}
+
+func resolveRuntimeRules(rules []SeccompRule, target RemediationTarget) []SeccompRule {
+	resolved := make([]SeccompRule, 0, len(rules))
+	for _, rule := range rules {
+		if !gateApplies(rule.Includes, target, true) || !gateApplies(rule.Excludes, target, false) {
+			continue
+		}
+		rule.Includes, rule.Excludes, rule.Comment = nil, nil, ""
+		resolved = append(resolved, rule)
+	}
+	return cloneRules(resolved)
+}
+
+func gateApplies(gate *SeccompFilter, target RemediationTarget, include bool) bool {
+	if gate == nil {
+		return true
+	}
+	match := true
+	if len(gate.Arches) > 0 {
+		match = contains(gate.Arches, target.Architecture)
+	}
+	if match && len(gate.Caps) > 0 {
+		for _, cap := range gate.Caps {
+			if !contains(target.Capabilities, cap) {
+				match = false
+			}
+		}
+	}
+	if match && gate.MinKernel != "" {
+		match = kernelAtLeast(target.Kernel, gate.MinKernel)
+	}
+	if include {
+		return match
+	}
+	return !match
 }
 
 // applyClosure removes closed syscalls from RuntimeDefault's allowlist. For a
@@ -275,44 +343,21 @@ func cloneRules(rules []SeccompRule) []SeccompRule {
 // a conditional ERRNO cannot override libseccomp's unconditional ALLOW.
 func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 	if len(closure.Names) == 1 && closure.Names[0] == "socket" && len(closure.Args) > 0 {
-		rules = splitAllowedSyscall(rules, "socket")
-		// A netlink closure has two discriminators. Keep ordinary families in
-		// the existing rule, and collect allowed netlink protocols in one
-		// separate rule so multiple exclusions remain an AND, not an OR.
-		if len(closure.Args) == 2 && closure.Args[0].Index == 0 && closure.Args[0].Value == 16 {
-			var netlink *SeccompRule
-			for i := range rules {
-				if rules[i].Action == "SCMP_ACT_ALLOW" && len(rules[i].Names) == 1 && rules[i].Names[0] == "socket" && len(rules[i].Args) > 0 && rules[i].Args[0].Index == 0 && rules[i].Args[0].Op == "SCMP_CMP_EQ" && rules[i].Args[0].Value == 16 {
-					netlink = &rules[i]
-				}
-			}
-			for i := range rules {
-				if rules[i].Action == "SCMP_ACT_ALLOW" && contains(rules[i].Names, "socket") && (netlink == nil || &rules[i] != netlink) {
-					rules[i].Args = append(rules[i].Args, SeccompArgument{Index: 0, Op: "SCMP_CMP_NE", Value: 16})
-				}
-			}
-			if netlink == nil {
-				rules = append(rules, SeccompRule{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{Index: 0, Op: "SCMP_CMP_EQ", Value: 16}}})
-				netlink = &rules[len(rules)-1]
-			}
-			netlink.Args = append(netlink.Args, SeccompArgument{Index: 2, Op: "SCMP_CMP_NE", Value: closure.Args[1].Value})
-			return rules
-		}
-		for i := range rules {
-			if rules[i].Action != "SCMP_ACT_ALLOW" || !contains(rules[i].Names, "socket") {
-				continue
-			}
-			rules[i].Args = append(rules[i].Args, SeccompArgument{
-				Index: closure.Args[0].Index, Op: "SCMP_CMP_NE", Value: closure.Args[0].Value,
-			})
-		}
-		return rules
+		// libseccomp ORs comparisons on the same argument in a rule, so an
+		// ERRNO exception (or stacked NE tests) cannot close an ALLOW rule.
+		// Replace a broad socket allow with one masked-equality rule per known
+		// family. The 32-bit mask prevents high register bits from bypassing a
+		// family test. Do not add a socket allow if RuntimeDefault had none.
+		return restrictSocketFamilies(rules, closure.Args[0].Value)
 	}
 	if len(closure.Names) == 1 && (closure.Names[0] == "clone" || closure.Names[0] == "unshare") && len(closure.Args) > 0 {
 		name := closure.Names[0]
 		rules = splitAllowedSyscall(rules, name)
 		for i := range rules {
 			if rules[i].Action == "SCMP_ACT_ALLOW" && len(rules[i].Names) == 1 && rules[i].Names[0] == name {
+				if hasArgumentAt(rules[i], closure.Args[0].Index) {
+					continue
+				}
 				zero := uint64(0)
 				rules[i].Args = append(rules[i].Args, SeccompArgument{
 					Index: closure.Args[0].Index, Op: "SCMP_CMP_MASKED_EQ", Value: closure.Args[0].Value, ValueTwo: &zero,
@@ -340,6 +385,96 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 		}
 	}
 	return filtered
+}
+
+func restrictSocketFamilies(rules []SeccompRule, deniedFamily uint64) []SeccompRule {
+	rules = splitAllowedSyscall(rules, "socket")
+	var rewritten bool
+	var enumerated bool
+	filtered := rules[:0]
+	for _, rule := range rules {
+		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" && len(rule.Args) == 0 {
+			rewritten = true
+			continue
+		}
+		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" && isMaskedSocketFamily(rule, deniedFamily) {
+			enumerated = true
+			continue
+		}
+		filtered = append(filtered, rule)
+	}
+	if !rewritten {
+		if enumerated {
+			return filtered
+		}
+		// The default either already denies socket or has a more-specific
+		// condition. In either case, adding an allow would widen its baseline.
+		return filtered
+	}
+	mask := uint64(0xffffffff)
+	for _, family := range socketFamilies {
+		if family == deniedFamily {
+			continue
+		}
+		family := family
+		filtered = append(filtered, SeccompRule{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{
+			Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: mask, ValueTwo: &family,
+		}}})
+	}
+	return filtered
+}
+
+func isMaskedSocketFamily(rule SeccompRule, family uint64) bool {
+	return len(rule.Args) == 1 && rule.Args[0].Index == 0 && rule.Args[0].Op == "SCMP_CMP_MASKED_EQ" && rule.Args[0].Value == 0xffffffff && rule.Args[0].ValueTwo != nil && *rule.Args[0].ValueTwo == family
+}
+
+var socketFamilies = []uint64{
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+	31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+}
+
+func hasArgumentAt(rule SeccompRule, index uint64) bool {
+	for _, argument := range rule.Args {
+		if argument.Index == index {
+			return true
+		}
+	}
+	return false
+}
+
+func kernelAtLeast(actual, minimum string) bool {
+	parse := func(value string) []int {
+		parts := strings.FieldsFunc(value, func(r rune) bool { return r == '.' || r == '-' })
+		result := make([]int, len(parts))
+		for i, part := range parts {
+			fmt.Sscanf(part, "%d", &result[i])
+		}
+		return result
+	}
+	a, b := parse(actual), parse(minimum)
+	for i := 0; i < len(a) || i < len(b); i++ {
+		var av, bv int
+		if i < len(a) {
+			av = a[i]
+		}
+		if i < len(b) {
+			bv = b[i]
+		}
+		if av != bv {
+			return av > bv
+		}
+	}
+	return true
+}
+
+func remediationProfileName(report FindingReport, rules []SeccompRule, target RemediationTarget) string {
+	payload, _ := json.Marshal(struct {
+		Target RemediationTarget
+		Rules  []SeccompRule
+	}{Target: target, Rules: rules})
+	sum := sha256.Sum256(payload)
+	return fmt.Sprintf("caliper-%s-%s-%x", safeProfileName(report.PostureRevision), safeProfileName(report.Tier), sum[:4])
 }
 
 // splitAllowedSyscall moves one syscall into its own copies of the matching

@@ -45,15 +45,23 @@ func runtimeDefault() LocalhostProfile {
 	}
 }
 
+func remediationTarget() RemediationTarget {
+	return RemediationTarget{
+		Architecture: "SCMP_ARCH_X86_64",
+		Capabilities: []string{"CAP_SYS_ADMIN"},
+		Kernel:       "6.8.0",
+	}
+}
+
 func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	report := FindingReport{PostureRevision: "v1", Tier: "untrusted-multi-tenant", ExpectationViolations: []Finding{
 		expectation("socket.family.af_alg"), expectation("netlink.protocol.crypto"), expectation("unshare.flags.newuser"), expectation("io_uring.setup"),
 	}}
-	remediation, err := GenerateRemediation(report, runtimeDefault())
+	remediation, err := GenerateRemediation(report, runtimeDefault(), remediationTarget())
 	if err != nil {
 		t.Fatalf("GenerateRemediation() error = %v", err)
 	}
-	if remediation.SPO.Kind != "SeccompProfile" || remediation.SPO.Metadata.Name != "caliper-v1" {
+	if remediation.SPO.Kind != "SeccompProfile" || !strings.HasPrefix(remediation.SPO.Metadata.Name, "caliper-v1-untrusted-multi-tenant-") {
 		t.Fatalf("SPO = %#v", remediation.SPO)
 	}
 	if len(remediation.Closures) != 5 || len(remediation.NotClosable) != 0 {
@@ -84,8 +92,8 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if decoded.Spec.DefaultAction != "SCMP_ACT_ERRNO" {
 		t.Errorf("SPO default action = %q, want RuntimeDefault action", decoded.Spec.DefaultAction)
 	}
-	if decoded.Spec.DefaultErrnoRet == nil || *decoded.Spec.DefaultErrnoRet != 1 || len(decoded.Spec.ArchMap) != 1 {
-		t.Errorf("SPO lost RuntimeDefault errno or architecture data: %#v", decoded.Spec)
+	if decoded.Spec.DefaultErrnoRet == nil || *decoded.Spec.DefaultErrnoRet != 1 || len(decoded.Spec.Architectures) != 1 {
+		t.Errorf("SPO did not retain supported RuntimeDefault settings: %#v", decoded.Spec)
 	}
 	foundRuntimeAllowlist := false
 	var socketRules []SeccompRule
@@ -100,19 +108,14 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if !foundRuntimeAllowlist {
 		t.Errorf("SPO did not retain the RuntimeDefault allowlist: %#v", decoded.Spec.Syscalls)
 	}
-	for _, rule := range decoded.Spec.Syscalls {
-		if contains(rule.Names, "process_vm_readv") && (rule.Includes == nil || rule.Includes.MinKernel != "4.8") {
-			t.Errorf("SPO lost RuntimeDefault include gate: %#v", rule)
-		}
-	}
-	hasAFALGExclusion := false
+	hasMaskedAFALGExclusion := false
 	for _, socketRule := range socketRules {
 		for _, arg := range socketRule.Args {
-			hasAFALGExclusion = hasAFALGExclusion || (arg.Index == 0 && arg.Op == "SCMP_CMP_NE" && arg.Value == 38)
+			hasMaskedAFALGExclusion = hasMaskedAFALGExclusion || (arg.Index == 0 && arg.Op == "SCMP_CMP_MASKED_EQ" && arg.Value == 0xffffffff && arg.ValueTwo != nil && *arg.ValueTwo != 38)
 		}
 	}
-	if !hasAFALGExclusion {
-		t.Errorf("socket rules = %#v, want RuntimeDefault allow excluding AF_ALG", socketRules)
+	if !hasMaskedAFALGExclusion {
+		t.Errorf("socket rules = %#v, want masked RuntimeDefault socket allows excluding AF_ALG", socketRules)
 	}
 	for _, rule := range decoded.Spec.Syscalls {
 		if rule.Action == "SCMP_ACT_ERRNO" && len(rule.Names) == 1 && rule.Names[0] == "socket" {
@@ -130,8 +133,8 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if local.DefaultAction != "SCMP_ACT_ERRNO" {
 		t.Errorf("Localhost default action = %q, want RuntimeDefault action", local.DefaultAction)
 	}
-	if local.DefaultErrnoRet == nil || *local.DefaultErrnoRet != 1 || len(local.ArchMap) != 1 {
-		t.Errorf("Localhost lost RuntimeDefault errno or architecture data: %#v", local)
+	if local.DefaultErrnoRet == nil || *local.DefaultErrnoRet != 1 || len(local.Architectures) != 1 {
+		t.Errorf("Localhost did not retain supported RuntimeDefault settings: %#v", local)
 	}
 	if len(local.Syscalls) != len(decoded.Spec.Syscalls) {
 		t.Errorf("Localhost has %d rules, SPO has %d", len(local.Syscalls), len(decoded.Spec.Syscalls))
@@ -142,7 +145,7 @@ func TestGenerateRemediationRestrictsCloneAndUnshareWithoutDeletingThem(t *testi
 	report := FindingReport{PostureRevision: "v1", Tier: "untrusted-multi-tenant", ExpectationViolations: []Finding{
 		expectation("clone.flags.newuser"), expectation("unshare.flags.newuser"),
 	}}
-	remediation, err := GenerateRemediation(report, runtimeDefault())
+	remediation, err := GenerateRemediation(report, runtimeDefault(), remediationTarget())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -173,7 +176,7 @@ func TestGenerateRemediationClosesClone3AndCapabilityEquivalents(t *testing.T) {
 		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "capability", ProbeID: "capability.sys_rawio", Verdict: "permitted"},
 		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "restricted", Family: "capability", ProbeID: "capability.sys_ptrace", Verdict: "permitted"},
 	}}
-	remediation, err := GenerateRemediation(report, runtimeDefault())
+	remediation, err := GenerateRemediation(report, runtimeDefault(), remediationTarget())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +209,7 @@ func TestGenerateRemediationReportsPointerBackedProbes(t *testing.T) {
 		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "baseline", Family: "device", ProbeID: "device.open.mem", Verdict: "permitted"},
 		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "baseline", Family: "mount", ProbeID: "mount.fs.proc", Verdict: "permitted"},
 	}}
-	remediation, err := GenerateRemediation(report, runtimeDefault())
+	remediation, err := GenerateRemediation(report, runtimeDefault(), remediationTarget())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -222,14 +225,27 @@ func TestGenerateRemediationReportsPointerBackedProbes(t *testing.T) {
 
 func TestGenerateRemediationRejectsMixedProvenance(t *testing.T) {
 	report := FindingReport{PostureRevision: "v1", Tier: "baseline", ExpectationViolations: []Finding{{Kind: ExpectationViolation, PostureRevision: "v2", Tier: "baseline", Family: "mount", ProbeID: "mount.reach", Verdict: "permitted"}}}
-	if _, err := GenerateRemediation(report, runtimeDefault()); err == nil {
+	if _, err := GenerateRemediation(report, runtimeDefault(), remediationTarget()); err == nil {
 		t.Fatal("GenerateRemediation() succeeded with a mismatched posture revision")
 	}
 }
 
 func TestGenerateRemediationRequiresRuntimeDefault(t *testing.T) {
 	report := FindingReport{PostureRevision: "v1", Tier: "baseline"}
-	if _, err := GenerateRemediation(report, LocalhostProfile{}); err == nil {
+	if _, err := GenerateRemediation(report, LocalhostProfile{}, remediationTarget()); err == nil {
 		t.Fatal("GenerateRemediation() succeeded without a RuntimeDefault profile")
+	}
+}
+
+func TestGenerateRemediationRejectsPermissiveDefaultAndWrongKind(t *testing.T) {
+	report := FindingReport{PostureRevision: "v1", Tier: "baseline"}
+	permissive := runtimeDefault()
+	permissive.DefaultAction = "SCMP_ACT_ALLOW"
+	if _, err := GenerateRemediation(report, permissive, remediationTarget()); err == nil {
+		t.Fatal("GenerateRemediation() accepted SCMP_ACT_ALLOW")
+	}
+	report.ExpectationViolations = []Finding{{Kind: ClaimViolation, PostureRevision: "v1", Tier: "baseline", Family: "x", ProbeID: "x", Verdict: "permitted"}}
+	if _, err := GenerateRemediation(report, runtimeDefault(), remediationTarget()); err == nil {
+		t.Fatal("GenerateRemediation() accepted a claim violation as policy input")
 	}
 }
