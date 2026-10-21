@@ -140,6 +140,11 @@ pub struct KernelDependency {
     /// `None` when the dependency is not a single named module.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<&'static str>,
+    /// The protocol's own module, for a family whose protocols are modules
+    /// of their own: `also_absent` is this module missing with `module`
+    /// loaded. `None` when the protocol is built into the family (#96).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protocol_module: Option<&'static str>,
     /// A path that exists only on a kernel that builds the entry point.
     /// When it exists, `absent_errno` is a filter whatever the version.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -151,6 +156,12 @@ pub struct KernelDependency {
         skip_serializing_if = "Option::is_none"
     )]
     pub encoded_absent: Option<Errno>,
+    /// The kernel's user-namespace limits (`user.max_user_namespaces`,
+    /// `kernel.unprivileged_userns_clone`, AppArmor's
+    /// `apparmor_restrict_unprivileged_userns`) can refuse the entry point,
+    /// so a denial is read against those the cell recorded (#96).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub user_namespace_limits: bool,
 }
 
 impl KernelDependency {
@@ -162,8 +173,10 @@ impl KernelDependency {
         also_absent: None,
         lsm_hook_since: None,
         module: None,
+        protocol_module: None,
         present_if: None,
         encoded_absent: None,
+        user_namespace_limits: false,
     };
 
     /// A configuration- or module-gated entry point backed by one named module.
@@ -174,8 +187,10 @@ impl KernelDependency {
             also_absent: None,
             lsm_hook_since: None,
             module: Some(module),
+            protocol_module: None,
             present_if: None,
             encoded_absent: None,
+            user_namespace_limits: false,
         }
     }
 

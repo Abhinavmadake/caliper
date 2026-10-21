@@ -44,9 +44,10 @@ metadata — the proposal is explicit that this is not deferred to a later phase
   it where version alone cannot, so the diff engine can exclude
   kernel-version-explained divergence probe by probe instead of inferring it
   from the version string. Optionally a second errno absence produces (a
-  protocol module missing where the family is present), and the release from
-  which an LSM hook runs before the oracle's point, after which an `EPERM` the
-  oracle reads as seccomp is seccomp or an LSM
+  protocol module missing where the family is present) with the protocol's
+  module, the release from which an LSM hook runs before the oracle's point,
+  after which an `EPERM` the oracle reads as seccomp is seccomp or an LSM, and
+  whether the kernel's user-namespace limits can refuse the entry point
 - **Architecture applicability** — probes whose entry point exists only on
   some architectures must say so, or the diff engine will report architecture
   as policy. Where presence is a kernel property rather than an architecture

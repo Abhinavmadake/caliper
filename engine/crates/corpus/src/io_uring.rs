@@ -189,10 +189,12 @@ const CONFIG_GATED: KernelDependency = KernelDependency {
     since: None,
     absent_errno: Some(Errno::ENOSYS),
     module: None,
+    protocol_module: None,
     present_if: Some("/proc/sys/kernel/io_uring_disabled"),
     encoded_absent: None,
     also_absent: None,
     lsm_hook_since: None,
+    user_namespace_limits: false,
 };
 
 /// As [`CONFIG_GATED`], for probes that call io_uring_setup: since 6.15 its

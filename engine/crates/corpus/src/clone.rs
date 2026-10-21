@@ -126,6 +126,12 @@ fn clone_newuser_newnet() -> RawResult {
     clone_flag(libc::CLONE_NEWUSER | libc::CLONE_NEWNET)
 }
 
+/// Every kernel has user namespaces; its own limits can still refuse one.
+const USER_NAMESPACE: KernelDependency = KernelDependency {
+    user_namespace_limits: true,
+    ..KernelDependency::NONE
+};
+
 pub const UNSHARE_INVALID_FLAGS: Probe = Probe {
     id: "unshare.flags.invalid",
     family: "clone",
@@ -156,7 +162,7 @@ pub const UNSHARE_FLAGS_NEWUSER: Probe = Probe {
     description: "unshare(CLONE_NEWUSER): user namespace creation without host privilege",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: KernelDependency::NONE,
+    kernel: USER_NAMESPACE,
     oracle: Oracle {
         guarantees: None,
         isolates: Isolates::SeccompOrLsm,
@@ -312,7 +318,7 @@ pub const UNSHARE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
     description: "unshare(CLONE_NEWUSER | CLONE_NEWNET): user+net namespace creation escalation path",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: KernelDependency::NONE,
+    kernel: USER_NAMESPACE,
     oracle: Oracle {
         guarantees: None,
         isolates: Isolates::SeccompOrLsm,
@@ -335,7 +341,7 @@ pub const CLONE_FLAGS_NEWUSER: Probe = Probe {
     description: "clone(CLONE_NEWUSER | SIGCHLD): process creation in a new user namespace",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: KernelDependency::NONE,
+    kernel: USER_NAMESPACE,
     oracle: Oracle {
         guarantees: None,
         isolates: Isolates::SeccompOrLsm,
@@ -476,7 +482,7 @@ pub const CLONE_FLAGS_NEWUSER_NEWNET: Probe = Probe {
     description: "clone(CLONE_NEWUSER | CLONE_NEWNET | SIGCHLD): user+net namespace process creation escalation path",
     risk: ONE_CALL,
     arch: Applicability::All,
-    kernel: KernelDependency::NONE,
+    kernel: USER_NAMESPACE,
     oracle: Oracle {
         guarantees: None,
         isolates: Isolates::SeccompOrLsm,

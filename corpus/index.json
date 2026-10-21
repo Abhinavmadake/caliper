@@ -192,7 +192,8 @@
       "since": null,
       "absent_errno": 97,
       "also_absent": 93,
-      "module": "bluetooth"
+      "module": "bluetooth",
+      "protocol_module": "rfcomm"
     },
     "oracle": {
       "guarantees": null,
@@ -219,7 +220,8 @@
       "since": null,
       "absent_errno": 97,
       "also_absent": 93,
-      "module": "can"
+      "module": "can",
+      "protocol_module": "can_raw"
     },
     "oracle": {
       "guarantees": null,
@@ -4339,7 +4341,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": null
+      "absent_errno": null,
+      "user_namespace_limits": true
     },
     "oracle": {
       "guarantees": null,
@@ -4541,7 +4544,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": null
+      "absent_errno": null,
+      "user_namespace_limits": true
     },
     "oracle": {
       "guarantees": null,
@@ -4568,7 +4572,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": null
+      "absent_errno": null,
+      "user_namespace_limits": true
     },
     "oracle": {
       "guarantees": null,
@@ -4745,7 +4750,8 @@
     "arch": "all",
     "kernel": {
       "since": null,
-      "absent_errno": null
+      "absent_errno": null,
+      "user_namespace_limits": true
     },
     "oracle": {
       "guarantees": null,
