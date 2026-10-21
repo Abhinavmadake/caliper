@@ -39,7 +39,7 @@
     },
     {
       "names": [
-        "uname",
+        "uname", "getpid",
         "openat", "fcntl", "read", "fstat", "newfstatat", "getdents64", "readlinkat",
         "open", "stat", "readlink"
       ],

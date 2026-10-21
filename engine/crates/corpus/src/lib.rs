@@ -124,7 +124,8 @@ mod paths;
 mod socket;
 
 /// Which corpus a run came from: `corpus_revision` in the fingerprint.
-/// The crate version, so it moves with the corpus and nothing else.
+/// The corpus crate's own version, bumped with every probe change and pinned
+/// to its index in corpus/revisions (#99).
 pub const REVISION: &str = env!("CARGO_PKG_VERSION");
 
 /// Every probe the engine knows about, in corpus order. The order is the

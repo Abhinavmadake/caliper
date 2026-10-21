@@ -262,7 +262,7 @@ impl Measurement {
         // After the final snapshot: what the janitor removes has been
         // measured and attributed already. Each removal is a forked child
         // (`crate::residual`), so a filter that kills it kills a child.
-        let removed = janitor();
+        let removed = janitor(std::process::id());
         let module_delta = match (modules_before, loaded_modules()) {
             (Some(before), Some(after)) => Some(ModuleDelta::new(before, after)),
             _ => None,
