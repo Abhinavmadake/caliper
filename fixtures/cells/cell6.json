@@ -1,8 +1,8 @@
 {
   "format_version": 1,
-  "corpus_revision": "0.2.0",
+  "corpus_revision": "0.3.0",
   "corpus_set": "full",
-  "digest": "sha256:9fe96aea6cc3b88bc08d1b36c332b3639479fc6e55643fd2dbcc35d7e44450c0",
+  "digest": "sha256:260f1c3ecb486e386c00b7d0cf8e466aa3c9d603f916ad2407676cf7ad336b38",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -35,6 +35,9 @@
       "permitted": "0000000000000000",
       "bounding": "0000000000000000",
       "ambient": "0000000000000000"
+    },
+    "user_namespaces": {
+      "max": 7948
     }
   },
   "results": [

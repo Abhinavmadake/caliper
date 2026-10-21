@@ -18,12 +18,17 @@
 # way the kubelet builds deploy/k8s/job.yaml's pod. Raw probe output on
 # stdout; what containerd applied, and the cell's packages, on stderr.
 #
-#   measure.sh <image> [runtime-handler]
+#   measure.sh <image> [runtime-handler] [localhost-seccomp-profile]
+#
+# With a profile, the probe runs under it as Kubernetes' Localhost type
+# instead of RuntimeDefault (the hardened fixture). Exit 3 from the probe is a
+# measurement with defects: the document is still printed.
 set -euo pipefail
 export PATH=/usr/local/bin:$PATH
 
 image=$1
 handler=${2:-}
+profile=${3:-}
 work=$(mktemp -d /var/lib/caliper-measure.XXXXXX)
 pod=""
 cleanup() {
@@ -43,10 +48,11 @@ cat /etc/caliper/packages >&2
 # defaultReadonlyPaths, including the per-CPU thermal_throttle entries it adds
 # when they exist; pid CONTAINER (no shareProcessNamespace); RuntimeDefault
 # AppArmor only where AppArmor is on; emptyDir mounts relabelled for SELinux.
-python3 - "$work" "$image" <<'PY'
+python3 - "$work" "$image" "$profile" <<'PY'
 import glob, json, os, sys, uuid
 
-work, image = sys.argv[1], sys.argv[2]
+work, image, profile = sys.argv[1], sys.argv[2], sys.argv[3]
+seccomp = {"profile_type": 2, "localhost_ref": profile} if profile else {"profile_type": 0}
 masked = ["/proc/asound", "/proc/acpi", "/proc/interrupts", "/proc/kcore", "/proc/keys",
           "/proc/latency_stats", "/proc/timer_list", "/proc/timer_stats", "/proc/sched_debug",
           "/proc/scsi", "/sys/firmware", "/sys/devices/virtual/powercap"]
@@ -70,7 +76,7 @@ security = {
     "readonly_rootfs": True,
     "no_new_privs": True,
     "capabilities": {"drop_capabilities": ["ALL"]},
-    "seccomp": {"profile_type": 0},
+    "seccomp": seccomp,
     "masked_paths": masked,
     "readonly_paths": readonly,
 }
@@ -118,10 +124,11 @@ if [ "$state" != CONTAINER_EXITED ]; then
     exit 1
 fi
 code=$(crictl inspect -o go-template --template '{{.status.exitCode}}' "$ctr")
-if [ "$code" != 0 ]; then
-    echo "probe exited $code" >&2
-    exit 1
-fi
+case "$code" in
+    0) ;;
+    3) echo "probe exited 3: measured with defects (see the document)" >&2 ;;
+    *) echo "probe exited $code" >&2; exit 1 ;;
+esac
 # CRI log lines are "<time> <stream> <P|F> <text>"; P is a partial line.
 awk '$2 == "stdout" { line = $0; sub(/^[^ ]+ [^ ]+ [^ ]+ /, "", line); printf "%s%s", line, ($3 == "F" ? "\n" : "") }' \
     "$(crictl inspect -o go-template --template '{{.status.logPath}}' "$ctr")"
