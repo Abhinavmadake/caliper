@@ -387,16 +387,64 @@ fstype!(
 
 // --- mount, for the cell that can -----------------------------------------
 
-/// Where a mount probe mounts: a directory the child makes and removes
-/// under `/tmp`, which the probe image carries writable for exactly this
-/// (`Dockerfile`). Making it is setup: a failure there, `ENOENT` with no
+/// Where a mount probe mounts: the run's `mount_dir`, which the child makes
+/// and removes under `/tmp`, carried writable by the probe image for exactly
+/// this (`Dockerfile`). Making it is setup: a failure there, `ENOENT` with no
 /// writable `/tmp` for instance, is recorded as setup failing, not as
-/// `mount(2)`'s answer, which is never reached (#96).
-const MOUNT_DIR: &std::ffi::CStr = c"/tmp/caliper-mount";
-/// Two lower layers for the overlay probe, made and removed alongside.
-const LOWER_A: &std::ffi::CStr = c"/tmp/caliper-mount/a";
-const LOWER_B: &std::ffi::CStr = c"/tmp/caliper-mount/b";
+/// `mount(2)`'s answer, which is never reached (#96). A child killed before
+/// its `rmdir` leaves the directory to the janitor, which records it.
 const NO_SOURCE: &std::ffi::CStr = c"none";
+
+/// A NUL-terminated string built on the stack: the child allocates nothing.
+struct StackPath {
+    buf: [u8; 128],
+    len: usize,
+}
+
+impl StackPath {
+    fn new() -> Self {
+        StackPath {
+            buf: [0; 128],
+            len: 0,
+        }
+    }
+
+    fn push(&mut self, s: &[u8]) -> &mut Self {
+        self.buf[self.len..self.len + s.len()].copy_from_slice(s);
+        self.len += s.len();
+        self
+    }
+
+    fn push_u32(&mut self, mut n: u32) -> &mut Self {
+        let mut digits = [0u8; 10];
+        let mut i = digits.len();
+        loop {
+            i -= 1;
+            digits[i] = b'0' + (n % 10) as u8;
+            n /= 10;
+            if n == 0 {
+                break;
+            }
+        }
+        self.push(&digits[i..])
+    }
+
+    /// `/tmp/caliper-<run>-mount`, the run being the engine, this child's
+    /// parent: `mount_dir` in `caliper_engine::effects`, spelled the same.
+    fn mount_dir(&mut self) -> &mut Self {
+        // SAFETY: no arguments.
+        let run = unsafe { libc::syscall(libc::SYS_getppid) } as u32;
+        self.push(caliper_engine::effects::MOUNT_DIR_PARENT.as_bytes())
+            .push(caliper_engine::effects::POSIX_IPC_PREFIX.as_bytes())
+            .push_u32(run)
+            .push(b"-mount")
+    }
+
+    fn as_cstr(&mut self) -> &std::ffi::CStr {
+        self.buf[self.len] = 0;
+        std::ffi::CStr::from_bytes_with_nul(&self.buf[..=self.len]).expect("no interior NUL")
+    }
+}
 
 fn mkdir(path: &std::ffi::CStr) -> libc::c_long {
     // SAFETY: a NUL-terminated path and a mode.
@@ -418,18 +466,30 @@ fn rmdir(path: &std::ffi::CStr) {
 /// `mkdir`, `mount(2)`, and if the mount happened `umount2`; then `rmdir`.
 /// The kernel's answer is `mount(2)`'s; the clean-up is the child's own and
 /// the residual snapshot is what says whether it worked.
-fn mount_type(fstype: &std::ffi::CStr, data: Option<&std::ffi::CStr>) -> RawResult {
+fn mount_type(fstype: &std::ffi::CStr, overlay: bool) -> RawResult {
     // The directories are helpers: an error or a kill there is not
     // mount(2)'s answer (#96).
     caliper_engine::harness::setup();
-    let made = mkdir(MOUNT_DIR);
+    let mut dir = StackPath::new();
+    let dir = dir.mount_dir().as_cstr();
+    let mut lower_a = StackPath::new();
+    let lower_a = lower_a.mount_dir().push(b"/a").as_cstr();
+    let mut lower_b = StackPath::new();
+    let lower_b = lower_b.mount_dir().push(b"/b").as_cstr();
+    let mut data = StackPath::new();
+    let data = data
+        .push(b"lowerdir=")
+        .push(lower_a.to_bytes())
+        .push(b":")
+        .push(lower_b.to_bytes())
+        .as_cstr();
+    let made = mkdir(dir);
     if made < 0 && Errno::last() != Errno::EEXIST {
         return Err(Errno::last());
     }
-    let lowers = data.is_some();
-    if lowers {
-        mkdir(LOWER_A);
-        mkdir(LOWER_B);
+    if overlay {
+        mkdir(lower_a);
+        mkdir(lower_b);
     }
     caliper_engine::harness::probing();
     // SAFETY: NUL-terminated string constants, a null or constant data
@@ -438,10 +498,14 @@ fn mount_type(fstype: &std::ffi::CStr, data: Option<&std::ffi::CStr>) -> RawResu
         libc::syscall(
             libc::SYS_mount,
             NO_SOURCE.as_ptr(),
-            MOUNT_DIR.as_ptr(),
+            dir.as_ptr(),
             fstype.as_ptr(),
             0 as libc::c_ulong,
-            data.map_or(std::ptr::null(), |d| d.as_ptr()),
+            if overlay {
+                data.as_ptr()
+            } else {
+                std::ptr::null()
+            },
         )
     };
     let answer = result(r);
@@ -449,30 +513,27 @@ fn mount_type(fstype: &std::ffi::CStr, data: Option<&std::ffi::CStr>) -> RawResu
         // The child owns the mount; take it down before returning. If
         // umount2 fails the mount outlives the child, and the residual
         // snapshot says so against this probe.
-        // SAFETY: the same constant path.
-        unsafe { libc::syscall(libc::SYS_umount2, MOUNT_DIR.as_ptr(), 0 as libc::c_int) };
+        // SAFETY: the same NUL-terminated path.
+        unsafe { libc::syscall(libc::SYS_umount2, dir.as_ptr(), 0 as libc::c_int) };
     }
-    if lowers {
-        rmdir(LOWER_A);
-        rmdir(LOWER_B);
+    if overlay {
+        rmdir(lower_a);
+        rmdir(lower_b);
     }
     if made == 0 {
-        rmdir(MOUNT_DIR);
+        rmdir(dir);
     }
     answer
 }
 
 fn mount_proc() -> RawResult {
-    mount_type(c"proc", None)
+    mount_type(c"proc", false)
 }
 
 /// A read-only overlay needs at least two lower layers (`ovl_get_tree`
 /// answers `EINVAL` to one and no upper); the child makes two empty ones.
 fn mount_overlay() -> RawResult {
-    mount_type(
-        c"overlay",
-        Some(c"lowerdir=/tmp/caliper-mount/a:/tmp/caliper-mount/b"),
-    )
+    mount_type(c"overlay", true)
 }
 
 /// `fuse` needs an open `/dev/fuse` descriptor in `data`; without one the
@@ -480,7 +541,7 @@ fn mount_overlay() -> RawResult {
 /// `security_sb_mount`. So on a cell with the capability the answer is
 /// `EINVAL`, structurally, and the mount never happens.
 fn mount_fuse() -> RawResult {
-    mount_type(c"fuse", None)
+    mount_type(c"fuse", false)
 }
 
 macro_rules! mount_probe {
@@ -513,7 +574,7 @@ mount_probe!(
     MOUNT_PROC,
     mount_proc,
     "mount.fs.proc",
-    "mount(none, /tmp/caliper-mount, proc): a second procfs, unmounted by the child",
+    "mount(none, /tmp/caliper-<run>-mount, proc): a second procfs, unmounted by the child",
     None,
     autoload: false,
     "path_mount resolves the target, then may_mount answers EPERM without CAP_SYS_ADMIN, \
@@ -526,7 +587,7 @@ mount_probe!(
     MOUNT_OVERLAY,
     mount_overlay,
     "mount.fs.overlay",
-    "mount(none, /tmp/caliper-mount, overlay, lowerdir=a:b): a read-only overlay, unmounted by the child",
+    "mount(none, /tmp/caliper-<run>-mount, overlay, lowerdir=a:b): a read-only overlay, unmounted by the child",
     None,
     // get_fs_type loads fs-overlay past the capability check (#96).
     autoload: true,
@@ -537,7 +598,7 @@ mount_probe!(
 );
 
 mount_probe!(MOUNT_FUSE, mount_fuse, "mount.fs.fuse",
-    "mount(none, /tmp/caliper-mount, fuse): fuse without a descriptor, guaranteed EINVAL past the capability",
+    "mount(none, /tmp/caliper-<run>-mount, fuse): fuse without a descriptor, guaranteed EINVAL past the capability",
     Some(Errno::EINVAL),
     // get_fs_type loads fs-fuse past the capability check (#96).
     autoload: true,

@@ -184,6 +184,15 @@ pub fn posix_ipc_name(run: u32, name: &str) -> String {
     format!("{POSIX_IPC_PREFIX}{run}-{name}")
 }
 
+/// Directory under which run `run`'s probes mount, named like its POSIX
+/// objects so the janitor can recognise a leftover one (#96).
+pub fn mount_dir(run: u32) -> String {
+    format!("{MOUNT_DIR_PARENT}{}", posix_ipc_name(run, "mount"))
+}
+
+/// The writable directory the probe image carries for [`mount_dir`].
+pub const MOUNT_DIR_PARENT: &str = "/tmp/";
+
 /// Key `n` (below [`SYSV_IPC_KEYS`]) of run `run`'s block.
 pub fn sysv_ipc_key(run: u32, n: i32) -> i32 {
     SYSV_IPC_KEY_BASE + (run % 256) as i32 * SYSV_IPC_KEYS + n

@@ -107,7 +107,8 @@
 //! - a probe that can make the kernel autoload a module declares it; that side
 //!   effect cannot be rolled back
 //! - a POSIX IPC object it creates is named as `posix_ipc_name(run, …)` spells
-//!   it and a System V key is a `sysv_ipc_key(run, n)`, where the run is the
+//!   it, a System V key is a `sysv_ipc_key(run, n)`, and a directory it makes
+//!   is under `mount_dir(run)`, where the run is the
 //!   engine's pid, the child's `getppid()` (`caliper_engine::effects`; the
 //!   name built on the stack, not with that function's `String`). The
 //!   end-of-run janitor recognises only those: it removes what the child

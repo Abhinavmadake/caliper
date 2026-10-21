@@ -29,9 +29,9 @@
 
 use std::collections::BTreeMap;
 
-use caliper_engine::effects::{sysv_ipc_key, ResidualClass};
+use caliper_engine::effects::{mount_dir, sysv_ipc_key};
 use caliper_engine::harness::Outcome;
-use caliper_engine::residual::{janitor, Attempt, Removal};
+use caliper_engine::residual::{janitor, Attempt, Leftover, Removal};
 use nix::sys::signal::Signal;
 use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
@@ -71,13 +71,33 @@ fn ours(removals: &[Removal]) -> Removal {
         .next()
         .unwrap_or_else(|| panic!("segment not listed: {removals:?}"));
     assert!(mine.next().is_none(), "listed twice: {removals:?}");
-    assert_eq!(r.class, ResidualClass::SysvIpc);
+    assert_eq!(r.class, Leftover::SysvIpc);
     r.clone()
+}
+
+/// A mount probe killed between `mkdir` and `rmdir` leaves the run's
+/// directory; the janitor removes it, lower layer first, and records both.
+fn leftover_mount_dir() {
+    let dir = mount_dir(run());
+    std::fs::create_dir_all(format!("{dir}/a")).unwrap();
+    let removals = janitor(run());
+    let mine: Vec<_> = removals
+        .iter()
+        .filter(|r| r.class == Leftover::MountDir)
+        .map(|r| (r.object.clone(), r.removed))
+        .collect();
+    assert_eq!(
+        mine,
+        [(format!("{dir}/a"), true), (dir.clone(), true)],
+        "{removals:?}"
+    );
+    assert!(!std::path::Path::new(&dir).exists());
 }
 
 fn main() {
     caliper_engine::init().unwrap();
     run();
+    leftover_mount_dir();
     // SAFETY: plain syscall with a key of our own.
     let id = unsafe { libc::shmget(key(), 4096, libc::IPC_CREAT | 0o600) };
     assert!(id >= 0, "shmget: {}", std::io::Error::last_os_error());

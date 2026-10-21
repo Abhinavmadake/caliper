@@ -142,7 +142,8 @@ first, or create permitted and remove blocked — leaves an object that is
 counted, attributed to the probe, and checked against its declaration. The
 structural fallback is an end-of-run janitor: after the run's final snapshot it
 removes what is recognisably the instrument's (POSIX objects under a reserved
-name prefix, System V objects in a reserved key range), each removal in its own
+name prefix, System V objects in a reserved key range, the run's mount
+directory under `/tmp`), each removal in its own
 forked child under the same filters the probe had, and every attempt is
 recorded on the fingerprint whether it succeeded or not. It runs once, it is
 not on any probe's path, and its output is a finding about the corpus, never a

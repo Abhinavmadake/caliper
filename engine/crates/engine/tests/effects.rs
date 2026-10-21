@@ -35,7 +35,7 @@ use std::time::Duration;
 use caliper_engine::cell::Cell;
 use caliper_engine::effects::{posix_ipc_name, sysv_ipc_key, ResidualClass};
 use caliper_engine::measurement::{measure, Measurement, Unmeasurable};
-use caliper_engine::residual::{janitor, Snapshot};
+use caliper_engine::residual::{janitor, Leftover, Snapshot};
 use caliper_engine::{
     Applicability, Isolates, KernelDependency, Oracle, Probe, RawResult, RiskClass, SideEffects,
     Status,
@@ -189,7 +189,7 @@ fn a_leak_is_attributed_to_its_probe_and_checked_against_its_declaration() {
     assert!(m.residual.audit.is_empty(), "{:?}", m.residual.audit);
     // The janitor took the segment, after it was measured, and said so.
     assert_eq!(m.residual.janitor.len(), 1, "{:?}", m.residual.janitor);
-    assert_eq!(m.residual.janitor[0].class, ResidualClass::SysvIpc);
+    assert_eq!(m.residual.janitor[0].class, Leftover::SysvIpc);
     assert!(m.residual.janitor[0].object.contains("shm"));
     assert!(m.residual.janitor[0].removed, "{:?}", m.residual.janitor[0]);
     assert!(
