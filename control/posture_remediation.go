@@ -64,6 +64,29 @@ type LocalhostProfile struct {
 	Syscalls        []SeccompRule `json:"syscalls"`
 }
 
+// RuntimeDefaultProfile is the source profile supplied by the selected
+// runtime. Its rules deliberately retain runtime-only gates so they can be
+// resolved for a concrete target before a portable output is rendered.
+type RuntimeDefaultProfile struct {
+	DefaultAction   string               `json:"defaultAction"`
+	DefaultErrnoRet *uint64              `json:"defaultErrnoRet,omitempty"`
+	Architectures   []string             `json:"architectures,omitempty"`
+	ArchMap         []ArchMap            `json:"archMap,omitempty"`
+	Syscalls        []RuntimeSeccompRule `json:"syscalls"`
+}
+
+// RuntimeSeccompRule is accepted only as input. includes, excludes, and
+// comment are runtime-profile extensions, not fields in OCI or SPO schemas.
+type RuntimeSeccompRule struct {
+	Names    []string          `json:"names"`
+	Action   string            `json:"action"`
+	ErrnoRet *uint64           `json:"errnoRet,omitempty"`
+	Args     []SeccompArgument `json:"args,omitempty"`
+	Includes *SeccompFilter    `json:"includes,omitempty"`
+	Excludes *SeccompFilter    `json:"excludes,omitempty"`
+	Comment  string            `json:"comment,omitempty"`
+}
+
 type SeccompSpec struct {
 	DefaultAction   string        `yaml:"defaultAction" json:"defaultAction"`
 	DefaultErrnoRet *uint64       `yaml:"defaultErrnoRet,omitempty" json:"defaultErrnoRet,omitempty"`
@@ -132,7 +155,7 @@ type NotClosable struct {
 // Kubernetes RuntimeDefault declaration. Claim violations and undeclared
 // exposures have no independent posture authority and are intentionally not
 // turned into policy.
-func GenerateRemediation(report FindingReport, runtimeDefault LocalhostProfile, target RemediationTarget) (Remediation, error) {
+func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProfile, target RemediationTarget) (Remediation, error) {
 	if report.PostureRevision == "" || report.Tier == "" {
 		return Remediation{}, fmt.Errorf("finding report posture_revision and tier are required")
 	}
@@ -302,40 +325,57 @@ func cloneRules(rules []SeccompRule) []SeccompRule {
 	return copied
 }
 
-func resolveRuntimeRules(rules []SeccompRule, target RemediationTarget) []SeccompRule {
+func resolveRuntimeRules(rules []RuntimeSeccompRule, target RemediationTarget) []SeccompRule {
 	resolved := make([]SeccompRule, 0, len(rules))
 	for _, rule := range rules {
-		if !gateApplies(rule.Includes, target, true) || !gateApplies(rule.Excludes, target, false) {
+		if !includeGateApplies(rule.Includes, target) || excludeGateMatches(rule.Excludes, target) {
 			continue
 		}
-		rule.Includes, rule.Excludes, rule.Comment = nil, nil, ""
-		resolved = append(resolved, rule)
+		resolved = append(resolved, SeccompRule{
+			Names: rule.Names, Action: rule.Action, ErrnoRet: rule.ErrnoRet, Args: rule.Args,
+		})
 	}
 	return cloneRules(resolved)
 }
 
-func gateApplies(gate *SeccompFilter, target RemediationTarget, include bool) bool {
+func includeGateApplies(gate *SeccompFilter, target RemediationTarget) bool {
 	if gate == nil {
 		return true
 	}
-	match := true
 	if len(gate.Arches) > 0 {
-		match = contains(gate.Arches, target.Architecture)
+		if !contains(gate.Arches, target.Architecture) {
+			return false
+		}
 	}
-	if match && len(gate.Caps) > 0 {
+	if len(gate.Caps) > 0 {
 		for _, cap := range gate.Caps {
 			if !contains(target.Capabilities, cap) {
-				match = false
+				return false
 			}
 		}
 	}
-	if match && gate.MinKernel != "" {
-		match = kernelAtLeast(target.Kernel, gate.MinKernel)
+	if gate.MinKernel != "" && !kernelAtLeast(target.Kernel, gate.MinKernel) {
+		return false
 	}
-	if include {
-		return match
+	return true
+}
+
+// Runtime excludes are alternatives: a matching capability, architecture, or
+// kernel predicate independently suppresses the rule. They are not the
+// inverse of includes, whose predicates all must hold.
+func excludeGateMatches(gate *SeccompFilter, target RemediationTarget) bool {
+	if gate == nil {
+		return false
 	}
-	return !match
+	if len(gate.Arches) > 0 && contains(gate.Arches, target.Architecture) {
+		return true
+	}
+	for _, cap := range gate.Caps {
+		if contains(target.Capabilities, cap) {
+			return true
+		}
+	}
+	return gate.MinKernel != "" && kernelAtLeast(target.Kernel, gate.MinKernel)
 }
 
 // applyClosure removes closed syscalls from RuntimeDefault's allowlist. For a
@@ -348,6 +388,9 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 		// Replace a broad socket allow with one masked-equality rule per known
 		// family. The 32-bit mask prevents high register bits from bypassing a
 		// family test. Do not add a socket allow if RuntimeDefault had none.
+		if len(closure.Args) == 2 && closure.Args[0].Value == 16 && closure.Args[1].Index == 2 {
+			return restrictNetlinkProtocols(rules, closure.Args[1].Value)
+		}
 		return restrictSocketFamilies(rules, closure.Args[0].Value)
 	}
 	if len(closure.Names) == 1 && (closure.Names[0] == "clone" || closure.Names[0] == "unshare") && len(closure.Args) > 0 {
@@ -390,7 +433,6 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 func restrictSocketFamilies(rules []SeccompRule, deniedFamily uint64) []SeccompRule {
 	rules = splitAllowedSyscall(rules, "socket")
 	var rewritten bool
-	var enumerated bool
 	filtered := rules[:0]
 	for _, rule := range rules {
 		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" && len(rule.Args) == 0 {
@@ -398,15 +440,11 @@ func restrictSocketFamilies(rules []SeccompRule, deniedFamily uint64) []SeccompR
 			continue
 		}
 		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" && isMaskedSocketFamily(rule, deniedFamily) {
-			enumerated = true
 			continue
 		}
 		filtered = append(filtered, rule)
 	}
 	if !rewritten {
-		if enumerated {
-			return filtered
-		}
 		// The default either already denies socket or has a more-specific
 		// condition. In either case, adding an allow would widen its baseline.
 		return filtered
@@ -424,14 +462,82 @@ func restrictSocketFamilies(rules []SeccompRule, deniedFamily uint64) []SeccompR
 	return filtered
 }
 
+func restrictNetlinkProtocols(rules []SeccompRule, deniedProtocol uint64) []SeccompRule {
+	rules = splitAllowedSyscall(rules, "socket")
+	var broad, genericNetlink bool
+	filtered := rules[:0]
+	for _, rule := range rules {
+		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" {
+			switch {
+			case len(rule.Args) == 0:
+				broad = true
+				continue
+			case isMaskedSocketFamily(rule, 16):
+				genericNetlink = true
+				continue
+			case isNetlinkProtocol(rule, deniedProtocol):
+				continue
+			}
+		}
+		filtered = append(filtered, rule)
+	}
+	if broad {
+		filtered = appendSocketFamilies(filtered, 16)
+	}
+	if broad || genericNetlink {
+		return appendNetlinkProtocols(filtered, deniedProtocol)
+	}
+	// No broad or generic allow existed, so adding one would widen the
+	// RuntimeDefault baseline. Existing enumerated protocol allows remain.
+	return filtered
+}
+
+func appendSocketFamilies(rules []SeccompRule, excluded uint64) []SeccompRule {
+	mask := uint64(0xffffffff)
+	for _, family := range socketFamilies {
+		if family == excluded {
+			continue
+		}
+		family := family
+		rules = append(rules, SeccompRule{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{
+			Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: mask, ValueTwo: &family,
+		}}})
+	}
+	return rules
+}
+
+func appendNetlinkProtocols(rules []SeccompRule, denied uint64) []SeccompRule {
+	mask := uint64(0xffffffff)
+	for _, protocol := range netlinkProtocols {
+		if protocol == denied {
+			continue
+		}
+		protocol := protocol
+		family := uint64(16)
+		rules = append(rules, SeccompRule{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{
+			{Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: mask, ValueTwo: &family},
+			{Index: 2, Op: "SCMP_CMP_EQ", Value: protocol},
+		}})
+	}
+	return rules
+}
+
 func isMaskedSocketFamily(rule SeccompRule, family uint64) bool {
 	return len(rule.Args) == 1 && rule.Args[0].Index == 0 && rule.Args[0].Op == "SCMP_CMP_MASKED_EQ" && rule.Args[0].Value == 0xffffffff && rule.Args[0].ValueTwo != nil && *rule.Args[0].ValueTwo == family
+}
+
+func isNetlinkProtocol(rule SeccompRule, protocol uint64) bool {
+	return len(rule.Args) == 2 && isMaskedSocketFamily(SeccompRule{Args: rule.Args[:1]}, 16) && rule.Args[1].Index == 2 && rule.Args[1].Op == "SCMP_CMP_EQ" && rule.Args[1].Value == protocol
 }
 
 var socketFamilies = []uint64{
 	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 	16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
 	31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+}
+
+var netlinkProtocols = []uint64{
+	0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
 }
 
 func hasArgumentAt(rule SeccompRule, index uint64) bool {

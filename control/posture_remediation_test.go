@@ -30,13 +30,13 @@ func expectation(id string) Finding {
 // runtimeDefault is the relevant excerpt of Moby's published RuntimeDefault
 // profile: default errno 1, its architecture map, capability gate, and the
 // existing socket allow condition. These are the fields a toy allowlist loses.
-func runtimeDefault() LocalhostProfile {
+func runtimeDefault() RuntimeDefaultProfile {
 	errnoRet := uint64(1)
-	return LocalhostProfile{
+	return RuntimeDefaultProfile{
 		DefaultAction:   "SCMP_ACT_ERRNO",
 		DefaultErrnoRet: &errnoRet,
 		ArchMap:         []ArchMap{{Architecture: "SCMP_ARCH_X86_64", SubArchitectures: []string{"SCMP_ARCH_X86", "SCMP_ARCH_X32"}}},
-		Syscalls: []SeccompRule{
+		Syscalls: []RuntimeSeccompRule{
 			{Names: []string{"read", "write", "close", "futex", "socket"}, Action: "SCMP_ACT_ALLOW"},
 			{Names: []string{"process_vm_readv", "process_vm_writev", "ptrace"}, Action: "SCMP_ACT_ALLOW", Includes: &SeccompFilter{MinKernel: "4.8"}},
 			{Names: []string{"clone", "clone3", "unshare"}, Action: "SCMP_ACT_ALLOW", Includes: &SeccompFilter{Caps: []string{"CAP_SYS_ADMIN"}}},
@@ -232,7 +232,7 @@ func TestGenerateRemediationRejectsMixedProvenance(t *testing.T) {
 
 func TestGenerateRemediationRequiresRuntimeDefault(t *testing.T) {
 	report := FindingReport{PostureRevision: "v1", Tier: "baseline"}
-	if _, err := GenerateRemediation(report, LocalhostProfile{}, remediationTarget()); err == nil {
+	if _, err := GenerateRemediation(report, RuntimeDefaultProfile{}, remediationTarget()); err == nil {
 		t.Fatal("GenerateRemediation() succeeded without a RuntimeDefault profile")
 	}
 }
@@ -247,5 +247,72 @@ func TestGenerateRemediationRejectsPermissiveDefaultAndWrongKind(t *testing.T) {
 	report.ExpectationViolations = []Finding{{Kind: ClaimViolation, PostureRevision: "v1", Tier: "baseline", Family: "x", ProbeID: "x", Verdict: "permitted"}}
 	if _, err := GenerateRemediation(report, runtimeDefault(), remediationTarget()); err == nil {
 		t.Fatal("GenerateRemediation() accepted a claim violation as policy input")
+	}
+}
+
+func TestGenerateRemediationKeepsOtherNetlinkProtocols(t *testing.T) {
+	report := FindingReport{PostureRevision: "v1", Tier: "untrusted-multi-tenant", ExpectationViolations: []Finding{
+		expectation("netlink.protocol.crypto"),
+	}}
+	remediation, err := GenerateRemediation(report, runtimeDefault(), remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var route, crypto, genericNetlink bool
+	for _, rule := range remediation.Localhost.Syscalls {
+		if rule.Action != "SCMP_ACT_ALLOW" || len(rule.Names) != 1 || rule.Names[0] != "socket" {
+			continue
+		}
+		route = route || isNetlinkProtocol(rule, 0)
+		crypto = crypto || isNetlinkProtocol(rule, 21)
+		genericNetlink = genericNetlink || isMaskedSocketFamily(rule, 16)
+	}
+	if !route || crypto || genericNetlink {
+		t.Fatalf("netlink allow rules route=%t crypto=%t generic=%t: %#v", route, crypto, genericNetlink, remediation.Localhost.Syscalls)
+	}
+}
+
+func TestResolveRuntimeRulesExcludesOnAnyMatchingPredicate(t *testing.T) {
+	rules := []RuntimeSeccompRule{
+		{Names: []string{"cap-rule"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Caps: []string{"CAP_A", "CAP_B"}}},
+		{Names: []string{"arch-rule"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Arches: []string{"SCMP_ARCH_X86_64", "SCMP_ARCH_S390X"}}},
+		{Names: []string{"remaining"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Caps: []string{"CAP_OTHER"}}},
+	}
+	target := remediationTarget()
+	target.Capabilities = []string{"CAP_A"}
+	resolved := resolveRuntimeRules(rules, target)
+	if len(resolved) != 1 || resolved[0].Names[0] != "remaining" {
+		t.Fatalf("resolved rules = %#v", resolved)
+	}
+}
+
+func TestRuntimeProfileJSONRetainsAndResolvesGates(t *testing.T) {
+	const runtimeJSON = `{
+  "defaultAction":"SCMP_ACT_ERRNO",
+  "syscalls":[
+    {"names":["gated"],"action":"SCMP_ACT_ALLOW","includes":{"caps":["CAP_A"]}},
+    {"names":["excluded"],"action":"SCMP_ACT_ALLOW","excludes":{"arches":["SCMP_ARCH_X86_64"]}}
+  ]
+}`
+	var runtime RuntimeDefaultProfile
+	if err := json.Unmarshal([]byte(runtimeJSON), &runtime); err != nil {
+		t.Fatal(err)
+	}
+	if runtime.Syscalls[0].Includes == nil || runtime.Syscalls[1].Excludes == nil {
+		t.Fatalf("runtime gates lost while decoding: %#v", runtime)
+	}
+	target := remediationTarget()
+	target.Capabilities = nil
+	if resolved := resolveRuntimeRules(runtime.Syscalls, target); len(resolved) != 0 {
+		t.Fatalf("gated rules leaked into output: %#v", resolved)
+	}
+	target.Capabilities = []string{"CAP_A"}
+	resolved := resolveRuntimeRules(runtime.Syscalls[:1], target)
+	encoded, err := json.Marshal(resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "includes") || strings.Contains(string(encoded), "excludes") {
+		t.Fatalf("rendered OCI rules retain runtime-only fields: %s", encoded)
 	}
 }
