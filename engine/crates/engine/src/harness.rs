@@ -92,6 +92,13 @@ pub enum Fault {
     /// The child died of this signal before reaching the probed operation,
     /// for instance a filter killing a helper: not a kill of the operation.
     SetupKilled(i32),
+    /// The child exceeded the timeout before reaching the probed operation:
+    /// a helper hung, not the operation.
+    SetupTimedOut,
+    /// The child exceeded the timeout and was still not reapable
+    /// [`KILL_GRACE`] after SIGKILL. It outlives the probe, so neither this
+    /// probe's snapshots nor any later probe's are its own (#99).
+    Unreaped,
     /// An exit code outside the encoding — cannot happen from this harness's
     /// own child, recorded rather than guessed at.
     UnknownExit(i32),
@@ -173,12 +180,14 @@ pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::R
     let in_setup =
         stage_at(addr).is_some_and(|s| s.load(std::sync::atomic::Ordering::SeqCst) == STAGE_SETUP);
     if addr != 0 {
-        // SAFETY: the page mapped above; the child that shared it is reaped.
+        // SAFETY: the page mapped above. A child that shared it is reaped,
+        // or unreaped and keeping its own mapping.
         unsafe { libc::munmap(page, 4096) };
     }
     Ok(match outcome? {
         Outcome::Returned { errno } if in_setup => Outcome::Fault(Fault::SetupFailed(errno)),
         Outcome::Signaled { signal } if in_setup => Outcome::Fault(Fault::SetupKilled(signal)),
+        Outcome::TimedOut if in_setup => Outcome::Fault(Fault::SetupTimedOut),
         other => other,
     })
 }
@@ -240,13 +249,19 @@ fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<
         Err(err) => {
             // The child is still ours to reap: kill it first, so a poll
             // failure leaves neither a running child nor a zombie (#99).
-            let _ = kill_and_reap(pid, pidfd);
+            // The pidfd cannot be polled, so the reap is unbounded, as when
+            // pidfd_open fails.
+            let _ = kill(pid, Signal::SIGKILL);
+            let _ = reap(pid.as_raw());
             return Err(err);
         }
     };
     if !ready {
-        kill_and_reap(pid, pidfd)?;
-        return Ok(Outcome::TimedOut);
+        return Ok(if kill_and_reap(pid, pidfd)? {
+            Outcome::TimedOut
+        } else {
+            Outcome::Fault(Fault::Unreaped)
+        });
     }
     let status = reap(pid.as_raw())?;
     Ok(if libc::WIFEXITED(status) {
@@ -307,14 +322,14 @@ fn poll_exit(pidfd: libc::c_int, timeout: Duration) -> nix::Result<bool> {
     }
 }
 
-/// SIGKILL the child and reap it, waiting at most [`KILL_GRACE`]. A child
-/// that is still not reapable is left as an error rather than a hang.
-fn kill_and_reap(pid: Pid, pidfd: libc::c_int) -> nix::Result<()> {
+/// SIGKILL the child and reap it, waiting at most [`KILL_GRACE`]. `false`
+/// is a child still not reapable, left rather than waited on into a hang.
+fn kill_and_reap(pid: Pid, pidfd: libc::c_int) -> nix::Result<bool> {
     kill(pid, Signal::SIGKILL)?;
     if !poll_exit(pidfd, KILL_GRACE)? {
-        return Err(Errno::ETIMEDOUT);
+        return Ok(false);
     }
-    reap(pid.as_raw()).map(|_| ())
+    reap(pid.as_raw()).map(|_| true)
 }
 
 /// waitpid for one child, retried on EINTR; the raw wait status.

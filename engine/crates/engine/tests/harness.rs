@@ -225,3 +225,26 @@ fn a_failure_or_death_in_setup_is_not_the_probed_answer() {
     let next = run_isolated(&probe("after-setup", ebadf)).unwrap();
     assert_eq!(next, Outcome::Returned { errno: libc::EBADF });
 }
+
+fn hangs_in_setup() -> RawResult {
+    caliper_engine::harness::setup();
+    raw(unsafe { libc::pause() }.into())
+}
+
+fn hangs_when_probed() -> RawResult {
+    caliper_engine::harness::setup();
+    caliper_engine::harness::probing();
+    raw(unsafe { libc::pause() }.into())
+}
+
+#[test]
+fn a_timeout_in_setup_is_not_the_probed_operation_timing_out() {
+    let short = |id, run| Probe {
+        risk: RiskClass::new(true, Duration::from_millis(200)),
+        ..probe(id, run)
+    };
+    let setup = run_isolated(&short("setup-hangs", hangs_in_setup)).unwrap();
+    assert_eq!(setup, Outcome::Fault(Fault::SetupTimedOut));
+    let probed = run_isolated(&short("probe-hangs", hangs_when_probed)).unwrap();
+    assert_eq!(probed, Outcome::TimedOut);
+}
