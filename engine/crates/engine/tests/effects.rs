@@ -33,7 +33,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::time::Duration;
 
 use caliper_engine::cell::Cell;
-use caliper_engine::effects::{ResidualClass, SYSV_IPC_KEY_BASE};
+use caliper_engine::effects::{posix_ipc_name, sysv_ipc_key, ResidualClass};
 use caliper_engine::measurement::{measure, Measurement, Unmeasurable};
 use caliper_engine::residual::{janitor, Snapshot};
 use caliper_engine::{
@@ -67,9 +67,11 @@ fn ok() -> RawResult {
     Ok(())
 }
 
-/// Leaves a System V segment behind, keyed as the instrument's.
+/// Leaves a System V segment behind, keyed as the run's (the run is the
+/// harness's parent, this test process).
 fn leak_sysv_shm() -> RawResult {
-    let r = unsafe { libc::shmget(SYSV_IPC_KEY_BASE + 1, 4096, libc::IPC_CREAT | 0o600) };
+    let run = unsafe { libc::getppid() } as u32;
+    let r = unsafe { libc::shmget(sysv_ipc_key(run, 1), 4096, libc::IPC_CREAT | 0o600) };
     if r < 0 {
         Err(Errno::last())
     } else {
@@ -78,8 +80,21 @@ fn leak_sysv_shm() -> RawResult {
 }
 
 /// Leaves a POSIX shared-memory object behind, named as the instrument's.
+/// Built by the parent: the child must not allocate (libtest is threaded).
+static POSIX_LEAK: std::sync::OnceLock<std::ffi::CString> = std::sync::OnceLock::new();
+
+fn posix_leak_name() -> &'static std::ffi::CString {
+    POSIX_LEAK.get_or_init(|| {
+        std::ffi::CString::new(format!(
+            "/{}",
+            posix_ipc_name(std::process::id(), "test-leak")
+        ))
+        .unwrap()
+    })
+}
+
 fn leak_posix_shm() -> RawResult {
-    let name = c"/caliper-test-leak";
+    let name = POSIX_LEAK.get().expect("posix_leak_name() before the run");
     let fd = unsafe { libc::shm_open(name.as_ptr(), libc::O_CREAT | libc::O_RDWR, 0o600) };
     if fd < 0 {
         Err(Errno::last())
@@ -177,12 +192,16 @@ fn a_leak_is_attributed_to_its_probe_and_checked_against_its_declaration() {
     assert_eq!(m.residual.janitor[0].class, ResidualClass::SysvIpc);
     assert!(m.residual.janitor[0].object.contains("shm"));
     assert!(m.residual.janitor[0].removed, "{:?}", m.residual.janitor[0]);
-    assert!(janitor().is_empty(), "the janitor left something");
+    assert!(
+        janitor(std::process::id()).is_empty(),
+        "the janitor left something"
+    );
 }
 
 #[test]
 fn an_undeclared_leak_is_a_finding_against_the_probe() {
     let _serial = serial();
+    posix_leak_name();
     let probes = [probe("leaks.undeclared", SideEffects::NONE, leak_posix_shm)];
     let m = Measurement::run(&probes, "0.1.0", "full", cell());
     let posix: Vec<_> = m
@@ -196,7 +215,10 @@ fn an_undeclared_leak_is_a_finding_against_the_probe() {
     assert_eq!(posix[0].delta, 1);
     assert!(!posix[0].declared);
     assert_eq!(m.residual.janitor.len(), 1);
-    assert_eq!(m.residual.janitor[0].object, "/dev/shm/caliper-test-leak");
+    assert_eq!(
+        m.residual.janitor[0].object,
+        format!("/dev/shm{}", posix_leak_name().to_str().unwrap())
+    );
     assert!(m.residual.janitor[0].removed, "{:?}", m.residual.janitor[0]);
 
     let v = serde_json::to_value(&m).unwrap();

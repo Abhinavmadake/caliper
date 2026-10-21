@@ -29,7 +29,7 @@
 
 use std::collections::BTreeMap;
 
-use caliper_engine::effects::{ResidualClass, SYSV_IPC_KEY_BASE};
+use caliper_engine::effects::{sysv_ipc_key, ResidualClass};
 use caliper_engine::harness::Outcome;
 use caliper_engine::residual::{janitor, Attempt, Removal};
 use nix::sys::signal::Signal;
@@ -42,8 +42,17 @@ const ARCH: TargetArch = TargetArch::aarch64;
 #[cfg(target_arch = "x86_64")]
 const ARCH: TargetArch = TargetArch::x86_64;
 
-/// One key of the instrument's range, not shared with `effects.rs`.
-const KEY: i32 = SYSV_IPC_KEY_BASE + 2;
+/// The run is this test process; the forked child below acts for it.
+static RUN: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
+
+fn run() -> u32 {
+    *RUN.get_or_init(std::process::id)
+}
+
+/// One key of this run's block, not shared with `effects.rs`.
+fn key() -> i32 {
+    sysv_ipc_key(run(), 2)
+}
 
 fn on_shmctl(action: SeccompAction) -> BpfProgram {
     let mut rules = BTreeMap::new();
@@ -56,7 +65,7 @@ fn on_shmctl(action: SeccompAction) -> BpfProgram {
 
 /// The janitor's record for our segment.
 fn ours(removals: &[Removal]) -> Removal {
-    let tag = format!("key {KEY:#x}");
+    let tag = format!("key {:#x}", key());
     let mut mine = removals.iter().filter(|r| r.object.contains(&tag));
     let r = mine
         .next()
@@ -68,8 +77,9 @@ fn ours(removals: &[Removal]) -> Removal {
 
 fn main() {
     caliper_engine::init().unwrap();
+    run();
     // SAFETY: plain syscall with a key of our own.
-    let id = unsafe { libc::shmget(KEY, 4096, libc::IPC_CREAT | 0o600) };
+    let id = unsafe { libc::shmget(key(), 4096, libc::IPC_CREAT | 0o600) };
     assert!(id >= 0, "shmget: {}", std::io::Error::last_os_error());
 
     // SAFETY: single-threaded; the child calls the janitor and _exit.
@@ -82,13 +92,13 @@ fn main() {
     assert_eq!(status, WaitStatus::Exited(Pid::from_raw(pid), 0));
 
     // Unfiltered: the same removal succeeds, and says so.
-    let r = ours(&janitor());
+    let r = ours(&janitor(run()));
     assert!(r.removed, "{r:?}");
     assert_eq!(r.attempt, Attempt::Child(Outcome::Returned { errno: 0 }));
     assert!(
-        !janitor()
+        !janitor(run())
             .iter()
-            .any(|r| r.object.contains(&format!("key {KEY:#x}"))),
+            .any(|r| r.object.contains(&format!("key {:#x}", key()))),
         "the janitor left the segment"
     );
 }
@@ -97,7 +107,7 @@ fn main() {
 fn filtered() -> ! {
     // The filter answers EPERM: the segment stays, the record says so.
     apply_filter(&on_shmctl(SeccompAction::Errno(libc::EPERM as u32))).unwrap();
-    let r = ours(&janitor());
+    let r = ours(&janitor(run()));
     assert!(!r.removed, "{r:?}");
     assert_eq!(
         r.attempt,
@@ -107,7 +117,7 @@ fn filtered() -> ! {
     // The filter kills: the child dies of SIGSYS, the record says so, and
     // this process is still here to write the record.
     apply_filter(&on_shmctl(SeccompAction::KillProcess)).unwrap();
-    let r = ours(&janitor());
+    let r = ours(&janitor(run()));
     assert!(!r.removed, "{r:?}");
     assert_eq!(
         r.attempt,

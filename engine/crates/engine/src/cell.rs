@@ -214,45 +214,71 @@ fn read_selinux_enforce() -> Option<bool> {
     }
 }
 
-fn serialize_cap<S>(cap: &u64, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_cap<S>(cap: &Option<u64>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&format!("{cap:016x}"))
+    match cap {
+        Some(cap) => serializer.serialize_str(&format!("{cap:016x}")),
+        None => serializer.serialize_none(),
+    }
 }
 
 /// The process capability sets from `/proc/self/status`, read before any
 /// probe runs. The kernel publishes them as fixed-width hex masks; the
 /// struct keeps numbers for correlation and serialises back to that spelling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+/// A set whose line is missing from `/proc/self/status` is `None` and left
+/// out of the fingerprint, rather than ending the run (#99).
 pub struct Capabilities {
-    #[serde(serialize_with = "serialize_cap")]
-    pub effective: u64,
-    #[serde(serialize_with = "serialize_cap")]
-    pub permitted: u64,
-    #[serde(serialize_with = "serialize_cap")]
-    pub bounding: u64,
-    #[serde(serialize_with = "serialize_cap")]
-    pub ambient: u64,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub effective: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub permitted: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub bounding: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ambient: Option<u64>,
 }
 
 impl Capabilities {
     pub const EMPTY: Capabilities = Capabilities {
-        effective: 0,
-        permitted: 0,
-        bounding: 0,
-        ambient: 0,
+        effective: Some(0),
+        permitted: Some(0),
+        bounding: Some(0),
+        ambient: Some(0),
     };
 
-    pub fn detect() -> nix::Result<Capabilities> {
-        let status = read_proc_self_status()?;
-        let text = std::str::from_utf8(&status).map_err(|_| nix::errno::Errno::EINVAL)?;
-        Ok(Capabilities {
-            effective: cap_line(text, "CapEff")?,
-            permitted: cap_line(text, "CapPrm")?,
-            bounding: cap_line(text, "CapBnd")?,
-            ambient: cap_line(text, "CapAmb")?,
-        })
+    pub const UNKNOWN: Capabilities = Capabilities {
+        effective: None,
+        permitted: None,
+        bounding: None,
+        ambient: None,
+    };
+
+    pub fn detect() -> Capabilities {
+        let Ok(status) = read_proc_self_status() else {
+            return Capabilities::UNKNOWN;
+        };
+        let text = String::from_utf8_lossy(&status);
+        Capabilities {
+            effective: cap_line(&text, "CapEff").ok(),
+            permitted: cap_line(&text, "CapPrm").ok(),
+            bounding: cap_line(&text, "CapBnd").ok(),
+            ambient: cap_line(&text, "CapAmb").ok(),
+        }
     }
 }
 
@@ -372,7 +398,7 @@ impl Cell {
             lsm,
             lsm_label,
             lsm_enforcing,
-            capabilities: Capabilities::detect()?,
+            capabilities: Capabilities::detect(),
         })
     }
 }
@@ -483,15 +509,26 @@ CapAmb:\t0000000000000000\n";
     #[test]
     fn capabilities_serialise_as_status_hex() {
         let caps = Capabilities {
-            effective: 0,
-            permitted: 0x00000000a80425fb,
-            bounding: 0xffff_ffff_ffff_ffff,
-            ambient: 0x20,
+            effective: Some(0),
+            permitted: Some(0x00000000a80425fb),
+            bounding: Some(0xffff_ffff_ffff_ffff),
+            ambient: Some(0x20),
         };
         let v = serde_json::to_value(caps).unwrap();
         assert_eq!(v["effective"], "0000000000000000");
         assert_eq!(v["permitted"], "00000000a80425fb");
         assert_eq!(v["bounding"], "ffffffffffffffff");
         assert_eq!(v["ambient"], "0000000000000020");
+    }
+
+    #[test]
+    fn a_missing_cap_line_drops_that_set_only() {
+        let caps = Capabilities {
+            ambient: None,
+            ..Capabilities::EMPTY
+        };
+        let v = serde_json::to_value(caps).unwrap();
+        assert_eq!(v["effective"], "0000000000000000");
+        assert!(v.get("ambient").is_none(), "{v}");
     }
 }

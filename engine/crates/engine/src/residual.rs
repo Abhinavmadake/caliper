@@ -50,7 +50,7 @@ use nix::errno::Errno;
 use serde::ser::SerializeMap;
 use serde::{Serialize, Serializer};
 
-use crate::effects::{is_instrument_sysv_key, ResidualClass, POSIX_IPC_PREFIX};
+use crate::effects::{is_instrument_sysv_key, posix_ipc_name, ResidualClass};
 use crate::harness::{run_isolated_with, Outcome};
 use crate::probe::RawResult;
 
@@ -340,18 +340,19 @@ pub enum Attempt {
     Harness { errno: i32 },
 }
 
-/// Remove what is recognisably the instrument's and was left behind:
-/// POSIX objects named with [`POSIX_IPC_PREFIX`], System V objects keyed in
-/// the instrument's range. Runs once, after the run's final snapshot, so
+/// Remove what is recognisably run `run`'s and was left behind: POSIX
+/// objects named by [`posix_ipc_name`], System V objects keyed in the run's
+/// block. A concurrent or crashed run's objects are not touched (#99). Runs once, after the run's final snapshot, so
 /// what it removes has already been measured and attributed. Each removal
 /// is made in its own forked child; the parent only lists.
-pub fn janitor() -> Vec<Removal> {
+pub fn janitor(run: u32) -> Vec<Removal> {
+    let prefix = posix_ipc_name(run, "");
     let mut removals = Vec::new();
     for dir in ["/dev/shm", "/dev/mqueue"] {
         let Ok(rd) = fs::read_dir(dir) else { continue };
         for entry in rd.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if !name.starts_with(POSIX_IPC_PREFIX) {
+            if !name.starts_with(&prefix) {
                 continue;
             }
             let object = format!("{dir}/{name}");
@@ -388,7 +389,7 @@ pub fn janitor() -> Vec<Removal> {
             let (Ok(key), Ok(id)) = (key.parse::<i32>(), id.parse::<i32>()) else {
                 continue;
             };
-            if !is_instrument_sysv_key(key) {
+            if !is_instrument_sysv_key(run, key) {
                 continue;
             }
             let object = format!("{} key {key:#x} id {id}", kind.name());
