@@ -62,15 +62,19 @@ fn sys_ptrace() -> RawResult {
         iov_base: std::ptr::dangling::<libc::c_void>().cast_mut(),
         iov_len: 1,
     };
+    // Every argument as a full register width: libc::syscall is variadic,
+    // and on x86_64 flags, the seventh, goes on the stack, where a 32-bit
+    // literal leaves the slot's upper half as whatever was there. The kernel
+    // reads a non-zero flags as EINVAL (#99, seen on x86_64 CI).
     result(unsafe {
         libc::syscall(
             libc::SYS_process_vm_readv,
             parent,
-            &local_iov,
-            1,
-            &remote_iov,
-            1,
-            0,
+            &local_iov as *const libc::iovec,
+            1 as libc::c_ulong,
+            &remote_iov as *const libc::iovec,
+            1 as libc::c_ulong,
+            0 as libc::c_ulong,
         )
     })
 }
