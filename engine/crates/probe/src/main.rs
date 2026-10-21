@@ -23,7 +23,7 @@ use std::process::ExitCode;
 use caliper_engine::{Cell, Measurement, Unmeasurable};
 
 const USAGE: &str = "\
-usage: caliper-probe <mode>
+usage: caliper-probe <mode> [--exit-0-on-defects]
 
   --run            measure: run every probe in the corpus and emit the
                    probe-side half of a fingerprint as JSON (#8), with the
@@ -37,6 +37,12 @@ usage: caliper-probe <mode>
   --dump-corpus    emit the compiled-in corpus as JSON. An output, never an
                    input (spec/probe.md)
   --version        print the version and exit
+
+  --exit-0-on-defects
+                   after --run or --reduced: exit 0 rather than 3 on a run
+                   with defects, for a runner that cannot tell 3 from a
+                   failure (a Kubernetes Job or init container). The defects
+                   are still in the document and on stderr
 
 exit status: 0 measured; 3 measured with defects (a probe other than a
 deferred one unmeasured, or an undeclared object left behind), the document
@@ -59,8 +65,10 @@ fn main() -> ExitCode {
         .collect::<Vec<_>>()
         .as_slice()
     {
-        ["--run"] => run(false),
-        ["--reduced"] => run(true),
+        ["--run"] => run(false, EXIT_DEFECTS),
+        ["--reduced"] => run(true, EXIT_DEFECTS),
+        ["--run", "--exit-0-on-defects"] => run(false, 0),
+        ["--reduced", "--exit-0-on-defects"] => run(true, 0),
         ["--noop"] => ExitCode::SUCCESS,
         ["--dump-corpus"] => dump_corpus(),
         ["--version"] => {
@@ -74,7 +82,8 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(reduced: bool) -> ExitCode {
+/// `defects_exit` is the status for a run measured with defects.
+fn run(reduced: bool, defects_exit: u8) -> ExitCode {
     let cell = match Cell::detect() {
         Ok(cell) => cell,
         Err(e) => {
@@ -130,7 +139,7 @@ fn run(reduced: bool) -> ExitCode {
         || m.residual.leaks.iter().any(|l| !l.declared && l.delta > 0);
     match (write_json(&m), defects) {
         (false, _) => ExitCode::FAILURE,
-        (true, true) => ExitCode::from(EXIT_DEFECTS),
+        (true, true) => ExitCode::from(defects_exit),
         (true, false) => ExitCode::SUCCESS,
     }
 }

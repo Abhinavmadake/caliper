@@ -107,15 +107,18 @@ fn engine_filter(drop: Option<&str>) -> Vec<BpfProgram> {
 /// before `execve` is `apply_filter` (prctl + seccomp, both issued before
 /// the filter is live) and `execv` itself.
 fn run_under(filter: &[BpfProgram]) -> libc::c_int {
-    run_mode_under("--noop", filter).0
+    run_mode_under(&["--noop"], filter).0
 }
 
-/// `caliper-probe <mode>` under `filter`: the wait status, and what it
+/// `caliper-probe <args>` under `filter`: the wait status, and what it
 /// wrote to a pipe on stdout.
-fn run_mode_under(mode: &str, filter: &[BpfProgram]) -> (libc::c_int, Vec<u8>) {
+fn run_mode_under(args: &[&str], filter: &[BpfProgram]) -> (libc::c_int, Vec<u8>) {
     let path = CString::new(PROBE).unwrap();
-    let arg = CString::new(mode).unwrap();
-    let argv = [path.as_ptr(), arg.as_ptr(), std::ptr::null()];
+    let args: Vec<CString> = args.iter().map(|a| CString::new(*a).unwrap()).collect();
+    let argv: Vec<*const libc::c_char> = std::iter::once(path.as_ptr())
+        .chain(args.iter().map(|a| a.as_ptr()))
+        .chain(std::iter::once(std::ptr::null()))
+        .collect();
     let mut fds = [0 as libc::c_int; 2];
     // SAFETY: a two-element array for pipe(2).
     assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0, "pipe failed");
@@ -208,7 +211,7 @@ const REACHES_THE_KERNEL: &[&str] = &[
 
 #[test]
 fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
-    let (status, out) = run_mode_under("--run", &engine_filter(None));
+    let (status, out) = run_mode_under(&["--run"], &engine_filter(None));
     // 3, not 0: the mount.fs probes are unmeasured, killed at their mkdirat
     // helper, which is a defect of this environment worth the exit code.
     assert!(
@@ -250,4 +253,23 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
             assert_eq!(u["why"], "deferred", "{u}");
         }
     }
+}
+
+#[test]
+fn a_runner_that_cannot_read_3_gets_0_and_the_same_defects() {
+    let (status, out) = run_mode_under(&["--run", "--exit-0-on-defects"], &engine_filter(None));
+    assert!(
+        libc::WIFEXITED(status) && libc::WEXITSTATUS(status) == 0,
+        "status {status:#x}"
+    );
+    let doc: serde_json::Value = serde_json::from_slice(&out).expect("output is JSON");
+    assert!(
+        doc["unmeasured"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|u| u["why"] != "deferred"),
+        "{}",
+        doc["unmeasured"]
+    );
 }
