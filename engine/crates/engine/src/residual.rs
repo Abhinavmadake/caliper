@@ -412,7 +412,9 @@ pub fn janitor(run: u32) -> Vec<Removal> {
     let dir = mount_dir(run);
     // Lower layers first: the directory is only removable empty.
     for object in [format!("{dir}/a"), format!("{dir}/b"), dir] {
-        if !fs::symlink_metadata(&object).is_ok_and(|m| m.is_dir()) {
+        // stat, not lstat: musl's lstat is SYS_lstat on x86_64, which the
+        // engine's allowlist does not carry.
+        if !fs::metadata(&object).is_ok_and(|m| m.is_dir()) {
             continue;
         }
         let Ok(path) = CString::new(object.as_str()) else {
