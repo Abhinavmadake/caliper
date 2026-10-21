@@ -17,6 +17,7 @@ package control
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
@@ -52,6 +53,19 @@ func remediationTarget() RemediationTarget {
 		Capabilities:        []string{"CAP_SYS_ADMIN"},
 		Kernel:              "6.8.0",
 	}
+}
+
+func mobyRuntimeDefault(t *testing.T) RuntimeDefaultProfile {
+	t.Helper()
+	contents, err := os.ReadFile("testdata/moby-default.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var runtime RuntimeDefaultProfile
+	if err := json.Unmarshal(contents, &runtime); err != nil {
+		t.Fatalf("parse Moby default.json fixture: %v", err)
+	}
+	return runtime
 }
 
 func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
@@ -272,21 +286,30 @@ func TestGenerateRemediationKeepsOtherNetlinkProtocols(t *testing.T) {
 	}
 }
 
-func TestGenerateRemediationNarrowsMobySocketNEAllow(t *testing.T) {
-	// These are the socket and architecture-gated rules in Moby's shipped
-	// default.json: socket permits every family except AF_VSOCK (40), while
-	// arch_prctl is gated by the runtime spelling "amd64".
-	const mobyDefault = `{
-  "defaultAction":"SCMP_ACT_ERRNO",
-  "syscalls":[
-    {"names":["socket"],"action":"SCMP_ACT_ALLOW","args":[{"index":0,"value":40,"op":"SCMP_CMP_NE"}]},
-    {"names":["arch_prctl"],"action":"SCMP_ACT_ALLOW","includes":{"arches":["amd64","x32"]}}
-  ]
-}`
-	var runtime RuntimeDefaultProfile
-	if err := json.Unmarshal([]byte(mobyDefault), &runtime); err != nil {
+func TestGenerateRemediationClosesEachReportedNetlinkProtocol(t *testing.T) {
+	report := FindingReport{PostureRevision: "v1", Tier: "untrusted-multi-tenant", ExpectationViolations: []Finding{
+		expectation("netlink.protocol.netfilter"), expectation("netlink.protocol.xfrm"),
+	}}
+	// Moby's RuntimeDefault has a dedicated AF_NETLINK equality rule. The
+	// second closure must recognise the protocol-specific rules emitted for
+	// the first one and remove its own protocol from them.
+	remediation, err := GenerateRemediation(report, mobyRuntimeDefault(t), remediationTarget())
+	if err != nil {
 		t.Fatal(err)
 	}
+	var route, netfilter, xfrm bool
+	for _, rule := range remediation.Localhost.Syscalls {
+		route = route || isNetlinkProtocol(rule, 0)
+		netfilter = netfilter || isNetlinkProtocol(rule, 12)
+		xfrm = xfrm || isNetlinkProtocol(rule, 6)
+	}
+	if !route || netfilter || xfrm {
+		t.Fatalf("netlink rules route=%t netfilter=%t xfrm=%t", route, netfilter, xfrm)
+	}
+}
+
+func TestGenerateRemediationNarrowsMobyDefaultSocketRules(t *testing.T) {
+	runtime := mobyRuntimeDefault(t)
 	report := FindingReport{PostureRevision: "v1", Tier: "baseline", ExpectationViolations: []Finding{
 		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "baseline", Family: "netlink", ProbeID: "netlink.protocol.netfilter", Verdict: "permitted"},
 	}}

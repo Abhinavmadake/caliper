@@ -473,6 +473,13 @@ func restrictNetlinkProtocols(rules []SeccompRule, deniedProtocol uint64) ([]Sec
 	filtered := rules[:0]
 	changed := false
 	for _, rule := range rules {
+		// A previous closure may already have expanded AF_NETLINK into one
+		// rule per protocol. Remove a later denied protocol from that output
+		// instead of treating it as an unrecognised, already-allowed rule.
+		if isNetlinkProtocol(rule, deniedProtocol) {
+			changed = true
+			continue
+		}
 		families, recognized := socketAllowedFamilies(rule)
 		if !recognized || !containsUint64(families, 16) {
 			filtered = append(filtered, rule)
