@@ -40,3 +40,11 @@ allowlist, then adds only the measured closure rules.
 Socket families, netlink protocols, and clone/unshare flags use seccomp-BPF
 argument comparisons. A pathname, device, mount type, or other pointer-backed
 datum is reported as not closable instead of emitting an over-broad rule.
+
+`cmd/caliper-remediate` is the file-producing entry point used by deployment:
+it accepts an evaluated findings report (or a full CALIPER report), the
+runtime's actual default profile, the runtime gate architecture (such as
+`amd64`), the output libseccomp architecture (such as `SCMP_ARCH_X86_64`),
+the target capabilities and kernel release, then writes both the SPO YAML and
+OCI Localhost JSON. Runtime-only `includes` and `excludes` are resolved for
+that target before either portable output is rendered.

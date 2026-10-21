@@ -47,9 +47,10 @@ func runtimeDefault() RuntimeDefaultProfile {
 
 func remediationTarget() RemediationTarget {
 	return RemediationTarget{
-		Architecture: "SCMP_ARCH_X86_64",
-		Capabilities: []string{"CAP_SYS_ADMIN"},
-		Kernel:       "6.8.0",
+		RuntimeArchitecture: "amd64",
+		OCIArchitecture:     "SCMP_ARCH_X86_64",
+		Capabilities:        []string{"CAP_SYS_ADMIN"},
+		Kernel:              "6.8.0",
 	}
 }
 
@@ -64,7 +65,7 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if remediation.SPO.Kind != "SeccompProfile" || !strings.HasPrefix(remediation.SPO.Metadata.Name, "caliper-v1-untrusted-multi-tenant-") {
 		t.Fatalf("SPO = %#v", remediation.SPO)
 	}
-	if len(remediation.Closures) != 5 || len(remediation.NotClosable) != 0 {
+	if len(remediation.Closures) != 4 || len(remediation.NotClosable) != 1 || remediation.NotClosable[0].ProbeID != "io_uring.setup" {
 		t.Fatalf("closures/not closable = %d/%d", len(remediation.Closures), len(remediation.NotClosable))
 	}
 	var afalg, netlink, unshare bool
@@ -188,10 +189,6 @@ func TestGenerateRemediationClosesClone3AndCapabilityEquivalents(t *testing.T) {
 		t.Errorf("clone3 closure = %#v, want ENOSYS", clone3)
 	}
 	for probe, want := range map[string][]string{
-		"capability.sys_time":   {"settimeofday", "clock_settime", "clock_adjtime", "adjtimex"},
-		"capability.sys_boot":   {"reboot", "kexec_load", "kexec_file_load"},
-		"capability.sys_module": {"finit_module", "init_module", "delete_module"},
-		"capability.sys_rawio":  {"iopl", "ioperm"},
 		"capability.sys_ptrace": {"process_vm_readv", "process_vm_writev", "ptrace"},
 	} {
 		got := strings.Join(rules[probe].Names, ",")
@@ -200,6 +197,9 @@ func TestGenerateRemediationClosesClone3AndCapabilityEquivalents(t *testing.T) {
 				t.Errorf("%s rule %q lacks %q", probe, got, syscall)
 			}
 		}
+	}
+	if len(remediation.NotClosable) != 4 {
+		t.Fatalf("not closable = %#v", remediation.NotClosable)
 	}
 }
 
@@ -272,10 +272,46 @@ func TestGenerateRemediationKeepsOtherNetlinkProtocols(t *testing.T) {
 	}
 }
 
+func TestGenerateRemediationNarrowsMobySocketNEAllow(t *testing.T) {
+	// These are the socket and architecture-gated rules in Moby's shipped
+	// default.json: socket permits every family except AF_VSOCK (40), while
+	// arch_prctl is gated by the runtime spelling "amd64".
+	const mobyDefault = `{
+  "defaultAction":"SCMP_ACT_ERRNO",
+  "syscalls":[
+    {"names":["socket"],"action":"SCMP_ACT_ALLOW","args":[{"index":0,"value":40,"op":"SCMP_CMP_NE"}]},
+    {"names":["arch_prctl"],"action":"SCMP_ACT_ALLOW","includes":{"arches":["amd64","x32"]}}
+  ]
+}`
+	var runtime RuntimeDefaultProfile
+	if err := json.Unmarshal([]byte(mobyDefault), &runtime); err != nil {
+		t.Fatal(err)
+	}
+	report := FindingReport{PostureRevision: "v1", Tier: "baseline", ExpectationViolations: []Finding{
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "baseline", Family: "netlink", ProbeID: "netlink.protocol.netfilter", Verdict: "permitted"},
+	}}
+	remediation, err := GenerateRemediation(report, runtime, remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasAllowedSyscall(remediation.Localhost.Syscalls, "arch_prctl") {
+		t.Fatalf("Moby amd64 gate dropped arch_prctl: %#v", remediation.Localhost.Syscalls)
+	}
+	var route, netfilter, vsock bool
+	for _, rule := range remediation.Localhost.Syscalls {
+		route = route || isNetlinkProtocol(rule, 0)
+		netfilter = netfilter || isNetlinkProtocol(rule, 12)
+		vsock = vsock || isMaskedSocketFamily(rule, 40)
+	}
+	if !route || netfilter || vsock {
+		t.Fatalf("Moby socket rewrite route=%t netfilter=%t vsock=%t", route, netfilter, vsock)
+	}
+}
+
 func TestResolveRuntimeRulesExcludesOnAnyMatchingPredicate(t *testing.T) {
 	rules := []RuntimeSeccompRule{
 		{Names: []string{"cap-rule"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Caps: []string{"CAP_A", "CAP_B"}}},
-		{Names: []string{"arch-rule"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Arches: []string{"SCMP_ARCH_X86_64", "SCMP_ARCH_S390X"}}},
+		{Names: []string{"arch-rule"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Arches: []string{"amd64", "s390x"}}},
 		{Names: []string{"remaining"}, Action: "SCMP_ACT_ALLOW", Excludes: &SeccompFilter{Caps: []string{"CAP_OTHER"}}},
 	}
 	target := remediationTarget()
@@ -291,7 +327,7 @@ func TestRuntimeProfileJSONRetainsAndResolvesGates(t *testing.T) {
   "defaultAction":"SCMP_ACT_ERRNO",
   "syscalls":[
     {"names":["gated"],"action":"SCMP_ACT_ALLOW","includes":{"caps":["CAP_A"]}},
-    {"names":["excluded"],"action":"SCMP_ACT_ALLOW","excludes":{"arches":["SCMP_ARCH_X86_64"]}}
+    {"names":["excluded"],"action":"SCMP_ACT_ALLOW","excludes":{"arches":["amd64"]}}
   ]
 }`
 	var runtime RuntimeDefaultProfile
@@ -315,4 +351,63 @@ func TestRuntimeProfileJSONRetainsAndResolvesGates(t *testing.T) {
 	if strings.Contains(string(encoded), "includes") || strings.Contains(string(encoded), "excludes") {
 		t.Fatalf("rendered OCI rules retain runtime-only fields: %s", encoded)
 	}
+}
+
+func TestGenerateRemediationSeparatesRuntimeAndOCIArchitectures(t *testing.T) {
+	runtime := runtimeDefault()
+	runtime.Syscalls = append(runtime.Syscalls, RuntimeSeccompRule{
+		Names: []string{"arch_prctl"}, Action: "SCMP_ACT_ALLOW", Includes: &SeccompFilter{Arches: []string{"amd64"}},
+	})
+	remediation, err := GenerateRemediation(FindingReport{PostureRevision: "v1", Tier: "baseline"}, runtime, remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := remediation.Localhost.Architectures; len(got) != 1 || got[0] != "SCMP_ARCH_X86_64" {
+		t.Fatalf("OCI architectures = %#v", got)
+	}
+	if !hasAllowedSyscall(remediation.Localhost.Syscalls, "arch_prctl") {
+		t.Fatalf("runtime amd64 gate dropped arch_prctl: %#v", remediation.Localhost.Syscalls)
+	}
+}
+
+func TestGenerateRemediationDoesNotClaimUnchangedClosure(t *testing.T) {
+	runtime := runtimeDefault()
+	runtime.Syscalls = []RuntimeSeccompRule{{Names: []string{"read"}, Action: "SCMP_ACT_ALLOW"}}
+	remediation, err := GenerateRemediation(FindingReport{PostureRevision: "v1", Tier: "baseline", ExpectationViolations: []Finding{
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "baseline", Family: "netlink", ProbeID: "netlink.protocol.netfilter", Verdict: "permitted"},
+	}}, runtime, remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remediation.Closures) != 0 || len(remediation.NotClosable) != 1 {
+		t.Fatalf("closures=%#v not_closable=%#v", remediation.Closures, remediation.NotClosable)
+	}
+}
+
+func TestGenerateRemediationNamesFinalPolicy(t *testing.T) {
+	runtime := runtimeDefault()
+	first, err := GenerateRemediation(FindingReport{PostureRevision: "v1", Tier: "t", ExpectationViolations: []Finding{
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "t", Family: "socket", ProbeID: "socket.family.af_alg", Verdict: "permitted"},
+	}}, runtime, remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := GenerateRemediation(FindingReport{PostureRevision: "v1", Tier: "t", ExpectationViolations: []Finding{
+		{Kind: ExpectationViolation, PostureRevision: "v1", Tier: "t", Family: "netlink", ProbeID: "netlink.protocol.netfilter", Verdict: "permitted"},
+	}}, runtime, remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.SPO.Metadata.Name == second.SPO.Metadata.Name {
+		t.Fatalf("different closures share profile name %q", first.SPO.Metadata.Name)
+	}
+}
+
+func hasAllowedSyscall(rules []SeccompRule, name string) bool {
+	for _, rule := range rules {
+		if rule.Action == "SCMP_ACT_ALLOW" && contains(rule.Names, name) {
+			return true
+		}
+	}
+	return false
 }

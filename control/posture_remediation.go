@@ -121,9 +121,13 @@ type SeccompFilter struct {
 // RemediationTarget is the concrete runtime environment against which source
 // profile gates are resolved before a portable OCI/SPO profile is emitted.
 type RemediationTarget struct {
-	Architecture string
-	Capabilities []string
-	Kernel       string
+	// RuntimeArchitecture is the spelling used by the runtime profile gates
+	// (for example Moby's "amd64"). OCIArchitecture is the libseccomp spelling
+	// required by emitted OCI and SPO profiles ("SCMP_ARCH_X86_64").
+	RuntimeArchitecture string
+	OCIArchitecture     string
+	Capabilities        []string
+	Kernel              string
 }
 
 type SeccompArgument struct {
@@ -165,30 +169,29 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 	if runtimeDefault.DefaultAction != seccompErrno {
 		return Remediation{}, fmt.Errorf("runtime default action must be %s, got %q", seccompErrno, runtimeDefault.DefaultAction)
 	}
-	if target.Architecture == "" || target.Kernel == "" {
-		return Remediation{}, fmt.Errorf("remediation target architecture and kernel are required")
+	if target.RuntimeArchitecture == "" || target.OCIArchitecture == "" || target.Kernel == "" {
+		return Remediation{}, fmt.Errorf("remediation target runtime architecture, OCI architecture, and kernel are required")
 	}
 	runtimeRules := resolveRuntimeRules(runtimeDefault.Syscalls, target)
 
-	name := remediationProfileName(report, runtimeRules, target)
 	remediation := Remediation{
 		PostureRevision: report.PostureRevision,
 		Tier:            report.Tier,
 		SPO: SPOProfile{
 			APIVersion: "security-profiles-operator.x-k8s.io/v1beta1",
 			Kind:       "SeccompProfile",
-			Metadata:   ObjectMeta{Name: name},
+			Metadata:   ObjectMeta{},
 			Spec: SeccompSpec{
 				DefaultAction:   runtimeDefault.DefaultAction,
 				DefaultErrnoRet: runtimeDefault.DefaultErrnoRet,
-				Architectures:   []string{target.Architecture},
+				Architectures:   []string{target.OCIArchitecture},
 				Syscalls:        runtimeRules,
 			},
 		},
 		Localhost: LocalhostProfile{
 			DefaultAction:   runtimeDefault.DefaultAction,
 			DefaultErrnoRet: runtimeDefault.DefaultErrnoRet,
-			Architectures:   []string{target.Architecture},
+			Architectures:   []string{target.OCIArchitecture},
 			Syscalls:        cloneRules(runtimeRules),
 		},
 		Closures:    []RemediationAction{},
@@ -211,10 +214,6 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 			continue
 		}
 		seen[finding.ProbeID] = struct{}{}
-		if finding.ProbeID == "unshare.flags.newuser" || finding.ProbeID == "clone.flags.newuser" {
-			userNamespace = true
-		}
-
 		rule, closable := remediationRule(finding.ProbeID)
 		if !closable {
 			remediation.NotClosable = append(remediation.NotClosable, NotClosable{
@@ -223,21 +222,32 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 			})
 			continue
 		}
+		updated, changed := applyClosure(remediation.SPO.Spec.Syscalls, rule)
+		if !changed {
+			remediation.NotClosable = append(remediation.NotClosable, NotClosable{
+				ProbeID: finding.ProbeID,
+				Reason:  "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+			})
+			continue
+		}
 		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: finding.ProbeID, Rule: rule})
-		remediation.SPO.Spec.Syscalls = applyClosure(remediation.SPO.Spec.Syscalls, rule)
-		remediation.Localhost.Syscalls = applyClosure(remediation.Localhost.Syscalls, rule)
+		remediation.SPO.Spec.Syscalls = updated
+		if finding.ProbeID == "unshare.flags.newuser" || finding.ProbeID == "clone.flags.newuser" {
+			userNamespace = true
+		}
 	}
 	if userNamespace {
 		enosys := uint64(38)
 		clone3 := SeccompRule{Names: []string{"clone3"}, Action: seccompErrno, ErrnoRet: &enosys}
 		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: "clone3.user_namespace_bypass", Rule: clone3})
-		remediation.SPO.Spec.Syscalls = append(applyClosure(remediation.SPO.Spec.Syscalls, clone3), clone3)
-		remediation.Localhost.Syscalls = append(applyClosure(remediation.Localhost.Syscalls, clone3), clone3)
+		withoutClone3, _ := applyClosure(remediation.SPO.Spec.Syscalls, clone3)
+		remediation.SPO.Spec.Syscalls = append(withoutClone3, clone3)
 	}
 	sort.Slice(remediation.Closures, func(i, j int) bool { return remediation.Closures[i].ProbeID < remediation.Closures[j].ProbeID })
 	sort.Slice(remediation.NotClosable, func(i, j int) bool { return remediation.NotClosable[i].ProbeID < remediation.NotClosable[j].ProbeID })
 	sortRules(remediation.SPO.Spec.Syscalls)
-	sortRules(remediation.Localhost.Syscalls)
+	remediation.Localhost.Syscalls = cloneRules(remediation.SPO.Spec.Syscalls)
+	remediation.SPO.Metadata.Name = remediationProfileName(report, remediation.SPO.Spec.Syscalls, target)
 	return remediation, nil
 }
 
@@ -343,7 +353,7 @@ func includeGateApplies(gate *SeccompFilter, target RemediationTarget) bool {
 		return true
 	}
 	if len(gate.Arches) > 0 {
-		if !contains(gate.Arches, target.Architecture) {
+		if !contains(gate.Arches, target.RuntimeArchitecture) {
 			return false
 		}
 	}
@@ -367,7 +377,7 @@ func excludeGateMatches(gate *SeccompFilter, target RemediationTarget) bool {
 	if gate == nil {
 		return false
 	}
-	if len(gate.Arches) > 0 && contains(gate.Arches, target.Architecture) {
+	if len(gate.Arches) > 0 && contains(gate.Arches, target.RuntimeArchitecture) {
 		return true
 	}
 	for _, cap := range gate.Caps {
@@ -381,7 +391,8 @@ func excludeGateMatches(gate *SeccompFilter, target RemediationTarget) bool {
 // applyClosure removes closed syscalls from RuntimeDefault's allowlist. For a
 // socket-family closure it rewrites the existing socket ALLOW rule instead:
 // a conditional ERRNO cannot override libseccomp's unconditional ALLOW.
-func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
+func applyClosure(rules []SeccompRule, closure SeccompRule) ([]SeccompRule, bool) {
+	original := cloneRules(rules)
 	if len(closure.Names) == 1 && closure.Names[0] == "socket" && len(closure.Args) > 0 {
 		// libseccomp ORs comparisons on the same argument in a rule, so an
 		// ERRNO exception (or stacked NE tests) cannot close an ALLOW rule.
@@ -389,13 +400,14 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 		// family. The 32-bit mask prevents high register bits from bypassing a
 		// family test. Do not add a socket allow if RuntimeDefault had none.
 		if len(closure.Args) == 2 && closure.Args[0].Value == 16 && closure.Args[1].Index == 2 {
-			return restrictNetlinkProtocols(rules, closure.Args[1].Value)
+			return restrictNetlinkProtocols(original, closure.Args[1].Value)
 		}
-		return restrictSocketFamilies(rules, closure.Args[0].Value)
+		return restrictSocketFamilies(original, closure.Args[0].Value)
 	}
 	if len(closure.Names) == 1 && (closure.Names[0] == "clone" || closure.Names[0] == "unshare") && len(closure.Args) > 0 {
 		name := closure.Names[0]
 		rules = splitAllowedSyscall(rules, name)
+		changed := false
 		for i := range rules {
 			if rules[i].Action == "SCMP_ACT_ALLOW" && len(rules[i].Names) == 1 && rules[i].Names[0] == name {
 				if hasArgumentAt(rules[i], closure.Args[0].Index) {
@@ -405,10 +417,15 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 				rules[i].Args = append(rules[i].Args, SeccompArgument{
 					Index: closure.Args[0].Index, Op: "SCMP_CMP_MASKED_EQ", Value: closure.Args[0].Value, ValueTwo: &zero,
 				})
+				changed = true
 			}
 		}
-		return rules
+		if !changed {
+			return original, false
+		}
+		return rules, true
 	}
+	changed := false
 	for i := range rules {
 		if rules[i].Action != "SCMP_ACT_ALLOW" {
 			continue
@@ -417,6 +434,8 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 		for _, name := range rules[i].Names {
 			if !contains(closure.Names, name) {
 				remaining = append(remaining, name)
+			} else {
+				changed = true
 			}
 		}
 		rules[i].Names = remaining
@@ -427,74 +446,85 @@ func applyClosure(rules []SeccompRule, closure SeccompRule) []SeccompRule {
 			filtered = append(filtered, rule)
 		}
 	}
-	return filtered
+	if !changed {
+		return original, false
+	}
+	return filtered, true
 }
 
-func restrictSocketFamilies(rules []SeccompRule, deniedFamily uint64) []SeccompRule {
+func restrictSocketFamilies(rules []SeccompRule, deniedFamily uint64) ([]SeccompRule, bool) {
 	rules = splitAllowedSyscall(rules, "socket")
-	var rewritten bool
 	filtered := rules[:0]
+	changed := false
 	for _, rule := range rules {
-		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" && len(rule.Args) == 0 {
-			rewritten = true
+		families, recognized := socketAllowedFamilies(rule)
+		if !recognized || !containsUint64(families, deniedFamily) {
+			filtered = append(filtered, rule)
 			continue
 		}
-		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" && isMaskedSocketFamily(rule, deniedFamily) {
+		changed = true
+		filtered = appendSocketFamilies(filtered, deniedFamily, families)
+	}
+	return filtered, changed
+}
+
+func restrictNetlinkProtocols(rules []SeccompRule, deniedProtocol uint64) ([]SeccompRule, bool) {
+	rules = splitAllowedSyscall(rules, "socket")
+	filtered := rules[:0]
+	changed := false
+	for _, rule := range rules {
+		families, recognized := socketAllowedFamilies(rule)
+		if !recognized || !containsUint64(families, 16) {
+			filtered = append(filtered, rule)
 			continue
 		}
-		filtered = append(filtered, rule)
+		changed = true
+		filtered = appendSocketFamilies(filtered, 16, families)
+		filtered = appendNetlinkProtocols(filtered, deniedProtocol)
 	}
-	if !rewritten {
-		// The default either already denies socket or has a more-specific
-		// condition. In either case, adding an allow would widen its baseline.
-		return filtered
+	return filtered, changed
+}
+
+func socketAllowedFamilies(rule SeccompRule) ([]uint64, bool) {
+	if rule.Action != "SCMP_ACT_ALLOW" || len(rule.Names) != 1 || rule.Names[0] != "socket" {
+		return nil, false
 	}
-	mask := uint64(0xffffffff)
+	if len(rule.Args) == 0 {
+		return append([]uint64(nil), socketFamilies...), true
+	}
+	if len(rule.Args) != 1 || rule.Args[0].Index != 0 {
+		return nil, false
+	}
+	argument := rule.Args[0]
+	var allowed []uint64
 	for _, family := range socketFamilies {
-		if family == deniedFamily {
-			continue
-		}
-		family := family
-		filtered = append(filtered, SeccompRule{Names: []string{"socket"}, Action: "SCMP_ACT_ALLOW", Args: []SeccompArgument{{
-			Index: 0, Op: "SCMP_CMP_MASKED_EQ", Value: mask, ValueTwo: &family,
-		}}})
-	}
-	return filtered
-}
-
-func restrictNetlinkProtocols(rules []SeccompRule, deniedProtocol uint64) []SeccompRule {
-	rules = splitAllowedSyscall(rules, "socket")
-	var broad, genericNetlink bool
-	filtered := rules[:0]
-	for _, rule := range rules {
-		if rule.Action == "SCMP_ACT_ALLOW" && len(rule.Names) == 1 && rule.Names[0] == "socket" {
-			switch {
-			case len(rule.Args) == 0:
-				broad = true
-				continue
-			case isMaskedSocketFamily(rule, 16):
-				genericNetlink = true
-				continue
-			case isNetlinkProtocol(rule, deniedProtocol):
-				continue
+		switch argument.Op {
+		case "SCMP_CMP_EQ":
+			if family == argument.Value {
+				allowed = append(allowed, family)
 			}
+		case "SCMP_CMP_NE":
+			if family != argument.Value {
+				allowed = append(allowed, family)
+			}
+		case "SCMP_CMP_LT":
+			if family < argument.Value {
+				allowed = append(allowed, family)
+			}
+		case "SCMP_CMP_MASKED_EQ":
+			if argument.Value == 0xffffffff && argument.ValueTwo != nil && family == *argument.ValueTwo {
+				allowed = append(allowed, family)
+			}
+		default:
+			return nil, false
 		}
-		filtered = append(filtered, rule)
 	}
-	if broad {
-		filtered = appendSocketFamilies(filtered, 16)
-	}
-	if broad || genericNetlink {
-		return appendNetlinkProtocols(filtered, deniedProtocol)
-	}
-	// No broad or generic allow existed, so adding one would widen the
-	// RuntimeDefault baseline. Existing enumerated protocol allows remain.
-	return filtered
+	return allowed, true
 }
 
-func appendSocketFamilies(rules []SeccompRule, excluded uint64) []SeccompRule {
+func appendSocketFamilies(rules []SeccompRule, excluded uint64, families []uint64) []SeccompRule {
 	mask := uint64(0xffffffff)
-	for _, family := range socketFamilies {
+	for _, family := range families {
 		if family == excluded {
 			continue
 		}
@@ -528,6 +558,15 @@ func isMaskedSocketFamily(rule SeccompRule, family uint64) bool {
 
 func isNetlinkProtocol(rule SeccompRule, protocol uint64) bool {
 	return len(rule.Args) == 2 && isMaskedSocketFamily(SeccompRule{Args: rule.Args[:1]}, 16) && rule.Args[1].Index == 2 && rule.Args[1].Op == "SCMP_CMP_EQ" && rule.Args[1].Value == protocol
+}
+
+func containsUint64(values []uint64, wanted uint64) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
 }
 
 var socketFamilies = []uint64{
