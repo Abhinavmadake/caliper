@@ -23,10 +23,11 @@ fi
 
 binary=$1
 start=$(date +%s%N)
-if timeout --signal=TERM --kill-after=1s 5s "$binary" --reduced > /dev/null; then
-    :
-else
-    status=$?
+status=0
+timeout --signal=TERM --kill-after=1s 5s "$binary" --reduced > /dev/null || status=$?
+# 3 is a completed run with defects (caliper-probe --help); this check is
+# about time only.
+if [ "$status" -ne 0 ] && [ "$status" -ne 3 ]; then
     echo "reduced corpus failed or exceeded its 5-second budget (status $status)" >&2
     exit 1
 fi
