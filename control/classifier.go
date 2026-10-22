@@ -100,7 +100,8 @@ func (a Applicability) Includes(architecture string) bool {
 }
 
 // KernelDependency is the entry-point dependency declared in the corpus.
-// Since is omitted for configuration- or module-gated entry points.
+// Since is omitted for configuration- or module-gated entry points; PresentIf
+// and EncodedAbsent carry the engine's runtime evidence for those gates.
 type KernelDependency struct {
 	Since       *KernelVersion `json:"since"`
 	AbsentErrno *int           `json:"absent_errno"`
@@ -110,6 +111,8 @@ type KernelDependency struct {
 	// ProtocolModule is the module AlsoAbsent reports missing while Module
 	// is loaded; empty when the protocol is not a module of its own.
 	ProtocolModule string `json:"protocol_module,omitempty"`
+	PresentIf      string `json:"present_if,omitempty"`
+	EncodedAbsent  *int   `json:"encoded_absent,omitempty"`
 	// LSMHookSince is the release from which an LSM hook runs before the
 	// oracle's point, so a seccomp reading becomes seccomp or an LSM.
 	LSMHookSince *KernelVersion `json:"lsm_hook_since,omitempty"`
@@ -254,25 +257,35 @@ func sandboxed(runtimeClass string) bool {
 }
 
 func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) (bool, error) {
-	if dependency.AbsentErrno == nil && dependency.AlsoAbsent == nil {
-		return false, nil
-	}
 	// A kernel dependency explains absence only when the other environment
 	// permits the probe. Denied, killed, and timed-out results indicate a policy
-	// or execution difference, not a kernel-version boundary.
+	// or execution difference, not a kernel dependency boundary.
 	var errno int
 	if d.Left.Verdict == "unimplemented" {
-		if !dependency.absent(d.Left.Errno) || d.Right.Verdict != "permitted" {
+		if d.Right.Verdict != "permitted" {
 			return false, nil
 		}
 		errno = d.Left.Errno
 	} else if d.Right.Verdict == "unimplemented" {
-		if !dependency.absent(d.Right.Errno) || d.Left.Verdict != "permitted" {
+		if d.Left.Verdict != "permitted" {
 			return false, nil
 		}
 		errno = d.Right.Errno
 	} else {
 		return false, nil
+	}
+
+	// The engine's unimplemented verdict already applies present_if and
+	// encoded_absent. For those dependencies it is the cell-specific evidence
+	// that the entry point is absent; no release or module comparison is needed.
+	if dependency.EncodedAbsent != nil && errno == *dependency.EncodedAbsent {
+		return true, nil
+	}
+	if !dependency.absent(errno) {
+		return false, nil
+	}
+	if dependency.PresentIf != "" {
+		return true, nil
 	}
 	if dependency.Since != nil {
 		leftVersion, leftKnown := parseKernelVersion(left.Release)

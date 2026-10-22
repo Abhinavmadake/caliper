@@ -122,6 +122,34 @@ func TestClassifyTreatsSandboxUnimplementedAsRuntimeClass(t *testing.T) {
 }
 
 func TestClassifyKernelDependencies(t *testing.T) {
+	t.Run("encoded absence errno explains an unimplemented opcode", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "io_uring.opcode.sendmsg_zc", Verdict: "unimplemented", Errno: 61}})
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "io_uring.opcode.sendmsg_zc", Verdict: "permitted"}})
+		classified := mustClassify(t, left, right, []ProbeMetadata{{
+			ID:   "io_uring.opcode.sendmsg_zc",
+			Arch: Applicability{All: true},
+			Kernel: KernelDependency{
+				AbsentErrno:   intPointer(38),
+				EncodedAbsent: intPointer(61),
+			},
+		}})
+		assertClass(t, classified, "io_uring.opcode.sendmsg_zc", KernelVersionExplained)
+	})
+
+	t.Run("present-if dependency explains its absent errno", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "config-gated-call", Verdict: "unimplemented", Errno: 38}})
+		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "config-gated-call", Verdict: "permitted"}})
+		classified := mustClassify(t, left, right, []ProbeMetadata{{
+			ID:   "config-gated-call",
+			Arch: Applicability{All: true},
+			Kernel: KernelDependency{
+				AbsentErrno: intPointer(38),
+				PresentIf:   "/proc/sys/kernel/io_uring_disabled",
+			},
+		}})
+		assertClass(t, classified, "config-gated-call", KernelVersionExplained)
+	})
+
 	t.Run("declared version gate", func(t *testing.T) {
 		left := fingerprintWithCell("x86_64", "5.2.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "unimplemented", Errno: 38}})
 		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "new-call", Verdict: "permitted"}})
