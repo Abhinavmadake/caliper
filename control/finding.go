@@ -37,6 +37,10 @@ type Finding struct {
 	ProbeID         string      `json:"probe_id"`
 	Verdict         Verdict     `json:"verdict"`
 	Reason          string      `json:"reason,omitempty"`
+	// Citations preserve the posture evidence behind an expectation finding.
+	// Claim and undeclared-exposure findings have no posture assertion, so this
+	// is empty for them.
+	Citations []PostureCitation `json:"citations,omitempty"`
 }
 
 // Validate prevents a finding from being emitted without naming the exact
