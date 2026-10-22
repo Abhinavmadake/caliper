@@ -202,12 +202,27 @@ func writeFindings(b *strings.Builder, title string, findings []control.Finding)
 	if len(findings) == 0 {
 		return
 	}
-	b.WriteString("| Probe | Family | Reason |\n|---|---|---|\n")
+	b.WriteString("| Probe | Family | Reason | Evidence |\n|---|---|---|---|\n")
 	for _, f := range findings {
 		reason := strings.ReplaceAll(strings.Join(strings.Fields(f.Reason), " "), "|", "\\|")
-		fmt.Fprintf(b, "| `%s` | %s | %s |\n", f.ProbeID, f.Family, reason)
+		fmt.Fprintf(b, "| `%s` | %s | %s | %s |\n", f.ProbeID, f.Family, reason, citationLinks(f.Citations))
 	}
 	b.WriteString("\n")
+}
+
+func citationLinks(citations []control.PostureCitation) string {
+	links := make([]string, 0, len(citations))
+	for _, citation := range citations {
+		label := citation.ID
+		if label == "" {
+			label = citation.Title
+		}
+		if label == "" {
+			label = citation.URL
+		}
+		links = append(links, fmt.Sprintf("[%s](%s)", label, citation.URL))
+	}
+	return strings.Join(links, ", ")
 }
 
 // Undeclared exposures share one reason, so they are listed per family.

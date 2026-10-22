@@ -17,11 +17,16 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/Abhinavmadake/caliper/control"
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
@@ -63,6 +68,99 @@ func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
 	if os.Getenv("CALIPER_SHOW_REPORT") != "" {
 		t.Log(body)
 	}
+}
+
+func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
+	data, err := os.ReadFile("../../../fixtures/cells/cell2.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fingerprint, err := control.DecodeFingerprint(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evaluation, err := evaluate(fingerprint, inputs{
+		posture:  "../../../posture/v1/posture.yaml",
+		corpus:   "../../../corpus/index.json",
+		manifest: "../../../deploy/k8s/af-alg-demonstration.yaml",
+		tier:     "untrusted-multi-tenant",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := evaluation.workload.PodSecurityStandard; got == nil || got.Enforce == nil || got.Enforce.Level != "restricted" {
+		t.Fatalf("workload PSS = %#v, want Restricted", got)
+	}
+	if len(evaluation.workload.Pod.Containers) != 1 {
+		t.Fatalf("containers = %d, want 1", len(evaluation.workload.Pod.Containers))
+	}
+	if seccomp := evaluation.workload.Pod.EffectiveSeccomp(evaluation.workload.Pod.Containers[0]); seccomp == nil || seccomp.Type != "RuntimeDefault" || !seccomp.RuntimeDefined {
+		t.Fatalf("effective seccomp = %#v, want RuntimeDefault", seccomp)
+	}
+	demonstrationSpec := jobSpec(t, "../../../deploy/k8s/af-alg-demonstration.yaml")
+	standardSpec := jobSpec(t, "../../../deploy/k8s/job.yaml")
+	if !reflect.DeepEqual(demonstrationSpec, standardSpec) {
+		t.Fatalf("demonstration Job spec drifted from deploy/k8s/job.yaml:\n demo=%#v\n base=%#v", demonstrationSpec, standardSpec)
+	}
+
+	var finding *control.Finding
+	for i := range evaluation.report.Findings.ExpectationViolations {
+		candidate := &evaluation.report.Findings.ExpectationViolations[i]
+		if candidate.ProbeID == "socket.family.af_alg" {
+			finding = candidate
+			break
+		}
+	}
+	if finding == nil || finding.Kind != control.ExpectationViolation || finding.Verdict != "permitted" {
+		t.Fatalf("AF_ALG finding = %#v, want permitted expectation violation", finding)
+	}
+	for _, category := range [][]control.Finding{
+		evaluation.report.Findings.ClaimViolations,
+		evaluation.report.Findings.UndeclaredExposures,
+	} {
+		for _, candidate := range category {
+			if candidate.ProbeID == "socket.family.af_alg" {
+				t.Fatalf("AF_ALG was misclassified outside expectation violations: %#v", candidate)
+			}
+		}
+	}
+	if len(finding.Citations) == 0 || finding.Citations[0].ID != "CVE-2026-31431" {
+		t.Fatalf("AF_ALG evidence = %#v, want CVE-2026-31431", finding.Citations)
+	}
+	if body := renderReport("test-context", evaluation); !strings.Contains(body, "[CVE-2026-31431](https://nvd.nist.gov/vuln/detail/CVE-2026-31431)") {
+		t.Fatalf("rendered report omitted AF_ALG evidence: %s", body)
+	}
+}
+
+func jobSpec(t *testing.T, path string) batchv1.JobSpec {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	decoder := utilyaml.NewYAMLOrJSONDecoder(file, 4096)
+	for {
+		object := map[string]interface{}{}
+		err := decoder.Decode(&object)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if object["kind"] != "Job" {
+			continue
+		}
+		var job batchv1.Job
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(object, &job); err != nil {
+			t.Fatal(err)
+		}
+		return job.Spec
+	}
+	t.Fatalf("%s contains no Job", path)
+	return batchv1.JobSpec{}
 }
 
 func TestReadMeasurementSkipsLeadingDiagnostics(t *testing.T) {
