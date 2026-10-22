@@ -17,12 +17,16 @@ package main
 
 import (
 	"bytes"
+	"io"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/Abhinavmadake/caliper/control"
+	batchv1 "k8s.io/api/batch/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilyaml "k8s.io/apimachinery/pkg/util/yaml"
 )
 
 func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
@@ -93,16 +97,10 @@ func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
 	if seccomp := evaluation.workload.Pod.EffectiveSeccomp(evaluation.workload.Pod.Containers[0]); seccomp == nil || seccomp.Type != "RuntimeDefault" || !seccomp.RuntimeDefined {
 		t.Fatalf("effective seccomp = %#v, want RuntimeDefault", seccomp)
 	}
-	standardManifest, err := os.ReadFile("../../../deploy/k8s/job.yaml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	standard, err := control.ParseManifest(standardManifest)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(standard.Workloads) != 1 || !reflect.DeepEqual(evaluation.workload.Pod, standard.Workloads[0].Pod) {
-		t.Fatalf("demonstration Job security spec drifted from deploy/k8s/job.yaml:\n demo=%#v\n base=%#v", evaluation.workload.Pod, standard.Workloads)
+	demonstrationSpec := jobSpec(t, "../../../deploy/k8s/af-alg-demonstration.yaml")
+	standardSpec := jobSpec(t, "../../../deploy/k8s/job.yaml")
+	if !reflect.DeepEqual(demonstrationSpec, standardSpec) {
+		t.Fatalf("demonstration Job spec drifted from deploy/k8s/job.yaml:\n demo=%#v\n base=%#v", demonstrationSpec, standardSpec)
 	}
 
 	var finding *control.Finding
@@ -132,6 +130,37 @@ func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
 	if body := renderReport("test-context", evaluation); !strings.Contains(body, "[CVE-2026-31431](https://nvd.nist.gov/vuln/detail/CVE-2026-31431)") {
 		t.Fatalf("rendered report omitted AF_ALG evidence: %s", body)
 	}
+}
+
+func jobSpec(t *testing.T, path string) batchv1.JobSpec {
+	t.Helper()
+	file, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+
+	decoder := utilyaml.NewYAMLOrJSONDecoder(file, 4096)
+	for {
+		object := map[string]interface{}{}
+		err := decoder.Decode(&object)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if object["kind"] != "Job" {
+			continue
+		}
+		var job batchv1.Job
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(object, &job); err != nil {
+			t.Fatal(err)
+		}
+		return job.Spec
+	}
+	t.Fatalf("%s contains no Job", path)
+	return batchv1.JobSpec{}
 }
 
 func TestReadMeasurementSkipsLeadingDiagnostics(t *testing.T) {
