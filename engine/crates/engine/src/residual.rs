@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Residual state (#9): the five object classes that outlive a process
+//! Residual state (#9): the six object classes that outlive a process
 //! (§6.2), counted directly before and after each probe and before and
 //! after the run, and the loaded module set, snapshotted before the first
 //! probe and after the last.
@@ -94,7 +94,7 @@ impl From<Observation> for Observability {
     }
 }
 
-/// The five classes at one instant. Serialises as `{class: count | null}`,
+/// The six classes at one instant. Serialises as `{class: count | null}`,
 /// keyed by [`ResidualClass::key`] — snake_case, as object keys are.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Snapshot(pub [Observation; ResidualClass::ALL.len()]);

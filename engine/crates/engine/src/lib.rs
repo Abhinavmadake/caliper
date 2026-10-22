@@ -31,7 +31,7 @@
 //!   the probe-side half of a fingerprint (#8)
 //! - [`effects`] — the side-effect declaration every probe carries, and the
 //!   sentinel the engine refuses to run (#9)
-//! - [`residual`] — the five residual classes counted directly around each
+//! - [`residual`] — the six residual classes counted directly around each
 //!   probe, the module snapshot, and the end-of-run janitor (#9)
 
 pub mod cell;
