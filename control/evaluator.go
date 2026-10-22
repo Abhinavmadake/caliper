@@ -82,6 +82,7 @@ func EvaluateFindings(fingerprint Fingerprint, workload ManifestWorkload, tier s
 			expectationFinding := finding
 			expectationFinding.Kind = ExpectationViolation
 			expectationFinding.Reason = assertion.Rationale
+			expectationFinding.Citations = append([]PostureCitation(nil), assertion.Citations...)
 			if err := expectationFinding.Validate(); err != nil {
 				return FindingReport{}, fmt.Errorf("invalid expectation finding for %q: %w", result.ProbeID, err)
 			}

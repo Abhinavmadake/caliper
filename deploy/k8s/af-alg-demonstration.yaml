@@ -1,0 +1,40 @@
+# Standard CALIPER workload used to demonstrate issue #43. It deliberately
+# has no AF_ALG-specific image or seccomp profile: the normal probe image
+# measures the runtime's RuntimeDefault profile.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: caliper-af-alg-demo
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: caliper-af-alg-demo
+  namespace: caliper-af-alg-demo
+spec:
+  template:
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+      - name: probe
+        image: caliper-probe
+        imagePullPolicy: IfNotPresent
+        args: ["--run", "--exit-0-on-defects"]
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: [ALL]
+          seccompProfile:
+            type: RuntimeDefault
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}

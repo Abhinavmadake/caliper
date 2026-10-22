@@ -206,8 +206,27 @@ func WriteTextReport(w io.Writer, report Report) error {
 func writeFindings(b *strings.Builder, title string, findings []Finding) {
 	fmt.Fprintf(b, "  %s (%d)\n", title, len(findings))
 	for _, finding := range findings {
-		fmt.Fprintf(b, "    %s [%s]: %s\n", finding.ProbeID, finding.Family, finding.Reason)
+		fmt.Fprintf(b, "    %s [%s]: %s", finding.ProbeID, finding.Family, finding.Reason)
+		if evidence := citationSummary(finding.Citations); evidence != "" {
+			fmt.Fprintf(b, " (evidence: %s)", evidence)
+		}
+		b.WriteByte('\n')
 	}
+}
+
+func citationSummary(citations []PostureCitation) string {
+	labels := make([]string, 0, len(citations))
+	for _, citation := range citations {
+		label := citation.ID
+		if label == "" {
+			label = citation.Title
+		}
+		if label == "" {
+			label = citation.URL
+		}
+		labels = append(labels, label)
+	}
+	return strings.Join(labels, ", ")
 }
 
 func writeDivergenceClass(b *strings.Builder, class DivergenceClass, divergences []ClassifiedDivergence) {
