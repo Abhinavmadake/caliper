@@ -24,6 +24,8 @@
 #                                    under RuntimeDefault or the given Localhost seccomp
 #                                    profile; raw probe output on stdout
 #   cells.sh packages <cell>         the cell's recorded kernel and package versions
+#   cells.sh runtime-default <cell> <output.json>
+#                                    copy the RuntimeDefault captured by the last default measurement
 #   cells.sh stop    <cell>          stop billing for CPU and memory
 #   cells.sh start   <cell>
 #   cells.sh delete  <cell>
@@ -120,6 +122,12 @@ measure() {
     on "sudo bash $dir/measure.sh '$image' '$handler' '$ref'; rc=\$?; rm -rf $dir; exit \$rc"
 }
 
+runtime_default() {
+	local output=${2:?output.json}
+    gc compute scp --zone "$ZONE" --quiet "$vm:/var/tmp/caliper-runtime-default.json" "$output"
+    on "sudo rm -f /var/tmp/caliper-runtime-default.json"
+}
+
 [ $# -ge 2 ] || { sed -n '17,32p' "$0" >&2; exit 2; }
 cmd=$1
 cell "$2"
@@ -129,6 +137,7 @@ case "$cmd" in
     load) load "$2" "${3:?archive}" ;;
     measure) measure "$2" "${3:-}" "${4:-}" ;;
     packages) on "cat /etc/caliper/packages" ;;
+    runtime-default) runtime_default "$2" "$3" ;;
     stop) gc compute instances stop "$vm" --zone "$ZONE" ;;
     start) gc compute instances start "$vm" --zone "$ZONE" ;;
     delete) gc compute instances delete "$vm" --zone "$ZONE" --quiet ;;

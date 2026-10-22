@@ -170,3 +170,29 @@ built locally from `529048c`: amd64 `sha256:b50f2503…` and arm64
 `fixtures/x86_64-apparmor*.json` are the earlier Lima recordings under Docker,
 kept with their tests; the hardened one predates the clone rules in
 `hardened.json`.
+
+## Local end-to-end control-plane pipeline
+
+`deploy/gce/run-cell2-pipeline.sh` runs the full published-image flow on cell2:
+measure, complete the fingerprint, capture containerd's applied RuntimeDefault,
+evaluate findings, generate remediation, apply the Localhost profile in a fresh
+measurement, and verify the re-probe. It stops the VM on success or failure.
+The underlying `control/cmd/caliper-pipeline` command writes a first-pass set of
+artifacts, then adds the diff, classification, verified findings and report
+after the re-probe. Verification fails if an original expectation finding is
+missing or does not return denied/killed.
+
+```bash
+deploy/gce/run-cell2-pipeline.sh
+```
+
+Set `CALIPER_POSTURE_TIER` to select another posture tier. The default is
+`untrusted-multi-tenant`; `CALIPER_PIPELINE_OUT` can select another artifact
+directory. Run it from WSL with gcloud authenticated for `caliper-ci` and Go
+available as `go` or `go.exe` in the shell.
+
+The recorded cell2 run used the image pinned by `cells.sh`. It generated five
+closures, verified all five by re-probing, reduced `untrusted-multi-tenant`
+expectation violations from five to zero, and classified seven verdict changes
+as policy explained. The raw measurements, completed fingerprints, runtime
+profile, and per-stage outputs are retained under `artifacts/`.

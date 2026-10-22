@@ -108,6 +108,15 @@ for _ in $(seq 300); do
     sleep 1
 done
 crictl inspect "$ctr" > "$work/inspect.json"
+if [ -z "$profile" ]; then
+    python3 - "$work/inspect.json" > "$work/runtime-default.json" <<'PY'
+import json, sys
+with open(sys.argv[1]) as source:
+    runtime_spec = json.load(source)["info"]["runtimeSpec"]
+json.dump(runtime_spec["linux"]["seccomp"], sys.stdout)
+PY
+    install -m 0644 "$work/runtime-default.json" /var/tmp/caliper-runtime-default.json
+fi
 python3 - "$work/inspect.json" >&2 <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1]))
