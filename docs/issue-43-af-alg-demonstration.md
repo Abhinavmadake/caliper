@@ -12,7 +12,9 @@ AF_ALG assertion. A permitted `socket.family.af_alg` result is therefore an
 **expectation violation**, not a manifest claim violation. The finding carries
 the assertion's evidence, including `CVE-2026-31431`, from `posture/v1`.
 
-The automated regression uses the ordinary recorded RuntimeDefault measurement
-in `fixtures/x86_64-apparmor.json`, so it detects the reachability without an
-exploit image or a custom profile. The separate cell-4 reproduction and the
-pre-probe `algif_aead` module snapshot are intentionally outside this artifact.
+The automated regression uses the current recorded CRI RuntimeDefault
+measurement in [`fixtures/cells/cell2.json`](../fixtures/cells/cell2.json)
+(containerd 2.2.1, corpus revision 0.3.0), so it detects the reachability
+without an exploit image or a custom profile. The separate cell-4 reproduction
+and the pre-probe `algif_aead` module snapshot are intentionally outside this
+artifact.

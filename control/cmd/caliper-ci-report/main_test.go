@@ -18,6 +18,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -66,7 +67,7 @@ func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
 }
 
 func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
-	data, err := os.ReadFile("../../../fixtures/x86_64-apparmor.json")
+	data, err := os.ReadFile("../../../fixtures/cells/cell2.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,6 +92,17 @@ func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
 	}
 	if seccomp := evaluation.workload.Pod.EffectiveSeccomp(evaluation.workload.Pod.Containers[0]); seccomp == nil || seccomp.Type != "RuntimeDefault" || !seccomp.RuntimeDefined {
 		t.Fatalf("effective seccomp = %#v, want RuntimeDefault", seccomp)
+	}
+	standardManifest, err := os.ReadFile("../../../deploy/k8s/job.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	standard, err := control.ParseManifest(standardManifest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(standard.Workloads) != 1 || !reflect.DeepEqual(evaluation.workload.Pod, standard.Workloads[0].Pod) {
+		t.Fatalf("demonstration Job security spec drifted from deploy/k8s/job.yaml:\n demo=%#v\n base=%#v", evaluation.workload.Pod, standard.Workloads)
 	}
 
 	var finding *control.Finding

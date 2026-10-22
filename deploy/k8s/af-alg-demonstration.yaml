@@ -1,6 +1,8 @@
-# Standard CALIPER workload used to demonstrate issue #43. It deliberately
-# has no AF_ALG-specific image or seccomp profile: the normal probe image
-# measures the runtime's RuntimeDefault profile.
+# Standard CALIPER workload used to demonstrate issue #43. Its Job spec must
+# stay identical to deploy/k8s/job.yaml; only Job metadata and the Namespace
+# document differ. The control regression enforces that invariant. It has no
+# AF_ALG-specific image or seccomp profile: the normal probe image measures
+# the runtime's RuntimeDefault profile.
 apiVersion: v1
 kind: Namespace
 metadata:
