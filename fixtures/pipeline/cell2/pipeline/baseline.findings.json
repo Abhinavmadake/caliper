@@ -9,7 +9,13 @@
       "family": "netlink",
       "probe_id": "netlink.protocol.crypto",
       "verdict": "permitted",
-      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants."
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
     },
     {
       "kind": "expectation-violation",
@@ -18,7 +24,13 @@
       "family": "netlink",
       "probe_id": "netlink.protocol.netfilter",
       "verdict": "permitted",
-      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants."
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
     },
     {
       "kind": "expectation-violation",
@@ -27,7 +39,13 @@
       "family": "netlink",
       "probe_id": "netlink.protocol.rdma",
       "verdict": "permitted",
-      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants."
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
     },
     {
       "kind": "expectation-violation",
@@ -36,7 +54,13 @@
       "family": "netlink",
       "probe_id": "netlink.protocol.xfrm",
       "verdict": "permitted",
-      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants."
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
     },
     {
       "kind": "expectation-violation",
@@ -45,7 +69,17 @@
       "family": "socket",
       "probe_id": "socket.family.af_alg",
       "verdict": "permitted",
-      "reason": "AF_ALG exposes the kernel crypto API to an unprivileged process and can autoload algif_* modules. Copy Fail reached algif_aead through this family from a container satisfying RuntimeDefault and PSS Restricted."
+      "reason": "AF_ALG exposes the kernel crypto API to an unprivileged process and can autoload algif_* modules. Copy Fail reached algif_aead through this family from a container satisfying RuntimeDefault and PSS Restricted.",
+      "citations": [
+        {
+          "id": "CVE-2026-31431",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-31431"
+        },
+        {
+          "id": "CVE-2017-2636",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-2636"
+        }
+      ]
     }
   ],
   "claim_violations": [],
