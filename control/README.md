@@ -30,3 +30,21 @@ accepts fingerprints without attribution: it retains their reachability verdicts
 and reports those denials as unknown and undecidable, rather than inventing a
 mechanism. The undecidable fraction is therefore a measured result, not an
 assumption that the residual is zero.
+
+`GenerateRemediation` turns posture expectation violations into the smallest
+available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
+resource, which the Security Profiles Operator distributes to nodes; it also
+renders an OCI Localhost profile. The generator takes the target runtime's
+actual RuntimeDefault profile as input, retains its default action and
+allowlist, then adds only the measured closure rules.
+Socket families, netlink protocols, and clone/unshare flags use seccomp-BPF
+argument comparisons. A pathname, device, mount type, or other pointer-backed
+datum is reported as not closable instead of emitting an over-broad rule.
+
+`cmd/caliper-remediate` is the file-producing entry point used by deployment:
+it accepts an evaluated findings report (or a full CALIPER report), the
+runtime's actual default profile, the runtime gate architecture (such as
+`amd64`), the output libseccomp architecture (such as `SCMP_ARCH_X86_64`),
+the target capabilities and kernel release, then writes both the SPO YAML and
+OCI Localhost JSON. Runtime-only `includes` and `excludes` are resolved for
+that target before either portable output is rendered.
