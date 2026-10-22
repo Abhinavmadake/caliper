@@ -35,8 +35,8 @@ set -euo pipefail
 
 PROJECT=${CALIPER_GCP_PROJECT:-caliper-ci}
 ZONE=${CALIPER_GCP_ZONE:-asia-south1-a}
-# amd64 image the cluster-evaluation workflow published for 25897f7, by digest.
-IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9}
+# amd64 image published for the current main revision, by digest.
+IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:d45e50ba783418e5b9308249226c92f4c4b5018e81a43d6c0a8b8013eb8763e9}
 here=$(cd "$(dirname "$0")" && pwd)
 
 # Cells 2, 4, 5 and 6 share one image so only the runtime axis moves.
@@ -123,7 +123,7 @@ measure() {
 }
 
 runtime_default() {
-	local output=${2:?output.json}
+    local output=${2:?output.json}
     gc compute scp --zone "$ZONE" --quiet "$vm:/var/tmp/caliper-runtime-default.json" "$output"
     on "sudo rm -f /var/tmp/caliper-runtime-default.json"
 }

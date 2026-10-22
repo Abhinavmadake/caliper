@@ -19,10 +19,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"hash/fnv"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,9 +33,9 @@ import (
 )
 
 type inputs struct {
-	baseline, verified, corpus, posture, manifest string
-	runtimeDefault, runtimeArch, ociArch, caps    string
-	kernel, tier, out                             string
+	baseline, verified, corpus, revisions, posture, manifest string
+	runtimeDefault, runtimeArch, ociArch, caps               string
+	kernel, tier, out                                        string
 }
 
 func main() {
@@ -41,6 +43,7 @@ func main() {
 	flag.StringVar(&in.baseline, "baseline", "", "completed baseline fingerprint JSON")
 	flag.StringVar(&in.verified, "verified", "", "optional post-remediation fingerprint; supply on the verification run")
 	flag.StringVar(&in.corpus, "corpus", "../corpus/index.json", "probe corpus index JSON")
+	flag.StringVar(&in.revisions, "revisions", "../corpus/revisions", "registered corpus revision hashes")
 	flag.StringVar(&in.posture, "posture", "../posture/v1/posture.yaml", "reference posture YAML")
 	flag.StringVar(&in.manifest, "manifest", "../deploy/k8s/job.yaml", "measured workload manifest")
 	flag.StringVar(&in.runtimeDefault, "runtime-default", "", "target runtime's RuntimeDefault seccomp JSON")
@@ -71,6 +74,14 @@ func run(in inputs) error {
 	if err := json.Unmarshal(corpusData, &corpus); err != nil {
 		return fmt.Errorf("parse corpus: %w", err)
 	}
+	revisionsData, err := os.ReadFile(in.revisions)
+	if err != nil {
+		return fmt.Errorf("read corpus revisions: %w", err)
+	}
+	expectedRevision, err := corpusRevision(corpusData, revisionsData)
+	if err != nil {
+		return err
+	}
 	postureData, err := os.ReadFile(in.posture)
 	if err != nil {
 		return fmt.Errorf("read posture: %w", err)
@@ -93,6 +104,9 @@ func run(in inputs) error {
 	baseline, baselineSource, err := readFingerprint(in.baseline)
 	if err != nil {
 		return fmt.Errorf("read baseline fingerprint: %w", err)
+	}
+	if err := validateCorpusRevision(baseline, expectedRevision); err != nil {
+		return fmt.Errorf("baseline fingerprint: %w", err)
 	}
 	baseline, err = control.Attribute(baseline, corpus)
 	if err != nil {
@@ -142,6 +156,9 @@ func run(in inputs) error {
 		if err != nil {
 			return fmt.Errorf("read verified fingerprint: %w", err)
 		}
+		if err := validateCorpusRevision(verified, expectedRevision); err != nil {
+			return fmt.Errorf("verified fingerprint: %w", err)
+		}
 		verified, err = control.Attribute(verified, corpus)
 		if err != nil {
 			return fmt.Errorf("attribute verified fingerprint: %w", err)
@@ -186,6 +203,44 @@ func readFingerprint(path string) (control.Fingerprint, []byte, error) {
 		return control.Fingerprint{}, nil, err
 	}
 	return fingerprint, data, nil
+}
+
+func corpusRevision(index, revisions []byte) (string, error) {
+	// Git may check JSON out with CRLF on Windows. The registered hashes are
+	// calculated from the LF corpus dump, so normalize line endings first.
+	index = bytes.ReplaceAll(index, []byte("\r\n"), []byte("\n"))
+	hash := fnv.New64a()
+	if _, err := hash.Write(index); err != nil {
+		return "", fmt.Errorf("hash corpus index: %w", err)
+	}
+	wantHash := fmt.Sprintf("%016x", hash.Sum64())
+	var match string
+	for lineNumber, line := range strings.Split(string(revisions), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 0 || strings.HasPrefix(fields[0], "#") {
+			continue
+		}
+		if len(fields) != 2 {
+			return "", fmt.Errorf("parse corpus revisions line %d: want revision and FNV-1a hash", lineNumber+1)
+		}
+		if fields[1] == wantHash {
+			if match != "" {
+				return "", fmt.Errorf("corpus index hash %s is registered more than once", wantHash)
+			}
+			match = fields[0]
+		}
+	}
+	if match == "" {
+		return "", fmt.Errorf("corpus index hash %s has no registered revision", wantHash)
+	}
+	return match, nil
+}
+
+func validateCorpusRevision(fingerprint control.Fingerprint, expected string) error {
+	if fingerprint.CorpusRevision != expected {
+		return fmt.Errorf("corpus_revision %q does not match corpus index revision %q", fingerprint.CorpusRevision, expected)
+	}
+	return nil
 }
 
 type verificationSummary struct {

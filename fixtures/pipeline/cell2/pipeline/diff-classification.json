@@ -1,8 +1,8 @@
 {
   "diff": {
     "corpus_revisions": {
-      "left": "0.2.0",
-      "right": "0.2.0"
+      "left": "0.3.2",
+      "right": "0.3.2"
     },
     "corpus_sets": {
       "left": "full",

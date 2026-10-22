@@ -173,26 +173,29 @@ kept with their tests; the hardened one predates the clone rules in
 
 ## Local end-to-end control-plane pipeline
 
-`deploy/gce/run-cell2-pipeline.sh` runs the full published-image flow on cell2:
+`deploy/gce/run-cell2-pipeline.sh` runs the published-image flow on cell2:
 measure, complete the fingerprint, capture containerd's applied RuntimeDefault,
-evaluate findings, generate remediation, apply the Localhost profile in a fresh
-measurement, and verify the re-probe. It stops the VM on success or failure.
-The underlying `control/cmd/caliper-pipeline` command writes a first-pass set of
-artifacts, then adds the diff, classification, verified findings and report
-after the re-probe. Verification fails if an original expectation finding is
-missing or does not return denied/killed.
+evaluate findings, generate remediation, have SPO install the generated
+SeccompProfile, apply the Localhost profile in a fresh measurement, and verify
+the re-probe. It removes the temporary SPO profile and stops the VM on success
+or failure. The cluster must expose the SPO v1 API and allow this user to create,
+read, watch, and delete `SeccompProfile` resources. The runner waits for
+`.status.status=Installed` before recording the accepted profile. The underlying
+`control/cmd/caliper-pipeline` writes the per-stage findings, remediation,
+classification and verification artifacts. Verification fails if an original
+expectation finding is missing or does not return denied/killed.
 
 ```bash
-deploy/gce/run-cell2-pipeline.sh
+CALIPER_POSTURE_TIER=untrusted-multi-tenant deploy/gce/run-cell2-pipeline.sh
 ```
 
-Set `CALIPER_POSTURE_TIER` to select another posture tier. The default is
-`untrusted-multi-tenant`; `CALIPER_PIPELINE_OUT` can select another artifact
-directory. Run it from WSL with gcloud authenticated for `caliper-ci` and Go
-available as `go` or `go.exe` in the shell.
+The pipeline evaluates the `restricted` posture tier by default. The command
+above selects `untrusted-multi-tenant` to exercise the generated closures. Set
+`CALIPER_POSTURE_TIER` to select another tier; `CALIPER_PIPELINE_OUT` can select
+another artifact directory. Run it from Linux or macOS with gcloud authenticated
+for `caliper-ci`, kubectl configured for the target cluster, and Go available in
+`PATH`.
 
-The recorded cell2 run used the image pinned by `cells.sh`. It generated five
-closures, verified all five by re-probing, reduced `untrusted-multi-tenant`
-expectation violations from five to zero, and classified seven verdict changes
-as policy explained. The raw measurements, completed fingerprints, runtime
-profile, and per-stage outputs are retained under `artifacts/`.
+The image pinned by `cells.sh` is the published build for current main. The raw
+measurements, completed fingerprints, runtime profile, and per-stage outputs
+are retained under `fixtures/pipeline/cell2/`.

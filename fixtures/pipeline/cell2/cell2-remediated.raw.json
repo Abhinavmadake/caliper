@@ -1,8 +1,7 @@
 {
   "format_version": 1,
-  "corpus_revision": "0.2.0",
+  "corpus_revision": "0.3.2",
   "corpus_set": "full",
-  "digest": "sha256:d47be368dc3037843c35a954ac227902e18ce56b0479212b014a8bdd3ac70dfb",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -11,7 +10,6 @@
         "major": 7,
         "minor": 0
       },
-      "sandbox_claimed": false,
       "modules": [
         "8021q",
         "aesni_intel",
@@ -56,30 +54,19 @@
         "xt_comment"
       ]
     },
-    "distribution": {
-      "value": "Ubuntu 24.04",
-      "source": "operator"
-    },
-    "runtime": {
-      "value": "containerd",
-      "source": "operator"
-    },
-    "runtime_version": {
-      "value": "2.2.1",
-      "source": "operator"
-    },
     "lsm": "apparmor",
     "lsm_label": "cri-containerd.apparmor.d (enforce)",
     "lsm_enforcing": true,
-    "runtime_class": {
-      "value": "runc",
-      "source": "operator"
-    },
     "capabilities": {
       "effective": "0000000000000000",
       "permitted": "0000000000000000",
       "bounding": "0000000000000000",
       "ambient": "0000000000000000"
+    },
+    "user_namespaces": {
+      "max": 28082,
+      "unprivileged_clone": 1,
+      "apparmor_restricted": 1
     }
   },
   "results": [
@@ -90,8 +77,8 @@
     },
     {
       "probe_id": "socket.family.af_alg",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "socket.family.af_packet",
@@ -100,8 +87,8 @@
     },
     {
       "probe_id": "socket.family.out_of_range",
-      "verdict": "permitted",
-      "errno": 97
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "socket.family.af_unix",
@@ -225,8 +212,8 @@
     },
     {
       "probe_id": "netlink.protocol.xfrm",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "netlink.protocol.selinux",
@@ -255,8 +242,8 @@
     },
     {
       "probe_id": "netlink.protocol.netfilter",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "netlink.protocol.kobject_uevent",
@@ -275,13 +262,13 @@
     },
     {
       "probe_id": "netlink.protocol.rdma",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "netlink.protocol.crypto",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "netlink.protocol.smc",
@@ -290,8 +277,8 @@
     },
     {
       "probe_id": "netlink.protocol.out_of_range",
-      "verdict": "permitted",
-      "errno": 93
+      "verdict": "denied",
+      "errno": 1
     },
     {
       "probe_id": "io_uring.register.probe",
@@ -1170,7 +1157,6 @@
     "after": [
       "8021q",
       "aesni_intel",
-      "af_alg",
       "af_key",
       "appletalk",
       "authenc",
@@ -1186,7 +1172,6 @@
       "can_raw",
       "cfg80211",
       "cmac",
-      "crypto_user",
       "dibs",
       "dm_multipath",
       "dmi_sysfs",
@@ -1237,12 +1222,10 @@
       "virtio_rng",
       "x_tables",
       "xfrm_algo",
-      "xfrm_user",
       "xt_MASQUERADE",
       "xt_comment"
     ],
     "loaded_by_run": [
-      "af_alg",
       "af_key",
       "appletalk",
       "authenc",
@@ -1254,7 +1237,6 @@
       "can",
       "can_raw",
       "cmac",
-      "crypto_user",
       "dibs",
       "fcrypt",
       "ib_core",
@@ -1271,8 +1253,7 @@
       "scsi_transport_iscsi",
       "smc",
       "udp_tunnel",
-      "xfrm_algo",
-      "xfrm_user"
+      "xfrm_algo"
     ]
   },
   "residual": {

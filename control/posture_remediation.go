@@ -178,7 +178,7 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 		PostureRevision: report.PostureRevision,
 		Tier:            report.Tier,
 		SPO: SPOProfile{
-			APIVersion: "security-profiles-operator.x-k8s.io/v1beta1",
+			APIVersion: "security-profiles-operator.x-k8s.io/v1",
 			Kind:       "SeccompProfile",
 			Metadata:   ObjectMeta{},
 			Spec: SeccompSpec{

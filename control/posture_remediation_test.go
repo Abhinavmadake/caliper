@@ -104,6 +104,9 @@ func TestGenerateRemediationUsesArgumentRulesAndSPO(t *testing.T) {
 	if err := yaml.Unmarshal(spo, &decoded); err != nil {
 		t.Fatalf("parse SPO YAML: %v", err)
 	}
+	if decoded.APIVersion != "security-profiles-operator.x-k8s.io/v1" {
+		t.Errorf("SPO apiVersion = %q, want security-profiles-operator.x-k8s.io/v1", decoded.APIVersion)
+	}
 	if decoded.Spec.DefaultAction != "SCMP_ACT_ERRNO" {
 		t.Errorf("SPO default action = %q, want RuntimeDefault action", decoded.Spec.DefaultAction)
 	}
