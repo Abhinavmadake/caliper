@@ -188,3 +188,10 @@ clear `IO_URING_OP_SUPPORTED` bit, which `io_uring_register` never produces
 for a ring it has just accepted. It was `ENOSYS`, which a filter can also
 answer (the containers/common profile's default), so it could not separate
 an absent opcode from a filtered syscall. Decided 2026-10-14 for #93 (A).
+
+Two more encodings follow the same rule. A read-only path probe returns
+`EROFS` when `fstatfs` reports `ST_RDONLY`, which an `O_PATH` open never
+produces. A filesystem-type probe reads `/proc/filesystems` and returns
+`ENODEV`, the errno `get_fs_type` answers for an unregistered type and one
+`read(2)` never produces, when the type is not listed; it is the probe's
+`absent_errno`, so it reads as `unimplemented`.

@@ -29,8 +29,8 @@
 #
 #   gh issue edit <n> --add-assignee <handle>
 #
-# The letter-to-handle mapping the team settled on is in README.md:
-#   A Abhinavmadake, B sahilwaje23, C Yogesh-Palve, D Ritesh-Saindane
+# The letter-to-handle mapping is in README.md (B and D swapped on 2026-09-14):
+#   A Abhinavmadake, B Ritesh-Saindane, C Yogesh-Palve, D sahilwaje23
 #
 # Usage:  ./scripts/seed-backlog.sh [--force]
 #

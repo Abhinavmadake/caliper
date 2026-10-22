@@ -46,7 +46,7 @@ any host needs only a linker that emits ELF, and `.cargo/config.toml` names
 
 The release profile is the image profile: `panic = "abort"` (a probe child
 must never unwind), LTO, stripped. The image is `Dockerfile` here — two
-stages, Alpine to build and `scratch` to ship:
+stages, Debian bookworm to build and `scratch` to ship:
 
     docker build -t caliper-probe engine/
 
@@ -68,7 +68,8 @@ aarch64 stop at 133; 253 and 254 are reserved for a probe that panicked or
 an errno that does not fit). A child the kernel terminates — SIGSYS from a
 `KILL_PROCESS` filter, SIGSEGV from a crash — is reported by signal, and the
 parent goes on to the next probe. The child allocates nothing and issues no
-syscall of its own but `exit_group`; the parent issues `clone`,
+syscall of its own but `exit_group`; the parent issues `fork` (`clone` on
+aarch64, which has no `fork`),
 `pidfd_open`, `ppoll`, `wait4`, `close`, and `kill` on a timeout. `examples/harness-trace` under
 `strace -f` shows exactly that and nothing else.
 
@@ -137,8 +138,8 @@ pre-exec set, which is a property of the runtime and was found empirically
 (runc 1.5.1, on aarch64 and x86_64), and the run path's set (`uname` and the
 `/proc` and `/sys` reads of the cell and residual snapshots). The probed
 syscalls are deliberately not in it — except `clone3`, which the harness group
-keeps — so under this profile nine probes' children die of SIGSYS and the run
-records nine `killed` verdicts. It is verified two ways:
+keeps — so under this profile every probe whose syscall is outside the list
+has its child die of SIGSYS, and the run records it `killed`. It is verified two ways:
 
 - `crates/probe/tests/hardened.rs` applies the engine's three groups with
   `seccompiler` in a forked child immediately before `execve`, so nothing but

@@ -17,11 +17,13 @@ differs across environments and what minimal policy change closes the gap.
 **Status:** interfaces frozen (`spec/`); probe engine in and tested on a
 static musl build with a syscall-baseline check in CI — fork isolation, SIGSYS
 survival, timeouts, verdict classification and side-effect accounting — and a
-ten-probe reference corpus running end to end from image start to emitted
-document. The committed corpus families and the Go control plane are next.
-Progress is tracked in the issues, one milestone per freeze gate. The
-fingerprint format freeze is recorded by PR #141; the remaining gate checks
-are tracked in issue #28. The proposal is in `docs/`.
+committed corpus of 213 probes (revision pinned in `corpus/revisions`). The
+fingerprint format is frozen at version 1 (PR #141). The Go control plane in
+`control/` diffs, classifies, attributes and evaluates fingerprints against
+the reference posture, reports, and generates remediation profiles; every
+pull request is evaluated on a GKE cluster, and the six cells are recorded in
+`fixtures/cells/`. Evaluation is next. Progress is tracked in the issues, one
+milestone per freeze gate. The proposal is in `docs/`.
 
 Working on this? Read [`CONTRIBUTING.md`](CONTRIBUTING.md) first — `main` is
 protected, so you branch and open a pull request rather than pushing.

@@ -10,25 +10,17 @@ As agreed by all members and documented in `spec/probe.md`, the `ENOSYS` error r
 
 ## 1. Socket Address Families (`AF_*`)
 
-- **Probed Syscall:** `socket(family, type, protocol)`
-- **Oracle Argument Set:** `socket(AF_TARGET, -1, 0)`
-  - We use the targeted address family (`AF_TARGET`) to ensure any family-specific filtering triggers.
-  - We pass a deliberately invalid `type` (`-1`) to structurally guarantee `EINVAL`.
-- **Hook Ordering:** In `net/socket.c`, `__sys_socket_create` returns `EINVAL` for a bad type before `sock_create`, and `__sock_create` range-checks the type again before `security_socket_create`. Thus, `type = -1` never reaches the LSM hook or the family lookup.
-- **What it proves:** 
-  - If the probe returns `EPERM` instead of `EINVAL`, it definitively **isolates seccomp** (like the `EBADF` oracle).
-  - An `EINVAL` says nothing about whether AppArmor or SELinux permit the family, because the invalid type is caught before the LSM hook. (This is why `spec/probe.md` uses an `EAFNOSUPPORT` oracle for sockets, which is produced after the hook).
+- **Probed Syscall:** `socket(AF_TARGET, type, 0)`, one probe per family.
+- **Oracle:** one probe, `socket.family.out_of_range`: `socket(1000, SOCK_STREAM, 0)`, guaranteed `EAFNOSUPPORT`.
+- **Hook Ordering:** `__sock_create` rejects a family at or beyond `NPROTO` before `security_socket_create` and before the family table is consulted, so only a filter at syscall entry can answer `EPERM` first. This oracle **isolates seccomp**.
+- **Per-family probes:** the family's create function runs after `security_socket_create`, so `EPERM` is seccomp or an LSM (`seccomp-or-lsm`), or `undecidable` where the family checks a capability itself (`AF_PACKET`, `AF_KEY`, `AF_XDP`, `AF_PHONET`). `EAFNOSUPPORT` is the family absent or its module not loadable, recorded as the kernel dependency; `ax25`, `appletalk`, `x25` and `ieee802154` also answer it outside the initial network namespace, after the module has loaded, which the module snapshot shows.
 
 ## 2. Netlink Protocol Numbers (`NETLINK_*`)
 
-- **Probed Syscall:** `socket(AF_NETLINK, SOCK_RAW, NETLINK_TARGET)`
-- **Oracle Argument Set:** `socket(AF_NETLINK, -1, NETLINK_TARGET)`
-  - We probe the specific `NETLINK_TARGET` protocol.
-  - Similar to address families, passing an invalid `type` (`-1`) structurally guarantees `EINVAL`.
-- **Hook Ordering:** Like other `socket(2)` calls, the invalid `type = -1` causes an `EINVAL` return before reaching the LSM hook (`security_socket_create`) or the family lookup. (By contrast, the netlink protocol check in `netlink_create`, which produces `EPROTONOSUPPORT`, happens *after* both the hook and the family lookup).
-- **What it proves:**
-  - An `EPERM` against this oracle **isolates seccomp**, just like the address family oracle, because the structural `EINVAL` prevents the LSM hook from running.
-  - An `EINVAL` says nothing about whether an LSM permits the netlink protocol creation.
+- **Probed Syscall:** `socket(AF_NETLINK, SOCK_RAW, NETLINK_TARGET)`, one probe per protocol.
+- **Oracle:** one probe, `netlink.protocol.out_of_range`: `socket(AF_NETLINK, SOCK_RAW, 32)`, guaranteed `EPROTONOSUPPORT`.
+- **Hook Ordering:** `netlink_create` rejects a protocol at or beyond `MAX_LINKS` before looking for a handler, but after `security_socket_create` and the family lookup. `EPROTONOSUPPORT` proves the netlink family itself is reachable; `EPERM` is seccomp or an LSM and is not separable (`seccomp-or-lsm`).
+- **Per-protocol probes:** creating the socket checks no capability (`CAP_NET_ADMIN` and the audit capabilities are checked on messages, not on create), so `EPERM` is seccomp or an LSM. `EPROTONOSUPPORT` is the handler absent, recorded as the kernel dependency, except for `route`, `usersock` and `generic`, which every supported kernel registers.
 
 ## 3. io_uring Opcode Reach (`IORING_REGISTER_PROBE`)
 
@@ -79,7 +71,7 @@ probe in `engine/crates/corpus/src/capability.rs`.
 
 ## 5. Mount filesystem types (#77)
 
-The 37 filesystem-type probes enumerate `/proc/filesystems` rather than
+The 34 filesystem-type probes enumerate `/proc/filesystems` rather than
 calling `mount(2)`. `registered()` reads the kernel's list with `openat`,
 `read`, and `close`; `get_fs_type` reports `ENODEV` for an absent type, which
 is the declared `kernel.absent_errno`. The oracle is `Undecidable` because an
