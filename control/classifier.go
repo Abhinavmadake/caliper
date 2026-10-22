@@ -103,11 +103,28 @@ func (a Applicability) Includes(architecture string) bool {
 // Since is omitted for configuration- or module-gated entry points; PresentIf
 // and EncodedAbsent carry the engine's runtime evidence for those gates.
 type KernelDependency struct {
-	Since         *KernelVersion `json:"since"`
-	AbsentErrno   *int           `json:"absent_errno"`
-	Module        string         `json:"module,omitempty"`
-	PresentIf     string         `json:"present_if,omitempty"`
-	EncodedAbsent *int           `json:"encoded_absent,omitempty"`
+	Since       *KernelVersion `json:"since"`
+	AbsentErrno *int           `json:"absent_errno"`
+	// AlsoAbsent is a second errno absence produces, read like AbsentErrno.
+	AlsoAbsent *int   `json:"also_absent,omitempty"`
+	Module     string `json:"module,omitempty"`
+	// ProtocolModule is the module AlsoAbsent reports missing while Module
+	// is loaded; empty when the protocol is not a module of its own.
+	ProtocolModule string `json:"protocol_module,omitempty"`
+	PresentIf      string `json:"present_if,omitempty"`
+	EncodedAbsent  *int   `json:"encoded_absent,omitempty"`
+	// LSMHookSince is the release from which an LSM hook runs before the
+	// oracle's point, so a seccomp reading becomes seccomp or an LSM.
+	LSMHookSince *KernelVersion `json:"lsm_hook_since,omitempty"`
+	// UserNamespaceLimits marks an entry point the kernel's user-namespace
+	// limits can refuse; a denial is read against the cell's (#96).
+	UserNamespaceLimits bool `json:"user_namespace_limits,omitempty"`
+}
+
+// absent reports whether errno is one the dependency reads as absence.
+func (d KernelDependency) absent(errno int) bool {
+	return (d.AbsentErrno != nil && errno == *d.AbsentErrno) ||
+		(d.AlsoAbsent != nil && errno == *d.AlsoAbsent)
 }
 
 // KernelVersion is the major/minor release used by a version-gated probe.
@@ -243,17 +260,17 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 	// A kernel dependency explains absence only when the other environment
 	// permits the probe. Denied, killed, and timed-out results indicate a policy
 	// or execution difference, not a kernel dependency boundary.
-	var absent ProbeResult
+	var errno int
 	if d.Left.Verdict == "unimplemented" {
 		if d.Right.Verdict != "permitted" {
 			return false, nil
 		}
-		absent = d.Left
+		errno = d.Left.Errno
 	} else if d.Right.Verdict == "unimplemented" {
 		if d.Left.Verdict != "permitted" {
 			return false, nil
 		}
-		absent = d.Right
+		errno = d.Right.Errno
 	} else {
 		return false, nil
 	}
@@ -261,10 +278,10 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 	// The engine's unimplemented verdict already applies present_if and
 	// encoded_absent. For those dependencies it is the cell-specific evidence
 	// that the entry point is absent; no release or module comparison is needed.
-	if dependency.EncodedAbsent != nil && absent.Errno == *dependency.EncodedAbsent {
+	if dependency.EncodedAbsent != nil && errno == *dependency.EncodedAbsent {
 		return true, nil
 	}
-	if dependency.AbsentErrno == nil || absent.Errno != *dependency.AbsentErrno {
+	if !dependency.absent(errno) {
 		return false, nil
 	}
 	if dependency.PresentIf != "" {
@@ -275,13 +292,20 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 		rightVersion, rightKnown := parseKernelVersion(right.Release)
 		return leftKnown && rightKnown && (before(leftVersion, *dependency.Since) != before(rightVersion, *dependency.Since)), nil
 	}
-	if dependency.Module == "" {
+	// The second absence errno is the protocol missing with the family
+	// loaded, so it is the protocol's module that must differ (#96).
+	module := dependency.Module
+	if dependency.AlsoAbsent != nil && errno == *dependency.AlsoAbsent &&
+		(dependency.AbsentErrno == nil || errno != *dependency.AbsentErrno) {
+		module = dependency.ProtocolModule
+	}
+	if module == "" {
 		return false, nil
 	}
 	if left.Modules == nil || right.Modules == nil {
-		return false, fmt.Errorf("probe %q declares kernel module %q but a fingerprint has no kernel module list", d.ProbeID, dependency.Module)
+		return false, fmt.Errorf("probe %q declares kernel module %q but a fingerprint has no kernel module list", d.ProbeID, module)
 	}
-	return containsModule(*left.Modules, dependency.Module) != containsModule(*right.Modules, dependency.Module), nil
+	return containsModule(*left.Modules, module) != containsModule(*right.Modules, module), nil
 }
 
 func containsModule(modules []string, module string) bool {

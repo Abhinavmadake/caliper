@@ -47,7 +47,6 @@ use std::time::Duration;
 
 use nix::errno::Errno;
 use nix::sys::signal::{kill, Signal};
-use nix::sys::wait::{waitpid, WaitStatus};
 use nix::unistd::Pid;
 
 use crate::probe::{Probe, RawResult};
@@ -60,6 +59,9 @@ const MAX_ERRNO: i32 = 200;
 const EXIT_PANIC: i32 = 253;
 /// The probe returned an errno outside `1..=MAX_ERRNO`.
 const EXIT_ERRNO_RANGE: i32 = 254;
+/// How long a SIGKILLed child may take to be reapable. A child stuck in an
+/// uninterruptible sleep would otherwise hang the run (#99).
+const KILL_GRACE: Duration = Duration::from_secs(10);
 
 /// How the child ended: the wait status decoded, and nothing more. Turning
 /// this into a verdict is #8's job.
@@ -84,6 +86,19 @@ pub enum Outcome {
 pub enum Fault {
     Panicked,
     ErrnoOutOfRange,
+    /// A helper call before the probed operation failed with this errno:
+    /// not the probed operation's answer (#96, #99).
+    SetupFailed(i32),
+    /// The child died of this signal before reaching the probed operation,
+    /// for instance a filter killing a helper: not a kill of the operation.
+    SetupKilled(i32),
+    /// The child exceeded the timeout before reaching the probed operation:
+    /// a helper hung, not the operation.
+    SetupTimedOut,
+    /// The child exceeded the timeout and was still not reapable
+    /// [`KILL_GRACE`] after SIGKILL. It outlives the probe, so neither this
+    /// probe's snapshots nor any later probe's are its own (#99).
+    Unreaped,
     /// An exit code outside the encoding — cannot happen from this harness's
     /// own child, recorded rather than guessed at.
     UnknownExit(i32),
@@ -104,10 +119,80 @@ pub fn run_isolated(probe: &Probe) -> nix::Result<Outcome> {
     run_isolated_with(&probe.run, probe.risk.timeout())
 }
 
+/// Where a probe's child got to, shared with the parent through an
+/// anonymous shared page mapped for that one run: a probe with helper calls
+/// marks [`setup`] first and [`probing`] just before the operation it
+/// measures. Plain stores, so marking issues no syscall. The page's address
+/// is thread-local, which fork copies into the child, so concurrent callers
+/// (libtest's threads) each see only their own run.
+const STAGE_PROBING: u8 = 0;
+const STAGE_SETUP: u8 = 1;
+
+thread_local! {
+    static STAGE: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+fn stage_at(addr: usize) -> Option<&'static std::sync::atomic::AtomicU8> {
+    // SAFETY: a live, page-aligned mapping of this run, accessed atomically.
+    (addr != 0).then(|| unsafe { &*(addr as *const std::sync::atomic::AtomicU8) })
+}
+
+fn mark(value: u8) {
+    if let Some(s) = stage_at(STAGE.with(std::cell::Cell::get)) {
+        s.store(value, std::sync::atomic::Ordering::SeqCst);
+    }
+}
+
+/// In a probe's child: the calls that follow are helpers, not the measured
+/// operation. Their failure or a death among them is recorded as such.
+pub fn setup() {
+    mark(STAGE_SETUP);
+}
+
+/// In a probe's child: the next call is the measured operation.
+pub fn probing() {
+    mark(STAGE_PROBING);
+}
+
 /// Run `f` in a forked child, bounded by `timeout`, and report how the
 /// child ended. `run_isolated` is this with the probe's function and risk
 /// class; the janitor passes a removal.
 pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::Result<Outcome> {
+    // SAFETY: a fresh anonymous shared page, unmapped below.
+    let page = unsafe {
+        libc::mmap(
+            std::ptr::null_mut(),
+            4096,
+            libc::PROT_READ | libc::PROT_WRITE,
+            libc::MAP_SHARED | libc::MAP_ANONYMOUS,
+            -1,
+            0,
+        )
+    };
+    let addr = if page == libc::MAP_FAILED {
+        0
+    } else {
+        page as usize
+    };
+    STAGE.with(|s| s.set(addr));
+    let outcome = fork_and_wait(f, timeout);
+    STAGE.with(|s| s.set(0));
+    let in_setup =
+        stage_at(addr).is_some_and(|s| s.load(std::sync::atomic::Ordering::SeqCst) == STAGE_SETUP);
+    if addr != 0 {
+        // SAFETY: the page mapped above. A child that shared it is reaped,
+        // or unreaped and keeping its own mapping.
+        unsafe { libc::munmap(page, 4096) };
+    }
+    Ok(match outcome? {
+        Outcome::Returned { errno } if in_setup => Outcome::Fault(Fault::SetupFailed(errno)),
+        Outcome::Signaled { signal } if in_setup => Outcome::Fault(Fault::SetupKilled(signal)),
+        Outcome::TimedOut if in_setup => Outcome::Fault(Fault::SetupTimedOut),
+        other => other,
+    })
+}
+
+fn fork_and_wait(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::Result<Outcome> {
     // SAFETY: the engine is single-threaded, and the child calls nothing but
     // `f` and _exit. See the module comment for why this is fork(2) and not
     // a raw clone.
@@ -126,7 +211,7 @@ pub fn run_isolated_with(f: &dyn Fn() -> RawResult, timeout: Duration) -> nix::R
         // not become a hang.
         let err = Errno::last();
         let _ = kill(Pid::from_raw(pid), Signal::SIGKILL);
-        let _ = waitpid(Pid::from_raw(pid), None);
+        let _ = reap(pid);
         return Err(err);
     }
     let outcome = wait_bounded(Pid::from_raw(pid), pidfd, timeout);
@@ -144,8 +229,11 @@ fn child(f: &dyn Fn() -> RawResult) -> ! {
     std::panic::set_hook(Box::new(|_| unsafe { libc::_exit(EXIT_PANIC) }));
     let code = match f() {
         Ok(()) => 0,
-        Err(errno) => match errno as i32 {
-            n @ 1..=MAX_ERRNO => n,
+        // nix maps an errno it has no name for to 0; the raw value is still
+        // in errno, from the call that failed (#99).
+        // SAFETY: reads this thread's errno.
+        Err(errno) => match (errno as i32, unsafe { *libc::__errno_location() }) {
+            (0, n @ 1..=MAX_ERRNO) | (n @ 1..=MAX_ERRNO, _) => n,
             _ => EXIT_ERRNO_RANGE,
         },
     };
@@ -156,6 +244,49 @@ fn child(f: &dyn Fn() -> RawResult) -> ! {
 
 /// Wait for the child up to `timeout`, killing it on expiry.
 fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<Outcome> {
+    let ready = match poll_exit(pidfd, timeout) {
+        Ok(ready) => ready,
+        Err(err) => {
+            // The child is still ours to reap: kill it first, so a poll
+            // failure leaves neither a running child nor a zombie (#99).
+            // The pidfd cannot be polled, so the reap is unbounded, as when
+            // pidfd_open fails.
+            let _ = kill(pid, Signal::SIGKILL);
+            let _ = reap(pid.as_raw());
+            return Err(err);
+        }
+    };
+    if !ready {
+        return Ok(if kill_and_reap(pid, pidfd)? {
+            Outcome::TimedOut
+        } else {
+            Outcome::Fault(Fault::Unreaped)
+        });
+    }
+    let status = reap(pid.as_raw())?;
+    Ok(if libc::WIFEXITED(status) {
+        match libc::WEXITSTATUS(status) {
+            0 => Outcome::Returned { errno: 0 },
+            n @ 1..=MAX_ERRNO => Outcome::Returned { errno: n },
+            EXIT_PANIC => Outcome::Fault(Fault::Panicked),
+            EXIT_ERRNO_RANGE => Outcome::Fault(Fault::ErrnoOutOfRange),
+            n => Outcome::Fault(Fault::UnknownExit(n)),
+        }
+    } else if libc::WIFSIGNALED(status) {
+        // Raw signal number: nix's waitpid rejects real-time signals, which
+        // made such a death a harness error (#99).
+        Outcome::Signaled {
+            signal: libc::WTERMSIG(status),
+        }
+    } else {
+        // Stopped/continued are not requested (no WUNTRACED/WCONTINUED), so
+        // this does not happen; recorded rather than assumed.
+        Outcome::Fault(Fault::UnknownExit(-1))
+    })
+}
+
+/// Whether the pidfd became readable (the child exited) within `timeout`.
+fn poll_exit(pidfd: libc::c_int, timeout: Duration) -> nix::Result<bool> {
     let mut pfd = libc::pollfd {
         fd: pidfd,
         events: libc::POLLIN,
@@ -170,7 +301,7 @@ fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<
     // same deadline instead of starting a fresh one, and the risk class's
     // timeout is a hard bound — readable against a `timed-out` verdict, as
     // spec/probe.md decision 2 requires. musl's wrapper passes a copy.
-    let ready = loop {
+    loop {
         // SAFETY: one valid pollfd, a valid mutable timespec, no sigmask.
         let r = unsafe {
             libc::syscall(
@@ -183,26 +314,35 @@ fn wait_bounded(pid: Pid, pidfd: libc::c_int, timeout: Duration) -> nix::Result<
             )
         };
         match r {
-            0 => break false,
-            r if r > 0 => break true,
+            0 => return Ok(false),
+            r if r > 0 => return Ok(true),
             _ if Errno::last() == Errno::EINTR => continue,
             _ => return Err(Errno::last()),
         }
-    };
-    if !ready {
-        kill(pid, Signal::SIGKILL)?;
-        waitpid(pid, None)?;
-        return Ok(Outcome::TimedOut);
     }
-    Ok(match waitpid(pid, None)? {
-        WaitStatus::Exited(_, 0) => Outcome::Returned { errno: 0 },
-        WaitStatus::Exited(_, n @ 1..=MAX_ERRNO) => Outcome::Returned { errno: n },
-        WaitStatus::Exited(_, EXIT_PANIC) => Outcome::Fault(Fault::Panicked),
-        WaitStatus::Exited(_, EXIT_ERRNO_RANGE) => Outcome::Fault(Fault::ErrnoOutOfRange),
-        WaitStatus::Exited(_, n) => Outcome::Fault(Fault::UnknownExit(n)),
-        WaitStatus::Signaled(_, sig, _) => Outcome::Signaled { signal: sig as i32 },
-        // Stopped/continued are not requested (no WUNTRACED/WCONTINUED), so
-        // this does not happen; recorded rather than assumed.
-        _ => Outcome::Fault(Fault::UnknownExit(-1)),
-    })
+}
+
+/// SIGKILL the child and reap it, waiting at most [`KILL_GRACE`]. `false`
+/// is a child still not reapable, left rather than waited on into a hang.
+fn kill_and_reap(pid: Pid, pidfd: libc::c_int) -> nix::Result<bool> {
+    kill(pid, Signal::SIGKILL)?;
+    if !poll_exit(pidfd, KILL_GRACE)? {
+        return Ok(false);
+    }
+    reap(pid.as_raw()).map(|_| true)
+}
+
+/// waitpid for one child, retried on EINTR; the raw wait status.
+fn reap(pid: libc::pid_t) -> nix::Result<libc::c_int> {
+    let mut status = 0;
+    loop {
+        // SAFETY: a child of this process and a valid status pointer.
+        let r = unsafe { libc::waitpid(pid, &mut status, 0) };
+        if r == pid {
+            return Ok(status);
+        }
+        if Errno::last() != Errno::EINTR {
+            return Err(Errno::last());
+        }
+    }
 }

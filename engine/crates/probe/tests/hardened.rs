@@ -51,8 +51,11 @@ const ARCH: TargetArch = TargetArch::aarch64;
 #[cfg(target_arch = "x86_64")]
 const ARCH: TargetArch = TargetArch::x86_64;
 
-/// Groups 1 and 2 of the profile as a seccompiler program, minus `drop`.
-fn engine_filter(drop: Option<&str>) -> BpfProgram {
+/// The engine's part of the profile, minus `drop`: groups 1, 2 and 4 and
+/// the clone rule as one kill-by-default program, and the clone3 ENOSYS
+/// rule as a second, stacked program (seccompiler has one match action per
+/// program; the kernel applies the stricter answer).
+fn engine_filter(drop: Option<&str>) -> Vec<BpfProgram> {
     let profile: serde_json::Value = serde_json::from_str(PROFILE).unwrap();
     let groups = profile["syscalls"].as_array().unwrap();
     // Groups 1, 2 and 4: the engine's. Group 3 is runc's.
@@ -62,35 +65,60 @@ fn engine_filter(drop: Option<&str>) -> BpfProgram {
         .map(|n| n.as_str().unwrap())
         .filter(|n| !FOREIGN.contains(n) && Some(*n) != drop)
         .collect();
-    let rules: Vec<serde_json::Value> = names
+    let mut rules: Vec<serde_json::Value> = names
         .iter()
         .map(|n| serde_json::json!({ "syscall": n }))
         .collect();
+    let clone = groups.iter().find(|g| g["names"][0] == "clone").unwrap();
+    let arg = &clone["args"][0];
+    assert_eq!(arg["op"], "SCMP_CMP_MASKED_EQ");
+    if drop != Some("clone") {
+        rules.push(serde_json::json!({
+            "syscall": "clone",
+            "args": [{
+                "index": arg["index"], "type": "qword",
+                "op": { "masked_eq": arg["value"] }, "val": arg["valueTwo"],
+            }],
+        }));
+    }
+    let clone3 = groups.iter().find(|g| g["names"][0] == "clone3").unwrap();
+    assert_eq!(clone3["action"], "SCMP_ACT_ERRNO");
+    // Allowed here so that the stacked program's ENOSYS is the answer, as it
+    // is from the profile's single filter.
+    rules.push(serde_json::json!({ "syscall": "clone3" }));
     let spec = serde_json::json!({
         "engine": {
             "mismatch_action": "kill_process",
             "match_action": "allow",
             "filter": rules,
-        }
+        },
+        "clone3": {
+            "mismatch_action": "allow",
+            "match_action": { "errno": clone3["errnoRet"] },
+            "filter": [{ "syscall": "clone3" }],
+        },
     });
     let mut map = compile_from_json(Cursor::new(spec.to_string()), ARCH).unwrap();
-    map.remove("engine").unwrap()
+    vec![map.remove("engine").unwrap(), map.remove("clone3").unwrap()]
 }
 
 /// Fork, install `filter` in the child, exec `caliper-probe --noop`, and
 /// return the raw wait status. Everything the child does after `fork` and
 /// before `execve` is `apply_filter` (prctl + seccomp, both issued before
 /// the filter is live) and `execv` itself.
-fn run_under(filter: &BpfProgram) -> libc::c_int {
-    run_mode_under("--noop", filter).0
+fn run_under(filter: &[BpfProgram]) -> libc::c_int {
+    run_mode_under(&["--noop"], filter).0
 }
 
-/// `caliper-probe <mode>` under `filter`: the wait status, and what it
+/// `caliper-probe <args>` under `filter`: the wait status, and what it
 /// wrote to a pipe on stdout.
-fn run_mode_under(mode: &str, filter: &BpfProgram) -> (libc::c_int, Vec<u8>) {
+fn run_mode_under(args: &[&str], filter: &[BpfProgram]) -> (libc::c_int, Vec<u8>) {
     let path = CString::new(PROBE).unwrap();
-    let arg = CString::new(mode).unwrap();
-    let argv = [path.as_ptr(), arg.as_ptr(), std::ptr::null()];
+    let args: Vec<CString> = args.iter().map(|a| CString::new(*a).unwrap()).collect();
+    let argv: Vec<*const libc::c_char> = std::iter::once(path.as_ptr())
+        .chain(args.iter().map(|a| a.as_ptr()))
+        .chain(std::iter::once(std::ptr::null()))
+        .collect();
     let mut fds = [0 as libc::c_int; 2];
     // SAFETY: a two-element array for pipe(2).
     assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0, "pipe failed");
@@ -107,8 +135,12 @@ fn run_mode_under(mode: &str, filter: &BpfProgram) -> (libc::c_int, Vec<u8>) {
             libc::close(fds[0]);
             libc::close(fds[1]);
         }
-        if apply_filter(filter).is_err() {
-            unsafe { libc::_exit(126) };
+        // The allow-by-default clone3 program first: once the kill-by-default
+        // one is live, installing another would issue a killed seccomp(2).
+        for f in filter.iter().rev() {
+            if apply_filter(f).is_err() {
+                unsafe { libc::_exit(126) };
+            }
         }
         unsafe {
             libc::execv(path.as_ptr(), argv.as_ptr());
@@ -159,20 +191,14 @@ fn allowlist_is_enforced() {
     assert_eq!(libc::WTERMSIG(status), libc::SIGSYS);
 }
 
-/// Probes whose syscall the allowlist carries for the harness's own sake,
-/// so under it they reach the kernel: `clone3` is in group 2. The
-/// `mount.type.*` probes read `/proc/filesystems` with the engine's own
-/// `openat`/`read`/`close` and are matched by prefix.
+/// Probes that reach the kernel under the engine's allowlist: `clone3`
+/// answers ENOSYS from the clone3 rule rather than SIGSYS, and the device
+/// opens go through the engine's own `openat`. The `mount.type.*` probes read
+/// `/proc/filesystems` with the engine's own `openat`/`read`/`close` and are
+/// matched by prefix. The `clone.flags.*` probes carry CLONE_NEW* flags,
+/// which the clone rule refuses, so they are killed like the rest.
 const REACHES_THE_KERNEL: &[&str] = &[
     "clone3.args.short",
-    "clone.flags.newuser",
-    "clone.flags.newns",
-    "clone.flags.newnet",
-    "clone.flags.newpid",
-    "clone.flags.newipc",
-    "clone.flags.newuts",
-    "clone.flags.newcgroup",
-    "clone.flags.newuser_newnet",
     "device.open.fuse",
     "device.open.net_tun",
     "device.open.kvm",
@@ -185,9 +211,11 @@ const REACHES_THE_KERNEL: &[&str] = &[
 
 #[test]
 fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
-    let (status, out) = run_mode_under("--run", &engine_filter(None));
+    let (status, out) = run_mode_under(&["--run"], &engine_filter(None));
+    // 3, not 0: the mount.fs probes are unmeasured, killed at their mkdirat
+    // helper, which is a defect of this environment worth the exit code.
     assert!(
-        libc::WIFEXITED(status) && libc::WEXITSTATUS(status) == 0,
+        libc::WIFEXITED(status) && libc::WEXITSTATUS(status) == 3,
         "the parent did not survive: status {status:#x}"
     );
     let doc: serde_json::Value = serde_json::from_slice(&out).expect("output is JSON");
@@ -218,6 +246,30 @@ fn run_survives_the_engine_allowlist_and_records_the_probes_killed() {
         }
     }
     for u in doc["unmeasured"].as_array().unwrap() {
-        assert_eq!(u["why"], "deferred", "{u}");
+        if u["probe_id"].as_str().unwrap().starts_with("mount.fs.") {
+            let killed = &u["why"]["not-measured"]["fault"]["setup-killed"];
+            assert_eq!(killed, libc::SIGSYS, "{u}");
+        } else {
+            assert_eq!(u["why"], "deferred", "{u}");
+        }
     }
+}
+
+#[test]
+fn a_runner_that_cannot_read_3_gets_0_and_the_same_defects() {
+    let (status, out) = run_mode_under(&["--run", "--exit-0-on-defects"], &engine_filter(None));
+    assert!(
+        libc::WIFEXITED(status) && libc::WEXITSTATUS(status) == 0,
+        "status {status:#x}"
+    );
+    let doc: serde_json::Value = serde_json::from_slice(&out).expect("output is JSON");
+    assert!(
+        doc["unmeasured"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|u| u["why"] != "deferred"),
+        "{}",
+        doc["unmeasured"]
+    );
 }

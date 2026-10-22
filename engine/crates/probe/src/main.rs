@@ -23,7 +23,7 @@ use std::process::ExitCode;
 use caliper_engine::{Cell, Measurement, Unmeasurable};
 
 const USAGE: &str = "\
-usage: caliper-probe <mode>
+usage: caliper-probe <mode> [--exit-0-on-defects]
 
   --run            measure: run every probe in the corpus and emit the
                    probe-side half of a fingerprint as JSON (#8), with the
@@ -37,7 +37,21 @@ usage: caliper-probe <mode>
   --dump-corpus    emit the compiled-in corpus as JSON. An output, never an
                    input (spec/probe.md)
   --version        print the version and exit
+
+  --exit-0-on-defects
+                   after --run or --reduced: exit 0 rather than 3 on a run
+                   with defects, for a runner that cannot tell 3 from a
+                   failure (a Kubernetes Job or init container). The defects
+                   are still in the document and on stderr
+
+exit status: 0 measured; 3 measured with defects (a probe other than a
+deferred one unmeasured, or an undeclared object left behind), the document
+still written; 1 could not measure; 2 usage
 ";
+
+/// Measured, but the run has defects worth failing on (#99): the document
+/// is complete and on stdout.
+const EXIT_DEFECTS: u8 = 3;
 
 fn main() -> ExitCode {
     if let Err(e) = caliper_engine::init() {
@@ -51,8 +65,10 @@ fn main() -> ExitCode {
         .collect::<Vec<_>>()
         .as_slice()
     {
-        ["--run"] => run(false),
-        ["--reduced"] => run(true),
+        ["--run"] => run(false, EXIT_DEFECTS),
+        ["--reduced"] => run(true, EXIT_DEFECTS),
+        ["--run", "--exit-0-on-defects"] => run(false, 0),
+        ["--reduced", "--exit-0-on-defects"] => run(true, 0),
         ["--noop"] => ExitCode::SUCCESS,
         ["--dump-corpus"] => dump_corpus(),
         ["--version"] => {
@@ -66,7 +82,8 @@ fn main() -> ExitCode {
     }
 }
 
-fn run(reduced: bool) -> ExitCode {
+/// `defects_exit` is the status for a run measured with defects.
+fn run(reduced: bool, defects_exit: u8) -> ExitCode {
     let cell = match Cell::detect() {
         Ok(cell) => cell,
         Err(e) => {
@@ -114,7 +131,17 @@ fn run(reduced: bool) -> ExitCode {
             );
         }
     }
-    emit(&m)
+    let defects = m
+        .unmeasured
+        .iter()
+        .any(|u| u.why != Unmeasurable::Deferred)
+        // A negative delta is something gone, not something left behind.
+        || m.residual.leaks.iter().any(|l| !l.declared && l.delta > 0);
+    match (write_json(&m), defects) {
+        (false, _) => ExitCode::FAILURE,
+        (true, true) => ExitCode::from(defects_exit),
+        (true, false) => ExitCode::SUCCESS,
+    }
 }
 
 fn dump_corpus() -> ExitCode {
@@ -122,16 +149,24 @@ fn dump_corpus() -> ExitCode {
 }
 
 fn emit<T: serde::Serialize + ?Sized>(value: &T) -> ExitCode {
+    if write_json(value) {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
+}
+
+fn write_json<T: serde::Serialize + ?Sized>(value: &T) -> bool {
     let stdout = std::io::stdout();
     let mut out = stdout.lock();
     match serde_json::to_writer_pretty(&mut out, value) {
         Ok(()) => {
             let _ = out.write_all(b"\n");
-            ExitCode::SUCCESS
+            true
         }
         Err(e) => {
             eprintln!("caliper-probe: {e}");
-            ExitCode::FAILURE
+            false
         }
     }
 }

@@ -106,9 +106,13 @@
 //!   `IORING_REGISTER_PROBE` over submitting queue entries
 //! - a probe that can make the kernel autoload a module declares it; that side
 //!   effect cannot be rolled back
-//! - a POSIX IPC object it creates is named `caliper-…` and a System V key is
-//!   in the instrument's range (`caliper_engine::effects`), so the end-of-run
-//!   janitor can recognise what the child could not remove
+//! - a POSIX IPC object it creates is named as `posix_ipc_name(run, …)` spells
+//!   it, a System V key is a `sysv_ipc_key(run, n)`, and a directory it makes
+//!   is under `mount_dir(run)`, where the run is the
+//!   engine's pid, the child's `getppid()` (`caliper_engine::effects`; the
+//!   name built on the stack, not with that function's `String`). The
+//!   end-of-run janitor recognises only those: it removes what the child
+//!   could not, and leaves a concurrent run's objects alone
 
 pub use caliper_engine::Probe;
 
@@ -124,7 +128,8 @@ mod paths;
 mod socket;
 
 /// Which corpus a run came from: `corpus_revision` in the fingerprint.
-/// The crate version, so it moves with the corpus and nothing else.
+/// The corpus crate's own version, bumped with every probe change and pinned
+/// to its index in corpus/revisions (#99).
 pub const REVISION: &str = env!("CARGO_PKG_VERSION");
 
 /// Every probe the engine knows about, in corpus order. The order is the

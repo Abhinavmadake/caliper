@@ -161,3 +161,90 @@ fn an_errno_the_encoding_cannot_carry_is_a_fault_not_a_measurement() {
     let out = run_isolated(&probe("errno-4095", out_of_range)).unwrap();
     assert_eq!(out, Outcome::Fault(Fault::ErrnoOutOfRange));
 }
+
+fn dies_of_a_realtime_signal() -> RawResult {
+    let sig = libc::SIGRTMIN() + 1;
+    raw(unsafe { libc::syscall(libc::SYS_kill, libc::syscall(libc::SYS_getpid), sig) })
+}
+
+fn errno_nix_cannot_name() -> RawResult {
+    // 150 is inside the exit-code encoding but no errno nix knows.
+    unsafe { *libc::__errno_location() = 150 };
+    Err(Errno::UnknownErrno)
+}
+
+#[test]
+fn a_realtime_signal_death_is_recorded_not_a_harness_error() {
+    let out = run_isolated(&probe("rt-signal", dies_of_a_realtime_signal)).unwrap();
+    assert_eq!(
+        out,
+        Outcome::Signaled {
+            signal: libc::SIGRTMIN() + 1
+        }
+    );
+}
+
+#[test]
+fn an_errno_nix_cannot_name_keeps_its_value() {
+    let out = run_isolated(&probe("errno-150", errno_nix_cannot_name)).unwrap();
+    assert_eq!(out, Outcome::Returned { errno: 150 });
+}
+
+fn fails_in_setup() -> RawResult {
+    caliper_engine::harness::setup();
+    raw(unsafe { libc::syscall(libc::SYS_close, -1) })
+}
+
+fn dies_in_setup() -> RawResult {
+    caliper_engine::harness::setup();
+    raw(unsafe {
+        libc::syscall(
+            libc::SYS_kill,
+            libc::syscall(libc::SYS_getpid),
+            libc::SIGKILL,
+        )
+    })
+}
+
+fn setup_then_probed_errno() -> RawResult {
+    caliper_engine::harness::setup();
+    caliper_engine::harness::probing();
+    ebadf()
+}
+
+#[test]
+fn a_failure_or_death_in_setup_is_not_the_probed_answer() {
+    let failed = run_isolated(&probe("setup-fails", fails_in_setup)).unwrap();
+    assert_eq!(failed, Outcome::Fault(Fault::SetupFailed(libc::EBADF)));
+    let killed = run_isolated(&probe("setup-dies", dies_in_setup)).unwrap();
+    assert_eq!(killed, Outcome::Fault(Fault::SetupKilled(libc::SIGKILL)));
+    // Past setup, the errno is the probed operation's again.
+    let probed = run_isolated(&probe("setup-then-probe", setup_then_probed_errno)).unwrap();
+    assert_eq!(probed, Outcome::Returned { errno: libc::EBADF });
+    // And the next probe starts clean.
+    let next = run_isolated(&probe("after-setup", ebadf)).unwrap();
+    assert_eq!(next, Outcome::Returned { errno: libc::EBADF });
+}
+
+fn hangs_in_setup() -> RawResult {
+    caliper_engine::harness::setup();
+    raw(unsafe { libc::pause() }.into())
+}
+
+fn hangs_when_probed() -> RawResult {
+    caliper_engine::harness::setup();
+    caliper_engine::harness::probing();
+    raw(unsafe { libc::pause() }.into())
+}
+
+#[test]
+fn a_timeout_in_setup_is_not_the_probed_operation_timing_out() {
+    let short = |id, run| Probe {
+        risk: RiskClass::new(true, Duration::from_millis(200)),
+        ..probe(id, run)
+    };
+    let setup = run_isolated(&short("setup-hangs", hangs_in_setup)).unwrap();
+    assert_eq!(setup, Outcome::Fault(Fault::SetupTimedOut));
+    let probed = run_isolated(&short("probe-hangs", hangs_when_probed)).unwrap();
+    assert_eq!(probed, Outcome::TimedOut);
+}

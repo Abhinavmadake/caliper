@@ -32,6 +32,10 @@ measurement is not a policy finding and must not be reported as one:
   or the operator — not observable from inside an unprivileged container)*
 - active LSM (AppArmor / SELinux / none) *(probe, from its own label)*
 - RuntimeClass (runc / gVisor / Kata) *(control plane, from the pod spec)*
+- the kernel's user-namespace limits, `user_namespaces` *(probe, optional;
+  each of `max`, `unprivileged_clone` and `apparmor_restricted` is the sysctl's
+  value and absent where the kernel has none)*, so a user-namespace denial can
+  be read against them
 
 Every control-plane field records its source. The probe emits a raw
 measurement; the control plane completes it into a fingerprint and computes the

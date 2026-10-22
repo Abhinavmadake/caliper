@@ -21,7 +21,9 @@ spec:
       - name: probe
         image: caliper-probe
         imagePullPolicy: IfNotPresent
-        args: ["--run"]
+        # Exit 0 on a run measured with defects: a failed init container is
+        # restarted, measuring the node again. The defects are in the document.
+        args: ["--run", "--exit-0-on-defects"]
         securityContext:
           runAsNonRoot: true
           runAsUser: 65534

@@ -98,7 +98,7 @@ jobs:
             | jq --arg name "$JOB_NAME" --arg image "$IMAGE" \
                 '.metadata.name = $name
                  | .spec.template.spec.containers[0].image = $image
-                 | .spec.template.spec.containers[0].args = ["--reduced"]' \
+                 | .spec.template.spec.containers[0].args = ["--reduced", "--exit-0-on-defects"]' \
             | kubectl apply -n "$CALIPER_NAMESPACE" -f -
           if ! kubectl wait -n "$CALIPER_NAMESPACE" --for=condition=complete "job/$JOB_NAME" --timeout=120s; then
             kubectl describe job "$JOB_NAME" -n "$CALIPER_NAMESPACE" || true

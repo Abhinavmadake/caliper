@@ -96,8 +96,8 @@ impl ResidualClass {
 /// already did. The child owns what it creates and removes it before
 /// returning. Where it cannot — killed first, or the filter permits create
 /// and blocks remove — the object is measured, reported against this probe,
-/// and the end-of-run janitor removes what it recognises
-/// ([`POSIX_IPC_PREFIX`], [`SYSV_IPC_KEY_BASE`]), loudly.
+/// and the end-of-run janitor removes what it recognises as this run's
+/// ([`posix_ipc_name`], [`sysv_ipc_key`]), loudly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SideEffects {
     /// Not yet considered. The engine refuses to run the probe.
@@ -167,16 +167,38 @@ impl Serialize for SideEffects {
 }
 
 /// Name prefix for any POSIX shared memory object or message queue a probe
-/// creates: what the janitor recognises as the instrument's.
+/// creates. The full prefix carries the run (the engine's pid, which a
+/// probe reads as its parent's): [`posix_ipc_name`].
 pub const POSIX_IPC_PREFIX: &str = "caliper-";
 
-/// System V IPC keys a probe may use: `SYSV_IPC_KEY_BASE + n` for
-/// `n < SYSV_IPC_KEYS`. Objects keyed in this range are the instrument's;
-/// `IPC_PRIVATE` objects cannot be told from anyone else's and are not
-/// janitored.
-pub const SYSV_IPC_KEY_BASE: i32 = 0x4341_4C00; // "CAL\0"
+/// System V IPC keys: each run owns the block of [`SYSV_IPC_KEYS`] keys
+/// [`sysv_ipc_key`] picks by its pid, so the janitor of one run leaves a
+/// concurrent run's objects alone (#99). Two runs collide only when their
+/// pids are equal modulo 256. `IPC_PRIVATE` objects cannot be told from
+/// anyone else's and are not janitored.
+pub const SYSV_IPC_KEY_BASE: i32 = 0x4341_0000; // "CA\0\0"
 pub const SYSV_IPC_KEYS: i32 = 256;
 
-pub fn is_instrument_sysv_key(key: i32) -> bool {
-    (SYSV_IPC_KEY_BASE..SYSV_IPC_KEY_BASE + SYSV_IPC_KEYS).contains(&key)
+/// The name for POSIX object `name` in run `run`.
+pub fn posix_ipc_name(run: u32, name: &str) -> String {
+    format!("{POSIX_IPC_PREFIX}{run}-{name}")
+}
+
+/// Directory under which run `run`'s probes mount, named like its POSIX
+/// objects so the janitor can recognise a leftover one (#96).
+pub fn mount_dir(run: u32) -> String {
+    format!("{MOUNT_DIR_PARENT}{}", posix_ipc_name(run, "mount"))
+}
+
+/// The writable directory the probe image carries for [`mount_dir`].
+pub const MOUNT_DIR_PARENT: &str = "/tmp/";
+
+/// Key `n` (below [`SYSV_IPC_KEYS`]) of run `run`'s block.
+pub fn sysv_ipc_key(run: u32, n: i32) -> i32 {
+    SYSV_IPC_KEY_BASE + (run % 256) as i32 * SYSV_IPC_KEYS + n
+}
+
+pub fn is_instrument_sysv_key(run: u32, key: i32) -> bool {
+    let first = sysv_ipc_key(run, 0);
+    (first..first + SYSV_IPC_KEYS).contains(&key)
 }

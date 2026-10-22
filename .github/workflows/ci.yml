@@ -136,8 +136,16 @@ jobs:
           docker build --platform linux/amd64 -t caliper-probe .
           docker run --rm caliper-probe --noop
           docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --noop
-          docker run --rm caliper-probe --run > /dev/null
-          docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --run > /dev/null
+          # 3 is measured with defects; host noise in a snapshot window can
+          # cause it under the default profile too.
+          rc=0
+          docker run --rm caliper-probe --run > /dev/null || rc=$?
+          [ "$rc" -eq 0 ] || [ "$rc" -eq 3 ]
+          # Exit 3, measured with defects: under the hardened profile the
+          # mount.fs probes are killed at their mkdirat helper (#99).
+          rc=0
+          docker run --rm --security-opt seccomp=fixtures/seccomp/hardened.json caliper-probe --run > /dev/null || rc=$?
+          [ "$rc" -eq 3 ]
       - name: verify alert-safe reduced corpus
         run: |
           ../scripts/test-alert-safe.sh

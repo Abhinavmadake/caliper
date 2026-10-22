@@ -24,7 +24,8 @@
 //! `O_CLOEXEC`), `read`, `fstat`, `newfstatat`, `getdents64`,
 //! `readlinkat`, `close` — are outside `--noop` and so outside
 //! `baseline/`, and are the run path's, not the probe's. The janitor's
-//! removals — `unlink`/`unlinkat` and the three `*ctl(IPC_RMID)` calls —
+//! removals — `unlink`/`unlinkat`, `unlinkat(AT_REMOVEDIR)` for a leftover
+//! mount directory, and the three `*ctl(IPC_RMID)` calls —
 //! are made from a forked child each, through the same harness as a probe:
 //! they run under the filter the probe ran under, so on the profile that
 //! blocks the remove they get the same `EPERM`, or the same `SIGSYS`, and
@@ -50,7 +51,7 @@ use nix::errno::Errno;
 use serde::ser::SerializeMap;
 use serde::{Serialize, Serializer};
 
-use crate::effects::{is_instrument_sysv_key, ResidualClass, POSIX_IPC_PREFIX};
+use crate::effects::{is_instrument_sysv_key, mount_dir, posix_ipc_name, ResidualClass};
 use crate::harness::{run_isolated_with, Outcome};
 use crate::probe::RawResult;
 
@@ -321,13 +322,24 @@ const REMOVAL_TIMEOUT: Duration = Duration::from_secs(5);
 /// for. Neither is a silent fix.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct Removal {
-    pub class: ResidualClass,
+    pub class: Leftover,
     pub object: String,
     /// The removal returned success. Anything else is `false`, and
     /// `attempt` says what: `EPERM` from an `ERRNO` filter, `SIGSYS` from
     /// a `KILL_PROCESS` one, a harness fault.
     pub removed: bool,
     pub attempt: Attempt,
+}
+
+/// What the janitor recognises as the instrument's: the two IPC classes,
+/// spelled as their [`ResidualClass`], and the directory the mount probes
+/// make, which a child killed between `mkdir` and `rmdir` leaves (#96).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Leftover {
+    PosixIpc,
+    SysvIpc,
+    MountDir,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -340,18 +352,19 @@ pub enum Attempt {
     Harness { errno: i32 },
 }
 
-/// Remove what is recognisably the instrument's and was left behind:
-/// POSIX objects named with [`POSIX_IPC_PREFIX`], System V objects keyed in
-/// the instrument's range. Runs once, after the run's final snapshot, so
+/// Remove what is recognisably run `run`'s and was left behind: POSIX
+/// objects named by [`posix_ipc_name`], System V objects keyed in the run's
+/// block, and the run's [`mount_dir`] with its two lower layers. A concurrent or crashed run's objects are not touched (#99). Runs once, after the run's final snapshot, so
 /// what it removes has already been measured and attributed. Each removal
 /// is made in its own forked child; the parent only lists.
-pub fn janitor() -> Vec<Removal> {
+pub fn janitor(run: u32) -> Vec<Removal> {
+    let prefix = posix_ipc_name(run, "");
     let mut removals = Vec::new();
     for dir in ["/dev/shm", "/dev/mqueue"] {
         let Ok(rd) = fs::read_dir(dir) else { continue };
         for entry in rd.flatten() {
             let name = entry.file_name().to_string_lossy().into_owned();
-            if !name.starts_with(POSIX_IPC_PREFIX) {
+            if !name.starts_with(&prefix) {
                 continue;
             }
             let object = format!("{dir}/{name}");
@@ -369,7 +382,7 @@ pub fn janitor() -> Vec<Removal> {
                     Err(Errno::last())
                 }
             };
-            removals.push(attempt(ResidualClass::PosixIpc, object, &remove));
+            removals.push(attempt(Leftover::PosixIpc, object, &remove));
         }
     }
     for (file, kind) in [
@@ -388,18 +401,47 @@ pub fn janitor() -> Vec<Removal> {
             let (Ok(key), Ok(id)) = (key.parse::<i32>(), id.parse::<i32>()) else {
                 continue;
             };
-            if !is_instrument_sysv_key(key) {
+            if !is_instrument_sysv_key(run, key) {
                 continue;
             }
             let object = format!("{} key {key:#x} id {id}", kind.name());
             let remove = || kind.remove(id);
-            removals.push(attempt(ResidualClass::SysvIpc, object, &remove));
+            removals.push(attempt(Leftover::SysvIpc, object, &remove));
         }
+    }
+    let dir = mount_dir(run);
+    // Lower layers first: the directory is only removable empty.
+    for object in [format!("{dir}/a"), format!("{dir}/b"), dir] {
+        // stat, not lstat: musl's lstat is SYS_lstat on x86_64, which the
+        // engine's allowlist does not carry.
+        if !fs::metadata(&object).is_ok_and(|m| m.is_dir()) {
+            continue;
+        }
+        let Ok(path) = CString::new(object.as_str()) else {
+            continue;
+        };
+        let remove = || {
+            // SAFETY: a NUL-terminated path owned by the parent.
+            let r = unsafe {
+                libc::syscall(
+                    libc::SYS_unlinkat,
+                    libc::AT_FDCWD,
+                    path.as_ptr(),
+                    libc::AT_REMOVEDIR,
+                )
+            };
+            if r == 0 {
+                Ok(())
+            } else {
+                Err(Errno::last())
+            }
+        };
+        removals.push(attempt(Leftover::MountDir, object, &remove));
     }
     removals
 }
 
-fn attempt(class: ResidualClass, object: String, remove: &dyn Fn() -> RawResult) -> Removal {
+fn attempt(class: Leftover, object: String, remove: &dyn Fn() -> RawResult) -> Removal {
     let attempt = match run_isolated_with(remove, REMOVAL_TIMEOUT) {
         Ok(outcome) => Attempt::Child(outcome),
         Err(errno) => Attempt::Harness {

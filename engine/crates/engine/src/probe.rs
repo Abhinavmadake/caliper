@@ -123,10 +123,28 @@ pub struct KernelDependency {
     /// fingerprint.
     #[serde(serialize_with = "errno_as_int")]
     pub absent_errno: Option<Errno>,
+    /// A second errno absence produces, read the same way: a family whose
+    /// protocol module is missing answers `EPROTONOSUPPORT` where the family
+    /// itself missing answers `EAFNOSUPPORT` (#96).
+    #[serde(
+        serialize_with = "errno_as_int",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub also_absent: Option<Errno>,
+    /// The release from which an LSM hook runs before the oracle's point, so
+    /// that on it and later an `EPERM` the oracle reads as `seccomp` is
+    /// seccomp or an LSM (#96: io_uring_setup, 6.15).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lsm_hook_since: Option<(u32, u32)>,
     /// A loaded kernel module whose presence is required by this probe.
     /// `None` when the dependency is not a single named module.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module: Option<&'static str>,
+    /// The protocol's own module, for a family whose protocols are modules
+    /// of their own: `also_absent` is this module missing with `module`
+    /// loaded. `None` when the protocol is built into the family (#96).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub protocol_module: Option<&'static str>,
     /// A path that exists only on a kernel that builds the entry point.
     /// When it exists, `absent_errno` is a filter whatever the version.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -138,6 +156,12 @@ pub struct KernelDependency {
         skip_serializing_if = "Option::is_none"
     )]
     pub encoded_absent: Option<Errno>,
+    /// The kernel's user-namespace limits (`user.max_user_namespaces`,
+    /// `kernel.unprivileged_userns_clone`, AppArmor's
+    /// `apparmor_restrict_unprivileged_userns`) can refuse the entry point,
+    /// so a denial is read against those the cell recorded (#96).
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub user_namespace_limits: bool,
 }
 
 impl KernelDependency {
@@ -146,9 +170,13 @@ impl KernelDependency {
     pub const NONE: KernelDependency = KernelDependency {
         since: None,
         absent_errno: None,
+        also_absent: None,
+        lsm_hook_since: None,
         module: None,
+        protocol_module: None,
         present_if: None,
         encoded_absent: None,
+        user_namespace_limits: false,
     };
 
     /// A configuration- or module-gated entry point backed by one named module.
@@ -156,9 +184,13 @@ impl KernelDependency {
         KernelDependency {
             since: None,
             absent_errno: Some(absent_errno),
+            also_absent: None,
+            lsm_hook_since: None,
             module: Some(module),
+            protocol_module: None,
             present_if: None,
             encoded_absent: None,
+            user_namespace_limits: false,
         }
     }
 
@@ -169,7 +201,10 @@ impl KernelDependency {
         if self.encoded_absent.is_some_and(|e| e as i32 == errno) {
             return true;
         }
-        if self.absent_errno.is_none_or(|e| e as i32 != errno) {
+        if [self.absent_errno, self.also_absent]
+            .iter()
+            .all(|absent| absent.is_none_or(|e| e as i32 != errno))
+        {
             return false;
         }
         if self.present_if.is_some_and(exists) {

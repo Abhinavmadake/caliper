@@ -1,8 +1,8 @@
 {
   "format_version": 1,
-  "corpus_revision": "0.2.0",
+  "corpus_revision": "0.3.0",
   "corpus_set": "full",
-  "digest": "sha256:c7ecc5d75b1b91bba664c3f2cd9b42970cb8d653d5157369afc35c1c5ef4da0d",
+  "digest": "sha256:9d7345c734c09c4fff42c3c340464963cb4b63cd5d111c63c9ff0056c42f3298",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -91,7 +91,7 @@
       "source": "operator"
     },
     "lsm": "selinux",
-    "lsm_label": "system_u:system_r:container_t:s0:c529,c652",
+    "lsm_label": "system_u:system_r:container_t:s0:c77,c240",
     "runtime_class": {
       "value": "runc",
       "source": "operator"
@@ -101,6 +101,9 @@
       "permitted": "0000000000000000",
       "bounding": "0000000000000000",
       "ambient": "0000000000000000"
+    },
+    "user_namespaces": {
+      "max": 30529
     }
   },
   "results": [

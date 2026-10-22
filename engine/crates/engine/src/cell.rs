@@ -214,45 +214,71 @@ fn read_selinux_enforce() -> Option<bool> {
     }
 }
 
-fn serialize_cap<S>(cap: &u64, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_cap<S>(cap: &Option<u64>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&format!("{cap:016x}"))
+    match cap {
+        Some(cap) => serializer.serialize_str(&format!("{cap:016x}")),
+        None => serializer.serialize_none(),
+    }
 }
 
 /// The process capability sets from `/proc/self/status`, read before any
 /// probe runs. The kernel publishes them as fixed-width hex masks; the
 /// struct keeps numbers for correlation and serialises back to that spelling.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+/// A set whose line is missing from `/proc/self/status` is `None` and left
+/// out of the fingerprint, rather than ending the run (#99).
 pub struct Capabilities {
-    #[serde(serialize_with = "serialize_cap")]
-    pub effective: u64,
-    #[serde(serialize_with = "serialize_cap")]
-    pub permitted: u64,
-    #[serde(serialize_with = "serialize_cap")]
-    pub bounding: u64,
-    #[serde(serialize_with = "serialize_cap")]
-    pub ambient: u64,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub effective: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub permitted: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub bounding: Option<u64>,
+    #[serde(
+        serialize_with = "serialize_cap",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub ambient: Option<u64>,
 }
 
 impl Capabilities {
     pub const EMPTY: Capabilities = Capabilities {
-        effective: 0,
-        permitted: 0,
-        bounding: 0,
-        ambient: 0,
+        effective: Some(0),
+        permitted: Some(0),
+        bounding: Some(0),
+        ambient: Some(0),
     };
 
-    pub fn detect() -> nix::Result<Capabilities> {
-        let status = read_proc_self_status()?;
-        let text = std::str::from_utf8(&status).map_err(|_| nix::errno::Errno::EINVAL)?;
-        Ok(Capabilities {
-            effective: cap_line(text, "CapEff")?,
-            permitted: cap_line(text, "CapPrm")?,
-            bounding: cap_line(text, "CapBnd")?,
-            ambient: cap_line(text, "CapAmb")?,
-        })
+    pub const UNKNOWN: Capabilities = Capabilities {
+        effective: None,
+        permitted: None,
+        bounding: None,
+        ambient: None,
+    };
+
+    pub fn detect() -> Capabilities {
+        let Ok(status) = read_proc_self_status() else {
+            return Capabilities::UNKNOWN;
+        };
+        let text = String::from_utf8_lossy(&status);
+        Capabilities {
+            effective: cap_line(&text, "CapEff").ok(),
+            permitted: cap_line(&text, "CapPrm").ok(),
+            bounding: cap_line(&text, "CapBnd").ok(),
+            ambient: cap_line(&text, "CapAmb").ok(),
+        }
     }
 }
 
@@ -348,6 +374,62 @@ pub struct Cell {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lsm_enforcing: Option<bool>,
     pub capabilities: Capabilities,
+    /// The kernel's own limits on creating a user namespace, which answer a
+    /// user-namespace probe before or instead of a filter (#96).
+    pub user_namespaces: UserNamespaces,
+}
+
+/// Each value is the sysctl's, `None` (and left out) where the kernel has no
+/// such sysctl or it cannot be read.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
+pub struct UserNamespaces {
+    /// `user.max_user_namespaces`: 0 makes every creation ENOSPC.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max: Option<u64>,
+    /// Debian's `kernel.unprivileged_userns_clone`: 0 makes an unprivileged
+    /// creation EPERM.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unprivileged_clone: Option<u64>,
+    /// Ubuntu's `kernel.apparmor_restrict_unprivileged_userns`: 1 has
+    /// AppArmor refuse an unprivileged creation without a userns rule.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apparmor_restricted: Option<u64>,
+}
+
+impl UserNamespaces {
+    pub fn detect() -> UserNamespaces {
+        UserNamespaces {
+            max: read_number(c"/proc/sys/user/max_user_namespaces"),
+            unprivileged_clone: read_number(c"/proc/sys/kernel/unprivileged_userns_clone"),
+            apparmor_restricted: read_number(
+                c"/proc/sys/kernel/apparmor_restrict_unprivileged_userns",
+            ),
+        }
+    }
+}
+
+/// A sysctl holding one decimal number, read with the run path's raw
+/// openat/read/close.
+fn read_number(path: &std::ffi::CStr) -> Option<u64> {
+    // SAFETY: a NUL-terminated path and constant flags.
+    let fd = unsafe {
+        libc::syscall(
+            libc::SYS_openat,
+            libc::AT_FDCWD,
+            path.as_ptr(),
+            libc::O_RDONLY | libc::O_CLOEXEC,
+        )
+    } as libc::c_int;
+    if fd < 0 {
+        return None;
+    }
+    let mut buf = [0u8; 32];
+    // SAFETY: fd is open and buf is a valid buffer.
+    let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
+    // SAFETY: fd is a descriptor this function owns and closes once.
+    unsafe { libc::close(fd) };
+    let n = usize::try_from(n).ok()?;
+    std::str::from_utf8(&buf[..n]).ok()?.trim().parse().ok()
 }
 
 impl Cell {
@@ -372,7 +454,8 @@ impl Cell {
             lsm,
             lsm_label,
             lsm_enforcing,
-            capabilities: Capabilities::detect()?,
+            capabilities: Capabilities::detect(),
+            user_namespaces: UserNamespaces::detect(),
         })
     }
 }
@@ -483,15 +566,26 @@ CapAmb:\t0000000000000000\n";
     #[test]
     fn capabilities_serialise_as_status_hex() {
         let caps = Capabilities {
-            effective: 0,
-            permitted: 0x00000000a80425fb,
-            bounding: 0xffff_ffff_ffff_ffff,
-            ambient: 0x20,
+            effective: Some(0),
+            permitted: Some(0x00000000a80425fb),
+            bounding: Some(0xffff_ffff_ffff_ffff),
+            ambient: Some(0x20),
         };
         let v = serde_json::to_value(caps).unwrap();
         assert_eq!(v["effective"], "0000000000000000");
         assert_eq!(v["permitted"], "00000000a80425fb");
         assert_eq!(v["bounding"], "ffffffffffffffff");
         assert_eq!(v["ambient"], "0000000000000020");
+    }
+
+    #[test]
+    fn a_missing_cap_line_drops_that_set_only() {
+        let caps = Capabilities {
+            ambient: None,
+            ..Capabilities::EMPTY
+        };
+        let v = serde_json::to_value(caps).unwrap();
+        assert_eq!(v["effective"], "0000000000000000");
+        assert!(v.get("ambient").is_none(), "{v}");
     }
 }

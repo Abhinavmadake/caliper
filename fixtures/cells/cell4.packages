@@ -1,4 +1,4 @@
-probe ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9 (25897f7)
+probe docker.io/library/caliper-probe:amd64-529048c (local build of 529048c, image ID sha256:b50f250364ca04cd957f694d2d4bda8e2bae24210e50faf815cd7b1789333d97)
 kernel 7.0.0-1014-gcp
 containerd containerd github.com/containerd/containerd 1.7.12 
 runc runc version 1.1.12-0ubuntu3

@@ -1,8 +1,8 @@
 {
   "format_version": 1,
-  "corpus_revision": "0.2.0",
+  "corpus_revision": "0.3.0",
   "corpus_set": "full",
-  "digest": "sha256:d47be368dc3037843c35a954ac227902e18ce56b0479212b014a8bdd3ac70dfb",
+  "digest": "sha256:977558ac4482df1fec0d87674f56cf44516fb5706938c7d0bdef7843a4604030",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -80,6 +80,11 @@
       "permitted": "0000000000000000",
       "bounding": "0000000000000000",
       "ambient": "0000000000000000"
+    },
+    "user_namespaces": {
+      "max": 28082,
+      "unprivileged_clone": 1,
+      "apparmor_restricted": 1
     }
   },
   "results": [

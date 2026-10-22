@@ -43,7 +43,11 @@ metadata — the proposal is explicit that this is not deferred to a later phase
   the entry point needs, and a path whose existence proves the kernel builds
   it where version alone cannot, so the diff engine can exclude
   kernel-version-explained divergence probe by probe instead of inferring it
-  from the version string
+  from the version string. Optionally a second errno absence produces (a
+  protocol module missing where the family is present) with the protocol's
+  module, the release from which an LSM hook runs before the oracle's point,
+  after which an `EPERM` the oracle reads as seccomp is seccomp or an LSM, and
+  whether the kernel's user-namespace limits can refuse the entry point
 - **Architecture applicability** — probes whose entry point exists only on
   some architectures must say so, or the diff engine will report architecture
   as policy. Where presence is a kernel property rather than an architecture
@@ -138,7 +142,8 @@ first, or create permitted and remove blocked — leaves an object that is
 counted, attributed to the probe, and checked against its declaration. The
 structural fallback is an end-of-run janitor: after the run's final snapshot it
 removes what is recognisably the instrument's (POSIX objects under a reserved
-name prefix, System V objects in a reserved key range), each removal in its own
+name prefix, System V objects in a reserved key range, the run's mount
+directory under `/tmp`), each removal in its own
 forked child under the same filters the probe had, and every attempt is
 recorded on the fingerprint whether it succeeded or not. It runs once, it is
 not on any probe's path, and its output is a finding about the corpus, never a

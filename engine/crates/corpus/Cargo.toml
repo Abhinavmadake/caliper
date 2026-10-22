@@ -1,7 +1,10 @@
 [package]
 name = "caliper-corpus"
 description = "Probe definitions, argument-granular, each with its errno oracle"
-version.workspace = true
+# The corpus revision (corpus_revision in a fingerprint), not the engine's
+# version: bump it with every change to the probes; corpus/revisions records
+# which corpus/index.json each revision is.
+version = "0.3.2"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
