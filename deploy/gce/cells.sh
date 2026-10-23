@@ -24,6 +24,8 @@
 #                                    under RuntimeDefault or the given Localhost seccomp
 #                                    profile; raw probe output on stdout
 #   cells.sh packages <cell>         the cell's recorded kernel and package versions
+#   cells.sh runtime-default <cell> <output.json>
+#                                    copy the RuntimeDefault captured by the last default measurement
 #   cells.sh stop    <cell>          stop billing for CPU and memory
 #   cells.sh start   <cell>
 #   cells.sh delete  <cell>
@@ -33,8 +35,8 @@ set -euo pipefail
 
 PROJECT=${CALIPER_GCP_PROJECT:-caliper-ci}
 ZONE=${CALIPER_GCP_ZONE:-asia-south1-a}
-# amd64 image the cluster-evaluation workflow published for 25897f7, by digest.
-IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:741829539d983aa620751dd627593c99248a2346c443a4852f86bf9327b377f9}
+# amd64 image published for the current main revision, by digest.
+IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:9be163f1b987f8563f9d71114d6a025d9335b9627cdafc4676da2b327da3f969}
 here=$(cd "$(dirname "$0")" && pwd)
 
 # Cells 2, 4, 5 and 6 share one image so only the runtime axis moves.
@@ -120,6 +122,12 @@ measure() {
     on "sudo bash $dir/measure.sh '$image' '$handler' '$ref'; rc=\$?; rm -rf $dir; exit \$rc"
 }
 
+runtime_default() {
+    local output=${2:?output.json}
+    gc compute scp --zone "$ZONE" --quiet "$vm:/var/tmp/caliper-runtime-default.json" "$output"
+    on "sudo rm -f /var/tmp/caliper-runtime-default.json"
+}
+
 [ $# -ge 2 ] || { sed -n '17,32p' "$0" >&2; exit 2; }
 cmd=$1
 cell "$2"
@@ -129,6 +137,7 @@ case "$cmd" in
     load) load "$2" "${3:?archive}" ;;
     measure) measure "$2" "${3:-}" "${4:-}" ;;
     packages) on "cat /etc/caliper/packages" ;;
+    runtime-default) runtime_default "$2" "$3" ;;
     stop) gc compute instances stop "$vm" --zone "$ZONE" ;;
     start) gc compute instances start "$vm" --zone "$ZONE" ;;
     delete) gc compute instances delete "$vm" --zone "$ZONE" --quiet ;;

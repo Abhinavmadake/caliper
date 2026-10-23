@@ -1,0 +1,731 @@
+{
+  "diff": {
+    "corpus_revisions": {
+      "left": "0.3.2",
+      "right": "0.3.2"
+    },
+    "corpus_sets": {
+      "left": "full",
+      "right": "full"
+    },
+    "divergences": [
+      {
+        "probe_id": "netlink.protocol.crypto",
+        "left": {
+          "probe_id": "netlink.protocol.crypto",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.crypto",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.netfilter",
+        "left": {
+          "probe_id": "netlink.protocol.netfilter",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.netfilter",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.out_of_range",
+        "left": {
+          "probe_id": "netlink.protocol.out_of_range",
+          "verdict": "permitted",
+          "errno": 93,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false,
+            "reason": "returned EPROTONOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.out_of_range",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.rdma",
+        "left": {
+          "probe_id": "netlink.protocol.rdma",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.rdma",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.xfrm",
+        "left": {
+          "probe_id": "netlink.protocol.xfrm",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.xfrm",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "socket.family.af_alg",
+        "left": {
+          "probe_id": "socket.family.af_alg",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "socket.family.af_alg",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "socket.family.out_of_range",
+        "left": {
+          "probe_id": "socket.family.out_of_range",
+          "verdict": "permitted",
+          "errno": 97,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false,
+            "reason": "returned EAFNOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+          }
+        },
+        "right": {
+          "probe_id": "socket.family.out_of_range",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": "seccomp",
+            "confidence": "high",
+            "undecidable": false,
+            "reason": "EPERM where the oracle guaranteed EAFNOSUPPORT: nothing before the oracle's point answers EPERM but a filter at syscall entry"
+          }
+        }
+      }
+    ],
+    "corpus_skew": {
+      "only_left": null,
+      "only_right": null
+    },
+    "unmeasured": [
+      {
+        "probe_id": "bpf.cmd.btf_load",
+        "left": {
+          "probe_id": "bpf.cmd.btf_load",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "bpf.cmd.btf_load",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "bpf.cmd.map_create",
+        "left": {
+          "probe_id": "bpf.cmd.map_create",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "bpf.cmd.map_create",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "bpf.cmd.prog_load",
+        "left": {
+          "probe_id": "bpf.cmd.prog_load",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "bpf.cmd.prog_load",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "bpf.prog_type.kprobe",
+        "left": {
+          "probe_id": "bpf.prog_type.kprobe",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "bpf.prog_type.kprobe",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "bpf.prog_type.socket_filter",
+        "left": {
+          "probe_id": "bpf.prog_type.socket_filter",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "bpf.prog_type.socket_filter",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "ioctl.request.fioclex",
+        "left": {
+          "probe_id": "ioctl.request.fioclex",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "ioctl.request.fioclex",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "ioctl.request.tioclinux",
+        "left": {
+          "probe_id": "ioctl.request.tioclinux",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "ioctl.request.tioclinux",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "ioctl.request.tiocsti",
+        "left": {
+          "probe_id": "ioctl.request.tiocsti",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "ioctl.request.tiocsti",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "keyctl.add_key",
+        "left": {
+          "probe_id": "keyctl.add_key",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "keyctl.add_key",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "keyctl.op.out_of_range",
+        "left": {
+          "probe_id": "keyctl.op.out_of_range",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "keyctl.op.out_of_range",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "keyctl.op.read",
+        "left": {
+          "probe_id": "keyctl.op.read",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "keyctl.op.read",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "keyctl.request_key",
+        "left": {
+          "probe_id": "keyctl.request_key",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "keyctl.request_key",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "module.delete_module",
+        "left": {
+          "probe_id": "module.delete_module",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "module.delete_module",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "module.init_module",
+        "left": {
+          "probe_id": "module.init_module",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "module.init_module",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "open_by_handle_at.name_to_handle_at",
+        "left": {
+          "probe_id": "open_by_handle_at.name_to_handle_at",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "open_by_handle_at.name_to_handle_at",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "open_by_handle_at.open",
+        "left": {
+          "probe_id": "open_by_handle_at.open",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "open_by_handle_at.open",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "perf_event_open.attr.bad_size",
+        "left": {
+          "probe_id": "perf_event_open.attr.bad_size",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "perf_event_open.attr.bad_size",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "perf_event_open.cpu_wide",
+        "left": {
+          "probe_id": "perf_event_open.cpu_wide",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "perf_event_open.cpu_wide",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "perf_event_open.flags.invalid",
+        "left": {
+          "probe_id": "perf_event_open.flags.invalid",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "perf_event_open.flags.invalid",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "prctl.option.out_of_range",
+        "left": {
+          "probe_id": "prctl.option.out_of_range",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "prctl.option.out_of_range",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "prctl.option.set_dumpable",
+        "left": {
+          "probe_id": "prctl.option.set_dumpable",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "prctl.option.set_dumpable",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "prctl.option.set_mm",
+        "left": {
+          "probe_id": "prctl.option.set_mm",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "prctl.option.set_mm",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "seccomp_notify.get_notif_sizes",
+        "left": {
+          "probe_id": "seccomp_notify.get_notif_sizes",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "seccomp_notify.get_notif_sizes",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "seccomp_notify.ioctl_recv",
+        "left": {
+          "probe_id": "seccomp_notify.ioctl_recv",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "seccomp_notify.ioctl_recv",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "seccomp_notify.new_listener",
+        "left": {
+          "probe_id": "seccomp_notify.new_listener",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "seccomp_notify.new_listener",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "userfaultfd.flags.invalid",
+        "left": {
+          "probe_id": "userfaultfd.flags.invalid",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "userfaultfd.flags.invalid",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "userfaultfd.kernel_faults",
+        "left": {
+          "probe_id": "userfaultfd.kernel_faults",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "userfaultfd.kernel_faults",
+          "why": "deferred"
+        }
+      },
+      {
+        "probe_id": "userfaultfd.user_mode_only",
+        "left": {
+          "probe_id": "userfaultfd.user_mode_only",
+          "why": "deferred"
+        },
+        "right": {
+          "probe_id": "userfaultfd.user_mode_only",
+          "why": "deferred"
+        }
+      }
+    ]
+  },
+  "divergences": [
+    {
+      "probe_id": "netlink.protocol.crypto",
+      "left": {
+        "probe_id": "netlink.protocol.crypto",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.crypto",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "left": {
+        "probe_id": "netlink.protocol.netfilter",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.netfilter",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.out_of_range",
+      "left": {
+        "probe_id": "netlink.protocol.out_of_range",
+        "verdict": "permitted",
+        "errno": 93,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false,
+          "reason": "returned EPROTONOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.out_of_range",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.rdma",
+      "left": {
+        "probe_id": "netlink.protocol.rdma",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.rdma",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "left": {
+        "probe_id": "netlink.protocol.xfrm",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.xfrm",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "socket.family.af_alg",
+      "left": {
+        "probe_id": "socket.family.af_alg",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "socket.family.af_alg",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "socket.family.out_of_range",
+      "left": {
+        "probe_id": "socket.family.out_of_range",
+        "verdict": "permitted",
+        "errno": 97,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false,
+          "reason": "returned EAFNOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+        }
+      },
+      "right": {
+        "probe_id": "socket.family.out_of_range",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": "seccomp",
+          "confidence": "high",
+          "undecidable": false,
+          "reason": "EPERM where the oracle guaranteed EAFNOSUPPORT: nothing before the oracle's point answers EPERM but a filter at syscall entry"
+        }
+      },
+      "class": "policy-explained"
+    }
+  ],
+  "counts": {
+    "architecture_explained": 0,
+    "kernel_version_explained": 0,
+    "runtime_class_explained": 0,
+    "policy_explained": 7
+  }
+}

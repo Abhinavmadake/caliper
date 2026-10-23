@@ -170,3 +170,33 @@ built locally from `529048c`: amd64 `sha256:b50f2503…` and arm64
 `fixtures/x86_64-apparmor*.json` are the earlier Lima recordings under Docker,
 kept with their tests; the hardened one predates the clone rules in
 `hardened.json`.
+
+## Local end-to-end control-plane pipeline
+
+`deploy/gce/run-cell2-pipeline.sh` runs the published-image flow on cell2:
+measure, complete the fingerprint, capture containerd's applied RuntimeDefault,
+evaluate findings, generate remediation, have SPO install the generated
+SeccompProfile, apply the Localhost profile in a fresh measurement, and verify
+the re-probe. It removes the temporary SPO profile and stops the VM on success
+or failure. The cluster must expose the SPO v1 API and allow this user to create,
+read, watch, and delete `SeccompProfile` resources. The runner waits for
+`.status.status=Installed` before recording the accepted profile. The underlying
+`control/cmd/caliper-pipeline` writes the per-stage findings, remediation,
+classification and verification artifacts. Verification reports “nothing to
+verify” when the baseline has no expectation findings; otherwise it fails if an
+original expectation finding is missing or does not return denied/killed.
+
+```bash
+CALIPER_POSTURE_TIER=untrusted-multi-tenant deploy/gce/run-cell2-pipeline.sh
+```
+
+The pipeline evaluates the `restricted` posture tier by default. The command
+above selects `untrusted-multi-tenant` to exercise the generated closures. Set
+`CALIPER_POSTURE_TIER` to select another tier; `CALIPER_PIPELINE_OUT` can select
+another artifact directory. Run it from Linux or macOS with gcloud authenticated
+for `caliper-ci`, kubectl configured for the target cluster, and Go available in
+`PATH`.
+
+The image pinned by `cells.sh` is the published build for current main. The raw
+measurements, completed fingerprints, runtime profile, and per-stage outputs
+are retained under `fixtures/pipeline/cell2/`.
