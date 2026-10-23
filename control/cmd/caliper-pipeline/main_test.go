@@ -29,29 +29,37 @@ func TestVerifyClosures(t *testing.T) {
 
 	tests := []struct {
 		name       string
+		findings   control.FindingReport
 		results    []control.ProbeResult
 		wantStatus string
 		wantError  string
 	}{
 		{
 			name:       "closed probe passes",
+			findings:   findings,
 			results:    []control.ProbeResult{{ProbeID: "probe.example", Verdict: "denied"}},
 			wantStatus: "passed",
 		},
 		{
 			name:      "missing probe fails",
+			findings:  findings,
 			wantError: "missing from the post-remediation measurement",
 		},
 		{
 			name:      "permitted probe fails",
+			findings:  findings,
 			results:   []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
 			wantError: `has verdict "permitted", want denied or killed`,
+		},
+		{
+			name:       "no findings needs no verification",
+			wantStatus: "nothing to verify",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := verifyClosures(findings, control.Fingerprint{Results: tt.results})
+			got, err := verifyClosures(tt.findings, control.Fingerprint{Results: tt.results})
 			if tt.wantError != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.wantError) {
 					t.Fatalf("verifyClosures() error = %v, want it to contain %q", err, tt.wantError)
@@ -63,6 +71,12 @@ func TestVerifyClosures(t *testing.T) {
 			}
 			if got.Status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", got.Status, tt.wantStatus)
+			}
+			if tt.name == "no findings needs no verification" {
+				if len(got.CheckedProbes) != 0 {
+					t.Errorf("checked probes = %#v, want none", got.CheckedProbes)
+				}
+				return
 			}
 			if len(got.CheckedProbes) != 1 || got.CheckedProbes[0] != "probe.example" {
 				t.Errorf("checked probes = %#v, want [probe.example]", got.CheckedProbes)

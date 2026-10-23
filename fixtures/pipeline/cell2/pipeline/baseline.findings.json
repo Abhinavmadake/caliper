@@ -1,13 +1,93 @@
 {
   "posture_revision": "v1",
-  "tier": "restricted",
-  "expectation_violations": [],
+  "tier": "untrusted-multi-tenant",
+  "expectation_violations": [
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.crypto",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.netfilter",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.rdma",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.xfrm",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_alg",
+      "verdict": "permitted",
+      "reason": "AF_ALG exposes the kernel crypto API to an unprivileged process and can autoload algif_* modules. Copy Fail reached algif_aead through this family from a container satisfying RuntimeDefault and PSS Restricted.",
+      "citations": [
+        {
+          "id": "CVE-2026-31431",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-31431"
+        },
+        {
+          "id": "CVE-2017-2636",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-2636"
+        }
+      ]
+    }
+  ],
   "claim_violations": [],
   "undeclared_exposures": [
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "capability",
       "probe_id": "capability.net_bind_service",
       "verdict": "permitted",
@@ -16,7 +96,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "device",
       "probe_id": "device.open.null",
       "verdict": "permitted",
@@ -25,7 +105,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.autofs",
       "verdict": "permitted",
@@ -34,7 +114,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.binfmt_misc",
       "verdict": "permitted",
@@ -43,7 +123,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.bpf",
       "verdict": "permitted",
@@ -52,7 +132,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.cgroup",
       "verdict": "permitted",
@@ -61,7 +141,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.cgroup2",
       "verdict": "permitted",
@@ -70,7 +150,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.configfs",
       "verdict": "permitted",
@@ -79,7 +159,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.debugfs",
       "verdict": "permitted",
@@ -88,7 +168,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.devpts",
       "verdict": "permitted",
@@ -97,7 +177,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.devtmpfs",
       "verdict": "permitted",
@@ -106,7 +186,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.ecryptfs",
       "verdict": "permitted",
@@ -115,7 +195,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.efivarfs",
       "verdict": "permitted",
@@ -124,7 +204,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.ext4",
       "verdict": "permitted",
@@ -133,7 +213,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.fuse",
       "verdict": "permitted",
@@ -142,7 +222,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.fusectl",
       "verdict": "permitted",
@@ -151,7 +231,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.hugetlbfs",
       "verdict": "permitted",
@@ -160,7 +240,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.mqueue",
       "verdict": "permitted",
@@ -169,7 +249,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.overlay",
       "verdict": "permitted",
@@ -178,7 +258,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.proc",
       "verdict": "permitted",
@@ -187,7 +267,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.pstore",
       "verdict": "permitted",
@@ -196,7 +276,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.securityfs",
       "verdict": "permitted",
@@ -205,7 +285,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.squashfs",
       "verdict": "permitted",
@@ -214,7 +294,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.sysfs",
       "verdict": "permitted",
@@ -223,7 +303,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.tmpfs",
       "verdict": "permitted",
@@ -232,7 +312,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.tracefs",
       "verdict": "permitted",
@@ -241,7 +321,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "mount",
       "probe_id": "mount.type.vfat",
       "verdict": "permitted",
@@ -250,7 +330,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.audit",
       "verdict": "permitted",
@@ -259,7 +339,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.connector",
       "verdict": "permitted",
@@ -268,16 +348,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
-      "family": "netlink",
-      "probe_id": "netlink.protocol.crypto",
-      "verdict": "permitted",
-      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
-    },
-    {
-      "kind": "undeclared-exposure",
-      "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.fib_lookup",
       "verdict": "permitted",
@@ -286,7 +357,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.generic",
       "verdict": "permitted",
@@ -295,7 +366,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.iscsi",
       "verdict": "permitted",
@@ -304,7 +375,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.kobject_uevent",
       "verdict": "permitted",
@@ -313,16 +384,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
-      "family": "netlink",
-      "probe_id": "netlink.protocol.netfilter",
-      "verdict": "permitted",
-      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
-    },
-    {
-      "kind": "undeclared-exposure",
-      "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.out_of_range",
       "verdict": "permitted",
@@ -331,16 +393,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
-      "family": "netlink",
-      "probe_id": "netlink.protocol.rdma",
-      "verdict": "permitted",
-      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
-    },
-    {
-      "kind": "undeclared-exposure",
-      "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.route",
       "verdict": "permitted",
@@ -349,7 +402,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.scsitransport",
       "verdict": "permitted",
@@ -358,7 +411,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.sock_diag",
       "verdict": "permitted",
@@ -367,7 +420,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "netlink",
       "probe_id": "netlink.protocol.usersock",
       "verdict": "permitted",
@@ -376,16 +429,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
-      "family": "netlink",
-      "probe_id": "netlink.protocol.xfrm",
-      "verdict": "permitted",
-      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
-    },
-    {
-      "kind": "undeclared-exposure",
-      "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "path",
       "probe_id": "path.control.proc_self_status",
       "verdict": "permitted",
@@ -394,16 +438,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
-      "family": "socket",
-      "probe_id": "socket.family.af_alg",
-      "verdict": "permitted",
-      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
-    },
-    {
-      "kind": "undeclared-exposure",
-      "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_can",
       "verdict": "permitted",
@@ -412,7 +447,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_inet",
       "verdict": "permitted",
@@ -421,7 +456,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_inet6",
       "verdict": "permitted",
@@ -430,7 +465,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_kcm",
       "verdict": "permitted",
@@ -439,7 +474,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_mctp",
       "verdict": "permitted",
@@ -448,7 +483,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_rxrpc",
       "verdict": "permitted",
@@ -457,7 +492,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_smc",
       "verdict": "permitted",
@@ -466,7 +501,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.af_unix",
       "verdict": "permitted",
@@ -475,7 +510,7 @@
     {
       "kind": "undeclared-exposure",
       "posture_revision": "v1",
-      "tier": "restricted",
+      "tier": "untrusted-multi-tenant",
       "family": "socket",
       "probe_id": "socket.family.out_of_range",
       "verdict": "permitted",

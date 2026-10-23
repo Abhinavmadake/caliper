@@ -249,6 +249,10 @@ type verificationSummary struct {
 }
 
 func verifyClosures(findings control.FindingReport, fingerprint control.Fingerprint) (verificationSummary, error) {
+	if len(findings.ExpectationViolations) == 0 {
+		return verificationSummary{Status: "nothing to verify"}, nil
+	}
+
 	results := make(map[string]control.Verdict, len(fingerprint.Results))
 	for _, result := range fingerprint.Results {
 		results[result.ProbeID] = result.Verdict

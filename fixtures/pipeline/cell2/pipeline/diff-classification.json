@@ -8,7 +8,202 @@
       "left": "full",
       "right": "full"
     },
-    "divergences": null,
+    "divergences": [
+      {
+        "probe_id": "netlink.protocol.crypto",
+        "left": {
+          "probe_id": "netlink.protocol.crypto",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.crypto",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.netfilter",
+        "left": {
+          "probe_id": "netlink.protocol.netfilter",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.netfilter",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.out_of_range",
+        "left": {
+          "probe_id": "netlink.protocol.out_of_range",
+          "verdict": "permitted",
+          "errno": 93,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false,
+            "reason": "returned EPROTONOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.out_of_range",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.rdma",
+        "left": {
+          "probe_id": "netlink.protocol.rdma",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.rdma",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "netlink.protocol.xfrm",
+        "left": {
+          "probe_id": "netlink.protocol.xfrm",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "netlink.protocol.xfrm",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "socket.family.af_alg",
+        "left": {
+          "probe_id": "socket.family.af_alg",
+          "verdict": "permitted",
+          "errno": 0,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false
+          }
+        },
+        "right": {
+          "probe_id": "socket.family.af_alg",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "low",
+            "undecidable": true,
+            "candidates": [
+              "seccomp",
+              "lsm"
+            ],
+            "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+          }
+        }
+      },
+      {
+        "probe_id": "socket.family.out_of_range",
+        "left": {
+          "probe_id": "socket.family.out_of_range",
+          "verdict": "permitted",
+          "errno": 97,
+          "attribution": {
+            "mechanism": null,
+            "confidence": "high",
+            "undecidable": false,
+            "reason": "returned EAFNOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+          }
+        },
+        "right": {
+          "probe_id": "socket.family.out_of_range",
+          "verdict": "denied",
+          "errno": 1,
+          "attribution": {
+            "mechanism": "seccomp",
+            "confidence": "high",
+            "undecidable": false,
+            "reason": "EPERM where the oracle guaranteed EAFNOSUPPORT: nothing before the oracle's point answers EPERM but a filter at syscall entry"
+          }
+        }
+      }
+    ],
     "corpus_skew": {
       "only_left": null,
       "only_right": null
@@ -324,11 +519,213 @@
       }
     ]
   },
-  "divergences": null,
+  "divergences": [
+    {
+      "probe_id": "netlink.protocol.crypto",
+      "left": {
+        "probe_id": "netlink.protocol.crypto",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.crypto",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "left": {
+        "probe_id": "netlink.protocol.netfilter",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.netfilter",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.out_of_range",
+      "left": {
+        "probe_id": "netlink.protocol.out_of_range",
+        "verdict": "permitted",
+        "errno": 93,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false,
+          "reason": "returned EPROTONOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.out_of_range",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.rdma",
+      "left": {
+        "probe_id": "netlink.protocol.rdma",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.rdma",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "left": {
+        "probe_id": "netlink.protocol.xfrm",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "netlink.protocol.xfrm",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "socket.family.af_alg",
+      "left": {
+        "probe_id": "socket.family.af_alg",
+        "verdict": "permitted",
+        "errno": 0,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false
+        }
+      },
+      "right": {
+        "probe_id": "socket.family.af_alg",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "low",
+          "undecidable": true,
+          "candidates": [
+            "seccomp",
+            "lsm"
+          ],
+          "reason": "EPERM is a filter or a security module; the oracle does not separate them"
+        }
+      },
+      "class": "policy-explained"
+    },
+    {
+      "probe_id": "socket.family.out_of_range",
+      "left": {
+        "probe_id": "socket.family.out_of_range",
+        "verdict": "permitted",
+        "errno": 97,
+        "attribution": {
+          "mechanism": null,
+          "confidence": "high",
+          "undecidable": false,
+          "reason": "returned EAFNOSUPPORT, the oracle's guaranteed errno: the call reached the kernel"
+        }
+      },
+      "right": {
+        "probe_id": "socket.family.out_of_range",
+        "verdict": "denied",
+        "errno": 1,
+        "attribution": {
+          "mechanism": "seccomp",
+          "confidence": "high",
+          "undecidable": false,
+          "reason": "EPERM where the oracle guaranteed EAFNOSUPPORT: nothing before the oracle's point answers EPERM but a filter at syscall entry"
+        }
+      },
+      "class": "policy-explained"
+    }
+  ],
   "counts": {
     "architecture_explained": 0,
     "kernel_version_explained": 0,
     "runtime_class_explained": 0,
-    "policy_explained": 0
+    "policy_explained": 7
   }
 }
