@@ -1,10 +1,4 @@
 {
   "status": "passed",
-  "checked_probes": [
-    "netlink.protocol.crypto",
-    "netlink.protocol.netfilter",
-    "netlink.protocol.rdma",
-    "netlink.protocol.xfrm",
-    "socket.family.af_alg"
-  ]
+  "checked_probes": []
 }

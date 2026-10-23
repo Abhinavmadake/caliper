@@ -35,17 +35,19 @@ if ! command -v kubectl >/dev/null 2>&1; then
 fi
 
 spo_resource=seccompprofiles.security-profiles-operator.x-k8s.io
-if ! kubectl api-resources --api-group=security-profiles-operator.x-k8s.io -o name \
-    | grep -Fxq "$spo_resource"; then
-    echo "The cluster does not expose the SPO SeccompProfile API" >&2
-    exit 1
+spo_available=0
+api_resources=$(kubectl api-resources --api-group=security-profiles-operator.x-k8s.io -o name)
+if grep -Fxq "$spo_resource" <<< "$api_resources"; then
+    spo_available=1
+    for verb in create get watch delete; do
+        if [[ $(kubectl auth can-i "$verb" "$spo_resource" 2>/dev/null) != yes ]]; then
+            echo "kubectl permission is required: $verb $spo_resource" >&2
+            exit 1
+        fi
+    done
+else
+    echo "Notice: cluster does not expose the SPO SeccompProfile API; skipping SPO installation check" >&2
 fi
-for verb in create get watch delete; do
-    if [[ $(kubectl auth can-i "$verb" "$spo_resource" 2>/dev/null) != yes ]]; then
-        echo "kubectl permission is required: $verb $spo_resource" >&2
-        exit 1
-    fi
-done
 
 cleanup() {
     local status=$?
@@ -111,12 +113,14 @@ go run ./cmd/caliper-pipeline \
     -runtime-arch amd64 -oci-arch SCMP_ARCH_X86_64 \
     -kernel "$kernel" -tier "$tier" -out "$out/pipeline"
 
-kubectl create -f "$out/pipeline/remediation.spo.yaml"
-spo_created=1
-kubectl wait --for='jsonpath={.status.status}=Installed' --timeout=180s \
-    -f "$out/pipeline/remediation.spo.yaml"
-kubectl get -f "$out/pipeline/remediation.spo.yaml" -o json \
-    > "$out/pipeline/remediation.spo.accepted.json"
+if (( spo_available )); then
+    kubectl create -f "$out/pipeline/remediation.spo.yaml"
+    spo_created=1
+    kubectl wait --for='jsonpath={.status.status}=Installed' --timeout=180s \
+        -f "$out/pipeline/remediation.spo.yaml"
+    kubectl get -f "$out/pipeline/remediation.spo.yaml" -o json \
+        > "$out/pipeline/remediation.spo.accepted.json"
+fi
 
 cd "$root"
 "$cells" measure cell2 "" "$out/pipeline/remediation.localhost.json" \

@@ -77,8 +77,8 @@
     },
     {
       "probe_id": "socket.family.af_alg",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_packet",
@@ -87,8 +87,8 @@
     },
     {
       "probe_id": "socket.family.out_of_range",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 97
     },
     {
       "probe_id": "socket.family.af_unix",
@@ -212,8 +212,8 @@
     },
     {
       "probe_id": "netlink.protocol.xfrm",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "netlink.protocol.selinux",
@@ -242,8 +242,8 @@
     },
     {
       "probe_id": "netlink.protocol.netfilter",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "netlink.protocol.kobject_uevent",
@@ -262,13 +262,13 @@
     },
     {
       "probe_id": "netlink.protocol.rdma",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "netlink.protocol.crypto",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "netlink.protocol.smc",
@@ -277,8 +277,8 @@
     },
     {
       "probe_id": "netlink.protocol.out_of_range",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 93
     },
     {
       "probe_id": "io_uring.register.probe",
@@ -1157,6 +1157,7 @@
     "after": [
       "8021q",
       "aesni_intel",
+      "af_alg",
       "af_key",
       "appletalk",
       "authenc",
@@ -1172,6 +1173,7 @@
       "can_raw",
       "cfg80211",
       "cmac",
+      "crypto_user",
       "dibs",
       "dm_multipath",
       "dmi_sysfs",
@@ -1222,10 +1224,12 @@
       "virtio_rng",
       "x_tables",
       "xfrm_algo",
+      "xfrm_user",
       "xt_MASQUERADE",
       "xt_comment"
     ],
     "loaded_by_run": [
+      "af_alg",
       "af_key",
       "appletalk",
       "authenc",
@@ -1237,6 +1241,7 @@
       "can",
       "can_raw",
       "cmac",
+      "crypto_user",
       "dibs",
       "fcrypt",
       "ib_core",
@@ -1253,7 +1258,8 @@
       "scsi_transport_iscsi",
       "smc",
       "udp_tunnel",
-      "xfrm_algo"
+      "xfrm_algo",
+      "xfrm_user"
     ]
   },
   "residual": {
