@@ -131,11 +131,23 @@ func TestCellIdentityIgnoresKernelModules(t *testing.T) {
 	modulesB := []string{"overlay", "veth", "nf_tables"}
 	cellA := control.Cell{Architecture: "amd64", Kernel: control.Kernel{Release: "6.12.1", Modules: &modulesA}}
 	cellB := control.Cell{Architecture: "amd64", Kernel: control.Kernel{Release: "6.12.1", Modules: &modulesB}}
-	if gotA, gotB := cellIdentity(cellA), cellIdentity(cellB); gotA != gotB {
+	gotA, err := cellIdentityChecked(cellA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotB, err := cellIdentityChecked(cellB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotA != gotB {
 		t.Fatalf("cell identity changed with kernel modules: %s != %s", gotA, gotB)
 	}
 	cellB.Kernel.Release = "6.12.2"
-	if cellIdentity(cellA) == cellIdentity(cellB) {
+	gotB, err = cellIdentityChecked(cellB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotA == gotB {
 		t.Fatal("cell identity ignored kernel release")
 	}
 }

@@ -220,14 +220,8 @@ func buildCellMetrics(evaluations []evaluation, sources []string) (cellFindingMe
 	return metrics, nil
 }
 
-// cellIdentity excludes kernel modules because autoloading can change that
-// list between runs of the same cell.
-func cellIdentity(cell control.Cell) string {
-	identity, _ := cellIdentityChecked(cell)
-	return identity
-}
-
 func cellIdentityChecked(cell control.Cell) (string, error) {
+	// Autoloading can change this list between runs of the same cell.
 	cell.Kernel.Modules = nil
 	data, err := json.Marshal(cell)
 	if err != nil {
