@@ -26,6 +26,13 @@ func TestClassifyRecordedFixtures(t *testing.T) {
 	corpus := loadCorpus(t)
 	baseline := loadFixture(t, "x86_64-apparmor.json")
 
+	t.Run("Kata kernel absence is runtime-class explained", func(t *testing.T) {
+		runc := loadCellMetricFixture(t, "cell2.json")
+		kata := loadCellMetricFixture(t, "cell6.json")
+		classified := mustClassify(t, runc, kata, corpus)
+		assertClass(t, classified, "mount.type.9p", RuntimeClassExplained)
+	})
+
 	t.Run("runtime version remains policy", func(t *testing.T) {
 		olderRuntime := loadFixture(t, "x86_64-apparmor-1.7.12.json")
 		classified := mustClassify(t, baseline, olderRuntime, corpus)
@@ -43,7 +50,7 @@ func TestClassifyRecordedFixtures(t *testing.T) {
 		}
 	})
 
-	t.Run("architecture against hardened policy keeps socket and netlink probes as policy", func(t *testing.T) {
+	t.Run("declared absences across different kernel releases are kernel-explained", func(t *testing.T) {
 		arm := loadFixture(t, "aarch64-apparmor.json")
 		hardened := loadFixture(t, "x86_64-apparmor-hardened.json")
 		classified := mustClassify(t, arm, hardened, corpus)
@@ -62,7 +69,7 @@ func TestClassifyRecordedFixtures(t *testing.T) {
 			"socket.family.af_tipc",
 			"socket.family.af_x25",
 		} {
-			assertClass(t, classified, id, PolicyExplained)
+			assertClass(t, classified, id, KernelVersionExplained)
 		}
 	})
 
@@ -105,6 +112,16 @@ func TestClassifyTreatsSandboxUnimplementedAsRuntimeClass(t *testing.T) {
 	assertClass(t, classified, "call", RuntimeClassExplained)
 	if classified.Counts.Policy != 0 || classified.Counts.RuntimeClass != 1 {
 		t.Errorf("counts = %#v, want one runtime class and no policy", classified.Counts)
+	}
+
+	runcUnimplemented := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "call", Verdict: "unimplemented", Errno: 38}})
+	kataPermitted := fingerprintWithCell("x86_64", "6.8.0", "kata", []ProbeResult{{ProbeID: "call", Verdict: "permitted"}})
+	classified = mustClassify(t, runcUnimplemented, kataPermitted, []ProbeMetadata{{
+		ID: "call", Arch: Applicability{All: true}, Kernel: dependency(nil, 38),
+	}})
+	assertClass(t, classified, "call", RuntimeClassExplained)
+	if classified.Counts.Policy != 0 || classified.Counts.RuntimeClass != 1 {
+		t.Errorf("reverse-orientation counts = %#v, want one runtime class and no policy", classified.Counts)
 	}
 
 	for _, runtimeClass := range []string{"kata", "kata-qemu", "kata-clh", "runsc", "runsc-kvm"} {
@@ -198,15 +215,27 @@ func TestClassifyKernelDependencies(t *testing.T) {
 
 	t.Run("module-gated dependency", func(t *testing.T) {
 		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
-		left.Cell.Kernel.Modules = modules("nf_tables", "netlink_diag")
+		left.Cell.Kernel.Modules = modules("nf_tables")
+		left.ModuleDelta = json.RawMessage(`{"before":["nf_tables"],"after":["nf_tables","netlink_diag"]}`)
 		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
-		right.Cell.Kernel.Modules = modules("nf_tables")
+		right.Cell.Kernel.Modules = modules("nf_tables", "netlink_diag")
+		right.ModuleDelta = json.RawMessage(`{"before":["nf_tables","netlink_diag"],"after":["nf_tables"]}`)
 		classified := mustClassify(t, left, right, []ProbeMetadata{{
 			ID:     "module-call",
 			Arch:   Applicability{All: true},
 			Kernel: KernelDependency{AbsentErrno: intPointer(93), Module: "netlink_diag"},
 		}})
 		assertClass(t, classified, "module-call", KernelVersionExplained)
+	})
+
+	t.Run("declared absence with no module field is kernel-explained across releases", func(t *testing.T) {
+		left := fingerprintWithCell("x86_64", "5.14.0", "runc", []ProbeResult{{ProbeID: "filesystem.ext4", Verdict: "unimplemented", Errno: 19}})
+		right := fingerprintWithCell("x86_64", "5.14.1", "runc", []ProbeResult{{ProbeID: "filesystem.ext4", Verdict: "denied", Errno: 1}})
+		classified := mustClassify(t, left, right, []ProbeMetadata{{
+			ID: "filesystem.ext4", Arch: Applicability{All: true},
+			Kernel: KernelDependency{AbsentErrno: intPointer(19)},
+		}})
+		assertClass(t, classified, "filesystem.ext4", KernelVersionExplained)
 	})
 
 	t.Run("unrelated module changes do not explain a probe", func(t *testing.T) {
@@ -334,6 +363,19 @@ func loadCorpus(t *testing.T) []ProbeMetadata {
 		t.Fatalf("parse corpus: %v", err)
 	}
 	return corpus
+}
+
+func loadCellMetricFixture(t *testing.T, name string) Fingerprint {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("..", "fixtures", "cells", name))
+	if err != nil {
+		t.Fatalf("read cell fixture %s: %v", name, err)
+	}
+	fingerprint, err := DecodeFingerprint(data)
+	if err != nil {
+		t.Fatalf("decode cell fixture %s: %v", name, err)
+	}
+	return fingerprint
 }
 
 func fingerprintWithCell(architecture, release, runtimeClass string, results []ProbeResult) Fingerprint {

@@ -29,6 +29,21 @@ func TestCommittedDivergenceMetricsMatchRegeneratedFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("regenerate divergence metrics: %v", err)
 	}
+	if metrics.PairsWithPolicyDivergence != 12 || !metrics.FourPairPolicyCriterionMet {
+		t.Fatalf("policy-divergence pairs/criterion = %d/%t, want 12/true", metrics.PairsWithPolicyDivergence, metrics.FourPairPolicyCriterionMet)
+	}
+	var cellTwoThreeFound bool
+	for _, pair := range metrics.Pairs {
+		if pair.LeftFingerprint == "cell2.json" && pair.RightFingerprint == "cell3.json" {
+			cellTwoThreeFound = true
+			if want := (control.DivergenceCounts{KernelVersion: 15}); pair.Counts != want {
+				t.Fatalf("cell2/cell3 class counts = %#v, want %#v", pair.Counts, want)
+			}
+		}
+	}
+	if !cellTwoThreeFound {
+		t.Fatal("metrics omit the cell2/cell3 pair")
+	}
 	got, err := json.MarshalIndent(metrics, "", "  ")
 	if err != nil {
 		t.Fatal(err)

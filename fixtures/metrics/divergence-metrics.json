@@ -1,13 +1,13 @@
 {
   "fingerprints_evaluated": 6,
   "cell_pairs_compared": 15,
-  "pairs_with_policy_divergence": 14,
+  "pairs_with_policy_divergence": 12,
   "four_pair_policy_criterion_met": true,
   "totals": {
     "architecture_explained": 5,
-    "kernel_version_explained": 0,
-    "runtime_class_explained": 536,
-    "policy_explained": 516
+    "kernel_version_explained": 45,
+    "runtime_class_explained": 556,
+    "policy_explained": 451
   },
   "pairs": [
     {
@@ -25,9 +25,9 @@
       "right_fingerprint": "cell3.json",
       "counts": {
         "architecture_explained": 1,
-        "kernel_version_explained": 0,
+        "kernel_version_explained": 15,
         "runtime_class_explained": 0,
-        "policy_explained": 15
+        "policy_explained": 0
       }
     },
     {
@@ -46,8 +46,8 @@
       "counts": {
         "architecture_explained": 1,
         "kernel_version_explained": 0,
-        "runtime_class_explained": 95,
-        "policy_explained": 20
+        "runtime_class_explained": 96,
+        "policy_explained": 19
       }
     },
     {
@@ -56,8 +56,8 @@
       "counts": {
         "architecture_explained": 1,
         "kernel_version_explained": 0,
-        "runtime_class_explained": 26,
-        "policy_explained": 67
+        "runtime_class_explained": 30,
+        "policy_explained": 63
       }
     },
     {
@@ -65,9 +65,9 @@
       "right_fingerprint": "cell3.json",
       "counts": {
         "architecture_explained": 0,
-        "kernel_version_explained": 0,
+        "kernel_version_explained": 15,
         "runtime_class_explained": 0,
-        "policy_explained": 15
+        "policy_explained": 0
       }
     },
     {
@@ -86,8 +86,8 @@
       "counts": {
         "architecture_explained": 0,
         "kernel_version_explained": 0,
-        "runtime_class_explained": 95,
-        "policy_explained": 20
+        "runtime_class_explained": 96,
+        "policy_explained": 19
       }
     },
     {
@@ -96,8 +96,8 @@
       "counts": {
         "architecture_explained": 0,
         "kernel_version_explained": 0,
-        "runtime_class_explained": 26,
-        "policy_explained": 67
+        "runtime_class_explained": 30,
+        "policy_explained": 63
       }
     },
     {
@@ -105,9 +105,9 @@
       "right_fingerprint": "cell4.json",
       "counts": {
         "architecture_explained": 0,
-        "kernel_version_explained": 0,
+        "kernel_version_explained": 15,
         "runtime_class_explained": 0,
-        "policy_explained": 69
+        "policy_explained": 54
       }
     },
     {
@@ -116,38 +116,38 @@
       "counts": {
         "architecture_explained": 0,
         "kernel_version_explained": 0,
-        "runtime_class_explained": 84,
+        "runtime_class_explained": 85,
+        "policy_explained": 19
+      }
+    },
+    {
+      "left_fingerprint": "cell3.json",
+      "right_fingerprint": "cell6.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 19,
+        "policy_explained": 63
+      }
+    },
+    {
+      "left_fingerprint": "cell4.json",
+      "right_fingerprint": "cell5.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 96,
         "policy_explained": 20
       }
     },
     {
-      "left_fingerprint": "cell3.json",
-      "right_fingerprint": "cell6.json",
-      "counts": {
-        "architecture_explained": 0,
-        "kernel_version_explained": 0,
-        "runtime_class_explained": 15,
-        "policy_explained": 67
-      }
-    },
-    {
-      "left_fingerprint": "cell4.json",
-      "right_fingerprint": "cell5.json",
-      "counts": {
-        "architecture_explained": 0,
-        "kernel_version_explained": 0,
-        "runtime_class_explained": 95,
-        "policy_explained": 21
-      }
-    },
-    {
       "left_fingerprint": "cell4.json",
       "right_fingerprint": "cell6.json",
       "counts": {
         "architecture_explained": 0,
         "kernel_version_explained": 0,
-        "runtime_class_explained": 26,
-        "policy_explained": 15
+        "runtime_class_explained": 30,
+        "policy_explained": 11
       }
     },
     {

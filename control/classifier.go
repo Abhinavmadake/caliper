@@ -184,7 +184,7 @@ func Classify(left, right Fingerprint, corpus []ProbeMetadata) (ClassificationRe
 		if !exists {
 			return ClassificationResult{}, fmt.Errorf("no corpus metadata for divergent probe %q", divergence.ProbeID)
 		}
-		class, err := classifyDivergence(divergence, probe, left.Cell, right.Cell)
+		class, err := classifyDivergence(divergence, probe, left, right)
 		if err != nil {
 			return ClassificationResult{}, err
 		}
@@ -211,14 +211,14 @@ func metadataByID(corpus []ProbeMetadata) (map[string]ProbeMetadata, error) {
 	return byID, nil
 }
 
-func classifyDivergence(divergence Divergence, probe ProbeMetadata, left, right Cell) (DivergenceClass, error) {
-	if architectureExplains(divergence, probe.Arch, left.Architecture, right.Architecture) {
+func classifyDivergence(divergence Divergence, probe ProbeMetadata, left, right Fingerprint) (DivergenceClass, error) {
+	if architectureExplains(divergence, probe.Arch, left.Cell.Architecture, right.Cell.Architecture) {
 		return ArchitectureExplained, nil
 	}
-	if runtimeClassExplains(divergence, runtimeClassValue(left), runtimeClassValue(right)) {
+	if runtimeClassExplains(divergence, probe.Kernel, runtimeClassValue(left.Cell), runtimeClassValue(right.Cell)) {
 		return RuntimeClassExplained, nil
 	}
-	kernelExplanation, err := kernelExplains(divergence, probe.Kernel, left.Kernel, right.Kernel)
+	kernelExplanation, err := kernelExplains(divergence, probe.Kernel, left, right)
 	if err != nil {
 		return "", err
 	}
@@ -240,12 +240,18 @@ func architectureExplains(d Divergence, applicability Applicability, leftArch, r
 		(d.Right.Verdict == "not-applicable" && !applicability.Includes(rightArch) && applicability.Includes(leftArch))
 }
 
-func runtimeClassExplains(d Divergence, leftClass, rightClass string) bool {
+func runtimeClassExplains(d Divergence, dependency KernelDependency, leftClass, rightClass string) bool {
 	if leftClass == rightClass {
 		return false
 	}
-	return (sandboxed(leftClass) && d.Left.Verdict == "unimplemented") ||
-		(sandboxed(rightClass) && d.Right.Verdict == "unimplemented")
+	leftSandboxed, rightSandboxed := sandboxed(leftClass), sandboxed(rightClass)
+	if (leftSandboxed && d.Left.Verdict == "unimplemented") ||
+		(rightSandboxed && d.Right.Verdict == "unimplemented") {
+		return true
+	}
+	// When the unimplemented side is the ordinary runtime, a declared kernel
+	// absence can still be caused by the sandboxed runtime's guest kernel.
+	return leftSandboxed != rightSandboxed && declaredAbsence(d, dependency)
 }
 
 func sandboxed(runtimeClass string) bool {
@@ -256,21 +262,19 @@ func sandboxed(runtimeClass string) bool {
 	return strings.HasPrefix(class, "runsc") || strings.HasPrefix(class, "kata-")
 }
 
-func kernelExplains(d Divergence, dependency KernelDependency, left, right Kernel) (bool, error) {
-	// A kernel dependency explains absence only when the other environment
-	// permits the probe. Denied, killed, and timed-out results indicate a policy
-	// or execution difference, not a kernel dependency boundary.
+func kernelExplains(d Divergence, dependency KernelDependency, left, right Fingerprint) (bool, error) {
+	// A kernel dependency needs an unimplemented observation with its declared
+	// absence errno. Version-gated dependencies retain the stronger requirement
+	// that the other environment permits the probe; a release difference for
+	// other declared absences can still explain a mixed denied/unimplemented pair.
 	var errno int
+	var other ProbeResult
 	if d.Left.Verdict == "unimplemented" {
-		if d.Right.Verdict != "permitted" {
-			return false, nil
-		}
 		errno = d.Left.Errno
+		other = d.Right
 	} else if d.Right.Verdict == "unimplemented" {
-		if d.Left.Verdict != "permitted" {
-			return false, nil
-		}
 		errno = d.Right.Errno
+		other = d.Left
 	} else {
 		return false, nil
 	}
@@ -278,18 +282,21 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 	// The engine's unimplemented verdict already applies present_if and
 	// encoded_absent. For those dependencies it is the cell-specific evidence
 	// that the entry point is absent; no release or module comparison is needed.
-	if dependency.EncodedAbsent != nil && errno == *dependency.EncodedAbsent {
+	if dependency.EncodedAbsent != nil && errno == *dependency.EncodedAbsent && other.Verdict == "permitted" {
 		return true, nil
 	}
 	if !dependency.absent(errno) {
 		return false, nil
 	}
 	if dependency.PresentIf != "" {
-		return true, nil
+		return other.Verdict == "permitted", nil
 	}
 	if dependency.Since != nil {
-		leftVersion, leftKnown := parseKernelVersion(left.Release)
-		rightVersion, rightKnown := parseKernelVersion(right.Release)
+		if other.Verdict != "permitted" {
+			return false, nil
+		}
+		leftVersion, leftKnown := parseKernelVersion(left.Cell.Kernel.Release)
+		rightVersion, rightKnown := parseKernelVersion(right.Cell.Kernel.Release)
 		return leftKnown && rightKnown && (before(leftVersion, *dependency.Since) != before(rightVersion, *dependency.Since)), nil
 	}
 	// The second absence errno is the protocol missing with the family
@@ -300,15 +307,57 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 		module = dependency.ProtocolModule
 	}
 	if module == "" {
-		return false, nil
+		return kernelReleasesDiffer(left.Cell.Kernel.Release, right.Cell.Kernel.Release), nil
 	}
-	if left.Modules == nil || right.Modules == nil {
-		// An unavailable module list cannot establish a kernel explanation.
-		// Keep the divergence classifiable; absent evidence falls through to
-		// policy-explained rather than aborting a comparison across cells.
-		return false, nil
+	leftModules, leftKnown, err := modulesAfterRun(left)
+	if err != nil {
+		return false, err
 	}
-	return containsModule(*left.Modules, module) != containsModule(*right.Modules, module), nil
+	rightModules, rightKnown, err := modulesAfterRun(right)
+	if err != nil {
+		return false, err
+	}
+	if leftKnown && rightKnown && other.Verdict == "permitted" &&
+		containsModule(leftModules, module) != containsModule(rightModules, module) {
+		return true, nil
+	}
+	// A declared absence on a different kernel release is kernel-explained,
+	// including dependencies that name a module but lack comparable snapshots.
+	return kernelReleasesDiffer(left.Cell.Kernel.Release, right.Cell.Kernel.Release), nil
+}
+
+func declaredAbsence(d Divergence, dependency KernelDependency) bool {
+	if d.Left.Verdict == "unimplemented" {
+		return (dependency.EncodedAbsent != nil && d.Left.Errno == *dependency.EncodedAbsent) || dependency.absent(d.Left.Errno)
+	}
+	if d.Right.Verdict == "unimplemented" {
+		return (dependency.EncodedAbsent != nil && d.Right.Errno == *dependency.EncodedAbsent) || dependency.absent(d.Right.Errno)
+	}
+	return false
+}
+
+func modulesAfterRun(fingerprint Fingerprint) ([]string, bool, error) {
+	if len(fingerprint.ModuleDelta) > 0 {
+		var delta struct {
+			After *[]string `json:"after"`
+		}
+		if err := json.Unmarshal(fingerprint.ModuleDelta, &delta); err != nil {
+			return nil, false, fmt.Errorf("decode module_delta: %w", err)
+		}
+		if delta.After != nil {
+			return *delta.After, true, nil
+		}
+	}
+	if fingerprint.Cell.Kernel.Modules != nil {
+		return *fingerprint.Cell.Kernel.Modules, true, nil
+	}
+	return nil, false, nil
+}
+
+func kernelReleasesDiffer(leftRelease, rightRelease string) bool {
+	_, leftKnown := parseKernelVersion(leftRelease)
+	_, rightKnown := parseKernelVersion(rightRelease)
+	return leftKnown && rightKnown && strings.TrimSpace(leftRelease) != strings.TrimSpace(rightRelease)
 }
 
 func containsModule(modules []string, module string) bool {
