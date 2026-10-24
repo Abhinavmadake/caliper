@@ -70,6 +70,60 @@ func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
 	}
 }
 
+func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
+	expectationFinding := control.Finding{Kind: control.ExpectationViolation, ProbeID: "expectation.probe", Family: "network"}
+	claimFinding := control.Finding{Kind: control.ClaimViolation, ProbeID: "claim.probe", Family: "filesystem"}
+	withExpectation := evaluation{report: control.Report{Findings: control.FindingReport{
+		ExpectationViolations: []control.Finding{expectationFinding},
+	}}}
+	claimOnly := evaluation{report: control.Report{Findings: control.FindingReport{
+		ClaimViolations: []control.Finding{claimFinding},
+	}}}
+
+	tests := []struct {
+		name        string
+		clusters    []string
+		evaluations []evaluation
+		wantCount   string
+		wantStatus  string
+		wantClaim   string
+	}{
+		{
+			name:        "criterion needs three distinct contexts with expectation findings",
+			clusters:    []string{"cluster-a", "cluster-b", "cluster-c"},
+			evaluations: []evaluation{withExpectation, withExpectation, claimOnly},
+			wantCount:   "**Cells with expectation violations:** 2",
+			wantStatus:  "**Three-cell criterion:** not met",
+			wantClaim:   "### Claim violations (1)",
+		},
+		{
+			name:        "repeated context does not count as another cell",
+			clusters:    []string{"cluster-a", "cluster-b", "cluster-c", "cluster-c"},
+			evaluations: []evaluation{withExpectation, withExpectation, withExpectation, withExpectation},
+			wantCount:   "**Cells with expectation violations:** 3",
+			wantStatus:  "**Three-cell criterion:** met",
+			wantClaim:   "### Claim violations (0)",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := renderReportMany(tt.clusters, tt.evaluations)
+			for _, want := range []string{
+				tt.wantCount,
+				tt.wantStatus,
+				"| Cell | Expectation violations | Claim violations | Undeclared exposures |",
+				"### Expectation violations (1)",
+				tt.wantClaim,
+				"| `cluster-a` | 1 | 0 | 0 |",
+			} {
+				if !strings.Contains(body, want) {
+					t.Errorf("multi-cell report lacks %q", want)
+				}
+			}
+		})
+	}
+}
+
 func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
 	data, err := os.ReadFile("../../../fixtures/cells/cell2.json")
 	if err != nil {
