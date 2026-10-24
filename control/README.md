@@ -25,7 +25,7 @@ SARIF remains deferred.
 Run from `control/` to regenerate the six-cell metric:
 
 ```sh
-go run ./cmd/caliper-ci-report -cell-fixtures ../fixtures/cells -metrics-out ../fixtures/cells/finding-metrics.json
+go run ./cmd/caliper-ci-report -cell-fixtures ../fixtures/cells -metrics-out finding-metrics.json
 ```
 
 The command evaluates the six committed GCE fingerprints against the selected
