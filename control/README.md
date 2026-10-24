@@ -22,13 +22,18 @@ authorization notice and the undecidable attribution fraction; its denominator
 is all denials, including SIGSYS-killed results, as specified in proposal §11.2.
 SARIF remains deferred.
 
-`cmd/caliper-ci-report` accepts repeated `-fingerprint` and `-cluster` flags in
-matching order. It evaluates each cell independently, posts a per-cell table
-with expectation, claim, and undeclared-exposure counts, and reports whether
-expectation violations occur in at least three distinct cluster contexts. The
-cluster-evaluation workflow reads a comma-separated `CALIPER_TARGET_CONTEXTS`
-repository variable; the existing `CALIPER_TARGET_CONTEXT` variable remains a
-single-cell fallback.
+Run from `control/` to regenerate the six-cell metric:
+
+```sh
+go run ./cmd/caliper-ci-report -cell-fixtures ../fixtures/cells -metrics-out ../fixtures/cells/finding-metrics.json
+```
+
+The command evaluates the six committed GCE fingerprints against the selected
+posture and workload. Its report includes expectation, claim, and
+undeclared-exposure findings per cell and in total, plus the count of distinct
+cells with expectation violations and whether the three-cell criterion is met.
+Cell IDs are derived from each fingerprint's cell identity; the fingerprint
+filename is retained as the source.
 
 Attribution is an optional refinement of the raw reachability measurement.
 `Attribute` assigns every result one confidence grade: **high** for a positive

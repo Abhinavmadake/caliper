@@ -73,33 +73,38 @@ func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
 func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
 	expectationFinding := control.Finding{Kind: control.ExpectationViolation, ProbeID: "expectation.probe", Family: "network"}
 	claimFinding := control.Finding{Kind: control.ClaimViolation, ProbeID: "claim.probe", Family: "filesystem"}
-	withExpectation := evaluation{report: control.Report{Findings: control.FindingReport{
-		ExpectationViolations: []control.Finding{expectationFinding},
-	}}}
-	claimOnly := evaluation{report: control.Report{Findings: control.FindingReport{
-		ClaimViolations: []control.Finding{claimFinding},
-	}}}
+	withExpectation := func(architecture string) evaluation {
+		return evaluation{
+			fingerprint: control.Fingerprint{Cell: control.Cell{Architecture: architecture}},
+			report: control.Report{Findings: control.FindingReport{
+				ExpectationViolations: []control.Finding{expectationFinding},
+			}},
+		}
+	}
+	claimOnly := evaluation{
+		fingerprint: control.Fingerprint{Cell: control.Cell{Architecture: "cell-c"}},
+		report: control.Report{Findings: control.FindingReport{
+			ClaimViolations: []control.Finding{claimFinding},
+		}},
+	}
 
 	tests := []struct {
 		name        string
-		clusters    []string
 		evaluations []evaluation
 		wantCount   string
 		wantStatus  string
 		wantClaim   string
 	}{
 		{
-			name:        "criterion needs three distinct contexts with expectation findings",
-			clusters:    []string{"cluster-a", "cluster-b", "cluster-c"},
-			evaluations: []evaluation{withExpectation, withExpectation, claimOnly},
+			name:        "criterion needs three distinct cells with expectation findings",
+			evaluations: []evaluation{withExpectation("cell-a"), withExpectation("cell-b"), claimOnly},
 			wantCount:   "**Cells with expectation violations:** 2",
 			wantStatus:  "**Three-cell criterion:** not met",
 			wantClaim:   "### Claim violations (1)",
 		},
 		{
-			name:        "repeated context does not count as another cell",
-			clusters:    []string{"cluster-a", "cluster-b", "cluster-c", "cluster-c"},
-			evaluations: []evaluation{withExpectation, withExpectation, withExpectation, withExpectation},
+			name:        "repeated cell identity does not count twice",
+			evaluations: []evaluation{withExpectation("cell-a"), withExpectation("cell-b"), withExpectation("cell-c"), withExpectation("cell-c")},
 			wantCount:   "**Cells with expectation violations:** 3",
 			wantStatus:  "**Three-cell criterion:** met",
 			wantClaim:   "### Claim violations (0)",
@@ -107,20 +112,50 @@ func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			body := renderReportMany(tt.clusters, tt.evaluations)
+			body := renderReportMany(tt.evaluations)
 			for _, want := range []string{
 				tt.wantCount,
 				tt.wantStatus,
 				"| Cell | Expectation violations | Claim violations | Undeclared exposures |",
 				"### Expectation violations (1)",
 				tt.wantClaim,
-				"| `cluster-a` | 1 | 0 | 0 |",
+				cellIdentity(tt.evaluations[0].fingerprint.Cell),
 			} {
 				if !strings.Contains(body, want) {
 					t.Errorf("multi-cell report lacks %q", want)
 				}
 			}
 		})
+	}
+
+	metrics, err := buildCellMetrics(
+		[]evaluation{withExpectation("cell-a"), withExpectation("cell-b"), claimOnly, withExpectation("cell-b")},
+		[]string{"cell1.json", "cell2.json", "cell3.json", "cell4.json"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metrics.FingerprintsEvaluated != 4 || metrics.DistinctCells != 3 {
+		t.Errorf("evaluated/distinct cells = %d/%d, want 4/3", metrics.FingerprintsEvaluated, metrics.DistinctCells)
+	}
+	if metrics.ExpectationViolationCells != 2 || metrics.ThreeCellCriterionMet {
+		t.Errorf("expectation-violation cells/criterion = %d/%t, want 2/false", metrics.ExpectationViolationCells, metrics.ThreeCellCriterionMet)
+	}
+	if metrics.CategoryTotals.ExpectationViolations != 3 || metrics.CategoryTotals.ClaimViolations != 1 {
+		t.Errorf("category totals = %#v, want expectation=3 and claim=1", metrics.CategoryTotals)
+	}
+	if metrics.Cells[2].CategoryCounts.ClaimViolations != 1 || metrics.Cells[2].CategoryCounts.ExpectationViolations != 0 {
+		t.Errorf("per-cell category counts = %#v, want claim=1 and expectation=0", metrics.Cells[2].CategoryCounts)
+	}
+	met, err := buildCellMetrics(
+		[]evaluation{withExpectation("cell-a"), withExpectation("cell-b"), withExpectation("cell-c")},
+		[]string{"cell1.json", "cell2.json", "cell3.json"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !met.ThreeCellCriterionMet || met.ExpectationViolationCells != 3 {
+		t.Errorf("three-cell criterion = %t with %d cells, want true with 3", met.ThreeCellCriterionMet, met.ExpectationViolationCells)
 	}
 }
 
