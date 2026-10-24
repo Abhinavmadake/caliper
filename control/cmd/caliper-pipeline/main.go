@@ -151,6 +151,7 @@ func run(in inputs) error {
 		"remediation.spo.yaml":       string(spo),
 		"remediation.localhost.json": json.RawMessage(localhost),
 	}
+	var verificationErr error
 	if in.verified != "" {
 		verified, verifiedSource, err := readFingerprint(in.verified)
 		if err != nil {
@@ -171,10 +172,8 @@ func run(in inputs) error {
 		if err != nil {
 			return fmt.Errorf("evaluate verified measurement: %w", err)
 		}
-		verification, err := verifyClosures(findings, verified)
-		if err != nil {
-			return err
-		}
+		verification, verifyErr := verifyClosures(findings, verified, remediation.NotClosable)
+		verificationErr = verifyErr
 		report, err := control.BuildReport(findings, classification, baseline, verified)
 		if err != nil {
 			return fmt.Errorf("build pipeline report: %w", err)
@@ -190,7 +189,7 @@ func run(in inputs) error {
 			return err
 		}
 	}
-	return nil
+	return verificationErr
 }
 
 func readFingerprint(path string) (control.Fingerprint, []byte, error) {
@@ -244,31 +243,65 @@ func validateCorpusRevision(fingerprint control.Fingerprint, expected string) er
 }
 
 type verificationSummary struct {
-	Status        string   `json:"status"`
-	CheckedProbes []string `json:"checked_probes"`
+	Status      string                     `json:"status"`
+	Probes      []closureProbeVerification `json:"probes"`
+	NotClosable []control.NotClosable      `json:"not_closable"`
 }
 
-func verifyClosures(findings control.FindingReport, fingerprint control.Fingerprint) (verificationSummary, error) {
+type closureProbeVerification struct {
+	ProbeID string          `json:"probe_id"`
+	Status  string          `json:"status"`
+	Verdict control.Verdict `json:"verdict,omitempty"`
+}
+
+func verifyClosures(findings control.FindingReport, fingerprint control.Fingerprint, notClosable []control.NotClosable) (verificationSummary, error) {
+	summary := verificationSummary{
+		Status:      "passed",
+		Probes:      []closureProbeVerification{},
+		NotClosable: notClosable,
+	}
 	if len(findings.ExpectationViolations) == 0 {
-		return verificationSummary{Status: "nothing to verify"}, nil
+		summary.Status = "nothing-to-verify"
+		return summary, nil
 	}
 
 	results := make(map[string]control.Verdict, len(fingerprint.Results))
 	for _, result := range fingerprint.Results {
 		results[result.ProbeID] = result.Verdict
 	}
-	checked := make([]string, 0, len(findings.ExpectationViolations))
+	unclosable := make(map[string]struct{}, len(notClosable))
+	for _, finding := range notClosable {
+		unclosable[finding.ProbeID] = struct{}{}
+	}
+	summary.Probes = make([]closureProbeVerification, 0, len(findings.ExpectationViolations))
+	var problems []string
 	for _, finding := range findings.ExpectationViolations {
+		if _, exists := unclosable[finding.ProbeID]; exists {
+			probe := closureProbeVerification{ProbeID: finding.ProbeID, Status: "not-closable"}
+			if verdict, measured := results[finding.ProbeID]; measured {
+				probe.Verdict = verdict
+			}
+			summary.Probes = append(summary.Probes, probe)
+			continue
+		}
 		verdict, exists := results[finding.ProbeID]
 		if !exists {
-			return verificationSummary{}, fmt.Errorf("verification incomplete: finding probe %q is missing from the post-remediation measurement", finding.ProbeID)
+			summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "missing"})
+			problems = append(problems, fmt.Sprintf("verification incomplete: finding probe %q is missing from the post-remediation measurement", finding.ProbeID))
+			continue
 		}
-		if verdict != "denied" && verdict != "killed" {
-			return verificationSummary{}, fmt.Errorf("verification failed: finding probe %q has verdict %q, want denied or killed", finding.ProbeID, verdict)
+		if verdict == "denied" || verdict == "killed" {
+			summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "closed", Verdict: verdict})
+			continue
 		}
-		checked = append(checked, finding.ProbeID)
+		summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "still-open", Verdict: verdict})
+		problems = append(problems, fmt.Sprintf("verification failed: finding probe %q has verdict %q, want denied or killed", finding.ProbeID, verdict))
 	}
-	return verificationSummary{Status: "passed", CheckedProbes: checked}, nil
+	if len(problems) > 0 {
+		summary.Status = "failed"
+		return summary, errors.New(strings.Join(problems, "; "))
+	}
+	return summary, nil
 }
 
 func writeArtifact(dir, name string, value any) error {
