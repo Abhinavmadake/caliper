@@ -1,10 +1,31 @@
 {
   "status": "passed",
-  "checked_probes": [
-    "netlink.protocol.crypto",
-    "netlink.protocol.netfilter",
-    "netlink.protocol.rdma",
-    "netlink.protocol.xfrm",
-    "socket.family.af_alg"
-  ]
+  "probes": [
+    {
+      "probe_id": "netlink.protocol.crypto",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.rdma",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "socket.family.af_alg",
+      "status": "closed",
+      "verdict": "denied"
+    }
+  ],
+  "not_closable": []
 }

@@ -261,7 +261,7 @@ func verifyClosures(findings control.FindingReport, fingerprint control.Fingerpr
 		NotClosable: notClosable,
 	}
 	if len(findings.ExpectationViolations) == 0 {
-		summary.Status = "nothing to verify"
+		summary.Status = "nothing-to-verify"
 		return summary, nil
 	}
 
@@ -269,9 +269,21 @@ func verifyClosures(findings control.FindingReport, fingerprint control.Fingerpr
 	for _, result := range fingerprint.Results {
 		results[result.ProbeID] = result.Verdict
 	}
+	unclosable := make(map[string]struct{}, len(notClosable))
+	for _, finding := range notClosable {
+		unclosable[finding.ProbeID] = struct{}{}
+	}
 	summary.Probes = make([]closureProbeVerification, 0, len(findings.ExpectationViolations))
 	var problems []string
 	for _, finding := range findings.ExpectationViolations {
+		if _, exists := unclosable[finding.ProbeID]; exists {
+			probe := closureProbeVerification{ProbeID: finding.ProbeID, Status: "not-closable"}
+			if verdict, measured := results[finding.ProbeID]; measured {
+				probe.Verdict = verdict
+			}
+			summary.Probes = append(summary.Probes, probe)
+			continue
+		}
 		verdict, exists := results[finding.ProbeID]
 		if !exists {
 			summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "missing"})
@@ -282,7 +294,7 @@ func verifyClosures(findings control.FindingReport, fingerprint control.Fingerpr
 			summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "closed", Verdict: verdict})
 			continue
 		}
-		summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "still open", Verdict: verdict})
+		summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "still-open", Verdict: verdict})
 		problems = append(problems, fmt.Sprintf("verification failed: finding probe %q has verdict %q, want denied or killed", finding.ProbeID, verdict))
 	}
 	if len(problems) > 0 {

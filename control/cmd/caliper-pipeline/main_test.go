@@ -52,17 +52,24 @@ func TestVerifyClosures(t *testing.T) {
 			wantProbe:  "missing",
 		},
 		{
-			name:        "permitted probe fails",
+			name:       "permitted probe fails",
+			findings:   findings,
+			results:    []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
+			wantError:  `has verdict "permitted", want denied or killed`,
+			wantStatus: "failed",
+			wantProbe:  "still-open",
+		},
+		{
+			name:        "not-closable probe is reported without failing",
 			findings:    findings,
 			results:     []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
-			wantError:   `has verdict "permitted", want denied or killed`,
-			wantStatus:  "failed",
-			wantProbe:   "still open",
+			wantStatus:  "passed",
+			wantProbe:   "not-closable",
 			notClosable: []control.NotClosable{{ProbeID: "probe.example", Reason: "argument constraint"}},
 		},
 		{
 			name:       "no findings needs no verification",
-			wantStatus: "nothing to verify",
+			wantStatus: "nothing-to-verify",
 		},
 	}
 
