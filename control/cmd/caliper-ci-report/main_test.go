@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -67,6 +68,111 @@ func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
 	}
 	if os.Getenv("CALIPER_SHOW_REPORT") != "" {
 		t.Log(body)
+	}
+}
+
+func TestBuildCellMetricsCountsDistinctExpectationCells(t *testing.T) {
+	expectationFinding := control.Finding{Kind: control.ExpectationViolation, ProbeID: "expectation.probe", Family: "network"}
+	claimFinding := control.Finding{Kind: control.ClaimViolation, ProbeID: "claim.probe", Family: "filesystem"}
+	withExpectation := func(architecture string) evaluation {
+		return evaluation{
+			fingerprint: control.Fingerprint{Cell: control.Cell{Architecture: architecture}},
+			report: control.Report{Findings: control.FindingReport{
+				ExpectationViolations: []control.Finding{expectationFinding},
+			}},
+		}
+	}
+	claimOnly := evaluation{
+		fingerprint: control.Fingerprint{Cell: control.Cell{Architecture: "cell-c"}},
+		report: control.Report{Findings: control.FindingReport{
+			ClaimViolations: []control.Finding{claimFinding},
+		}},
+	}
+
+	metrics, err := buildCellMetrics(
+		[]evaluation{withExpectation("cell-a"), withExpectation("cell-b"), claimOnly, withExpectation("cell-b")},
+		[]string{"cell1.json", "cell2.json", "cell3.json", "cell4.json"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metrics.FingerprintsEvaluated != 4 || metrics.DistinctCells != 3 {
+		t.Errorf("evaluated/distinct cells = %d/%d, want 4/3", metrics.FingerprintsEvaluated, metrics.DistinctCells)
+	}
+	if metrics.ExpectationViolationCells != 2 || metrics.ThreeCellCriterionMet {
+		t.Errorf("expectation-violation cells/criterion = %d/%t, want 2/false", metrics.ExpectationViolationCells, metrics.ThreeCellCriterionMet)
+	}
+	if metrics.CategoryTotals.ExpectationViolations != 3 || metrics.CategoryTotals.ClaimViolations != 1 {
+		t.Errorf("category totals = %#v, want expectation=3 and claim=1", metrics.CategoryTotals)
+	}
+	if metrics.Cells[2].CategoryCounts.ClaimViolations != 1 || metrics.Cells[2].CategoryCounts.ExpectationViolations != 0 {
+		t.Errorf("per-cell category counts = %#v, want claim=1 and expectation=0", metrics.Cells[2].CategoryCounts)
+	}
+	if !reflect.DeepEqual(metrics.Cells[2].ClaimViolationsByFamily, map[string][]string{"filesystem": {"claim.probe"}}) {
+		t.Errorf("claim violations by family = %#v, want filesystem claim.probe", metrics.Cells[2].ClaimViolationsByFamily)
+	}
+	if !reflect.DeepEqual(metrics.Cells[0].ExpectationViolationsByFamily, map[string][]string{"network": {"expectation.probe"}}) {
+		t.Errorf("expectation violations by family = %#v, want network expectation.probe", metrics.Cells[0].ExpectationViolationsByFamily)
+	}
+	met, err := buildCellMetrics(
+		[]evaluation{withExpectation("cell-a"), withExpectation("cell-b"), withExpectation("cell-c")},
+		[]string{"cell1.json", "cell2.json", "cell3.json"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !met.ThreeCellCriterionMet || met.ExpectationViolationCells != 3 {
+		t.Errorf("three-cell criterion = %t with %d cells, want true with 3", met.ThreeCellCriterionMet, met.ExpectationViolationCells)
+	}
+}
+
+func TestCellIdentityIgnoresKernelModules(t *testing.T) {
+	modulesA := []string{"overlay", "veth"}
+	modulesB := []string{"overlay", "veth", "nf_tables"}
+	cellA := control.Cell{Architecture: "amd64", Kernel: control.Kernel{Release: "6.12.1", Modules: &modulesA}}
+	cellB := control.Cell{Architecture: "amd64", Kernel: control.Kernel{Release: "6.12.1", Modules: &modulesB}}
+	gotA, err := cellIdentityChecked(cellA)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotB, err := cellIdentityChecked(cellB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotA != gotB {
+		t.Fatalf("cell identity changed with kernel modules: %s != %s", gotA, gotB)
+	}
+	cellB.Kernel.Release = "6.12.2"
+	gotB, err = cellIdentityChecked(cellB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotA == gotB {
+		t.Fatal("cell identity ignored kernel release")
+	}
+}
+
+func TestCommittedFindingMetricsMatchRegeneratedFixtures(t *testing.T) {
+	generated := filepath.Join(t.TempDir(), "finding-metrics.json")
+	in := inputs{
+		posture:  "../../../posture/v1/posture.yaml",
+		corpus:   "../../../corpus/index.json",
+		manifest: "../../../deploy/k8s/job.yaml",
+		tier:     "restricted",
+	}
+	if err := runCellMetrics("../../../fixtures/cells", generated, in); err != nil {
+		t.Fatalf("regenerate cell metrics: %v", err)
+	}
+	got, err := os.ReadFile(generated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile("../../../fixtures/metrics/finding-metrics.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatal("committed finding metrics do not match regenerated cell fixtures")
 	}
 }
 

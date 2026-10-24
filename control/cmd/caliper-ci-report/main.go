@@ -13,17 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// caliper-ci-report evaluates a measured target-cluster fingerprint against the
-// reference posture and posts the result as an idempotent GitHub PR comment.
+// caliper-ci-report evaluates a target-cluster measurement for a pull request
+// comment or the committed cell fingerprints for the six-cell metric.
 package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -35,8 +38,10 @@ import (
 const reportMarker = "<!-- caliper-ci-cell-report -->"
 
 func main() {
-	fingerprintPath := flag.String("fingerprint", "", "path to the target-cluster measurement JSON")
+	fingerprintPath := flag.String("fingerprint", "", "path to a target-cluster measurement JSON")
 	cluster := flag.String("cluster", "", "named target cluster context")
+	cellFixtures := flag.String("cell-fixtures", "", "directory of committed cellN.json fingerprints for the six-cell metric")
+	metricsOut := flag.String("metrics-out", "", "write the six-cell finding metric JSON to this path")
 	repository := flag.String("repository", "", "GitHub repository in owner/name form")
 	prNumber := flag.Int("pr", 0, "pull request number")
 	in := inputs{}
@@ -46,7 +51,14 @@ func main() {
 	flag.StringVar(&in.tier, "tier", "restricted", "posture tier to evaluate against")
 	flag.Parse()
 
-	if err := run(*fingerprintPath, *cluster, *repository, *prNumber, in); err != nil {
+	if *cellFixtures != "" {
+		if err := runCellMetrics(*cellFixtures, *metricsOut, in); err != nil {
+			fmt.Fprintln(os.Stderr, "caliper-ci-report:", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if err := runOne(*fingerprintPath, *cluster, *repository, *prNumber, in); err != nil {
 		fmt.Fprintln(os.Stderr, "caliper-ci-report:", err)
 		os.Exit(1)
 	}
@@ -62,9 +74,35 @@ type evaluation struct {
 	report      control.Report
 }
 
-func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) error {
-	if fingerprintPath == "" || cluster == "" || prNumber < 1 {
-		return errors.New("fingerprint, cluster and positive PR number are required")
+type cellFindingMetrics struct {
+	PostureRevision           string                `json:"posture_revision"`
+	Tier                      string                `json:"tier"`
+	FingerprintsEvaluated     int                   `json:"fingerprints_evaluated"`
+	DistinctCells             int                   `json:"distinct_cells"`
+	ExpectationViolationCells int                   `json:"expectation_violation_cells"`
+	ThreeCellCriterionMet     bool                  `json:"three_cell_criterion_met"`
+	CategoryTotals            findingCategoryTotals `json:"category_totals"`
+	Cells                     []cellFindingMetric   `json:"cells"`
+}
+
+type findingCategoryTotals struct {
+	ExpectationViolations int `json:"expectation_violations"`
+	ClaimViolations       int `json:"claim_violations"`
+	UndeclaredExposures   int `json:"undeclared_exposures"`
+}
+
+type cellFindingMetric struct {
+	CellID                        string                `json:"cell_id"`
+	Fingerprint                   string                `json:"fingerprint"`
+	CategoryCounts                findingCategoryTotals `json:"category_counts"`
+	ExpectationViolationsByFamily map[string][]string   `json:"expectation_violations_by_family"`
+	ClaimViolationsByFamily       map[string][]string   `json:"claim_violations_by_family"`
+	UndeclaredExposuresByFamily   map[string][]string   `json:"undeclared_exposures_by_family"`
+}
+
+func runOne(fingerprintPath, cluster, repository string, prNumber int, in inputs) error {
+	if strings.TrimSpace(fingerprintPath) == "" || strings.TrimSpace(cluster) == "" || prNumber < 1 {
+		return errors.New("a fingerprint, its cluster context, and a positive PR number are required")
 	}
 	parts := strings.Split(repository, "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
@@ -77,11 +115,11 @@ func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) e
 
 	measurement, err := readMeasurement(fingerprintPath)
 	if err != nil {
-		return fmt.Errorf("read fingerprint: %w", err)
+		return fmt.Errorf("read fingerprint %q: %w", fingerprintPath, err)
 	}
 	ev, err := evaluate(measurement, in)
 	if err != nil {
-		return err
+		return fmt.Errorf("evaluate cell %q: %w", cluster, err)
 	}
 	body := renderReport(cluster, ev)
 	ctx := context.Background()
@@ -91,6 +129,114 @@ func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) e
 	}
 	fmt.Print(body)
 	return nil
+}
+
+func runCellMetrics(fixturesDir, outputPath string, in inputs) error {
+	paths, err := filepath.Glob(filepath.Join(fixturesDir, "cell[1-6].json"))
+	if err != nil {
+		return fmt.Errorf("list cell fingerprints: %w", err)
+	}
+	if len(paths) != 6 {
+		return fmt.Errorf("cell fixtures directory %s has %d cell1-cell6 fingerprints, want 6", fixturesDir, len(paths))
+	}
+	evaluations := make([]evaluation, 0, len(paths))
+	sources := make([]string, 0, len(paths))
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read cell fingerprint %s: %w", path, err)
+		}
+		fingerprint, err := control.DecodeFingerprint(data)
+		if err != nil {
+			return fmt.Errorf("decode cell fingerprint %s: %w", path, err)
+		}
+		ev, err := evaluate(fingerprint, in)
+		if err != nil {
+			return fmt.Errorf("evaluate cell fingerprint %s: %w", path, err)
+		}
+		evaluations = append(evaluations, ev)
+		sources = append(sources, filepath.Base(path))
+	}
+	metrics, err := buildCellMetrics(evaluations, sources)
+	if err != nil {
+		return err
+	}
+	data, err := json.MarshalIndent(metrics, "", "  ")
+	if err != nil {
+		return fmt.Errorf("encode cell finding metrics: %w", err)
+	}
+	data = append(data, '\n')
+	if outputPath == "" {
+		_, err = os.Stdout.Write(data)
+		return err
+	}
+	if err := os.WriteFile(outputPath, data, 0o644); err != nil {
+		return fmt.Errorf("write cell finding metrics: %w", err)
+	}
+	return nil
+}
+
+func buildCellMetrics(evaluations []evaluation, sources []string) (cellFindingMetrics, error) {
+	if len(evaluations) == 0 || len(evaluations) != len(sources) {
+		return cellFindingMetrics{}, errors.New("cell evaluations and source names must have the same non-zero length")
+	}
+	metrics := cellFindingMetrics{
+		PostureRevision:       evaluations[0].report.Findings.PostureRevision,
+		Tier:                  evaluations[0].report.Findings.Tier,
+		FingerprintsEvaluated: len(evaluations),
+		Cells:                 make([]cellFindingMetric, 0, len(evaluations)),
+	}
+	distinctCells := map[string]struct{}{}
+	expectationCells := map[string]struct{}{}
+	for i, ev := range evaluations {
+		id, err := cellIdentityChecked(ev.fingerprint.Cell)
+		if err != nil {
+			return cellFindingMetrics{}, fmt.Errorf("identify cell in %s: %w", sources[i], err)
+		}
+		distinctCells[id] = struct{}{}
+		findings := ev.report.Findings
+		if len(findings.ExpectationViolations) > 0 {
+			expectationCells[id] = struct{}{}
+		}
+		metrics.CategoryTotals.ExpectationViolations += len(findings.ExpectationViolations)
+		metrics.CategoryTotals.ClaimViolations += len(findings.ClaimViolations)
+		metrics.CategoryTotals.UndeclaredExposures += len(findings.UndeclaredExposures)
+		metrics.Cells = append(metrics.Cells, cellFindingMetric{
+			CellID:      id,
+			Fingerprint: sources[i],
+			CategoryCounts: findingCategoryTotals{
+				ExpectationViolations: len(findings.ExpectationViolations),
+				ClaimViolations:       len(findings.ClaimViolations),
+				UndeclaredExposures:   len(findings.UndeclaredExposures),
+			},
+			ExpectationViolationsByFamily: findingsByFamily(findings.ExpectationViolations),
+			ClaimViolationsByFamily:       findingsByFamily(findings.ClaimViolations),
+			UndeclaredExposuresByFamily:   findingsByFamily(findings.UndeclaredExposures),
+		})
+	}
+	metrics.DistinctCells = len(distinctCells)
+	metrics.ExpectationViolationCells = len(expectationCells)
+	metrics.ThreeCellCriterionMet = metrics.ExpectationViolationCells >= 3
+	return metrics, nil
+}
+
+func cellIdentityChecked(cell control.Cell) (string, error) {
+	// Autoloading can change this list between runs of the same cell.
+	cell.Kernel.Modules = nil
+	data, err := json.Marshal(cell)
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(data)
+	return "cell-" + hex.EncodeToString(digest[:6]), nil
+}
+
+func findingsByFamily(findings []control.Finding) map[string][]string {
+	byFamily := make(map[string][]string)
+	for _, finding := range findings {
+		byFamily[finding.Family] = append(byFamily[finding.Family], finding.ProbeID)
+	}
+	return byFamily
 }
 
 // kubectl logs combines the container's stdout and stderr. The probe prints
