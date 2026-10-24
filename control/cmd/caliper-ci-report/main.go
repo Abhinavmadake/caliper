@@ -35,8 +35,9 @@ import (
 const reportMarker = "<!-- caliper-ci-cell-report -->"
 
 func main() {
-	fingerprintPath := flag.String("fingerprint", "", "path to the target-cluster measurement JSON")
-	cluster := flag.String("cluster", "", "named target cluster context")
+	var fingerprintPaths, clusters stringListFlag
+	flag.Var(&fingerprintPaths, "fingerprint", "path to a target-cluster measurement JSON (repeat for multiple cells)")
+	flag.Var(&clusters, "cluster", "named target cluster context, in the same order as -fingerprint (repeat for multiple cells)")
 	repository := flag.String("repository", "", "GitHub repository in owner/name form")
 	prNumber := flag.Int("pr", 0, "pull request number")
 	in := inputs{}
@@ -46,7 +47,7 @@ func main() {
 	flag.StringVar(&in.tier, "tier", "restricted", "posture tier to evaluate against")
 	flag.Parse()
 
-	if err := run(*fingerprintPath, *cluster, *repository, *prNumber, in); err != nil {
+	if err := runMany(fingerprintPaths, clusters, *repository, *prNumber, in); err != nil {
 		fmt.Fprintln(os.Stderr, "caliper-ci-report:", err)
 		os.Exit(1)
 	}
@@ -62,9 +63,29 @@ type evaluation struct {
 	report      control.Report
 }
 
+type stringListFlag []string
+
+func (values *stringListFlag) String() string { return strings.Join(*values, ",") }
+func (values *stringListFlag) Set(value string) error {
+	*values = append(*values, value)
+	return nil
+}
+
 func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) error {
-	if fingerprintPath == "" || cluster == "" || prNumber < 1 {
-		return errors.New("fingerprint, cluster and positive PR number are required")
+	return runMany([]string{fingerprintPath}, []string{cluster}, repository, prNumber, in)
+}
+
+func runMany(fingerprintPaths, clusters []string, repository string, prNumber int, in inputs) error {
+	if len(fingerprintPaths) == 0 || len(clusters) == 0 || prNumber < 1 {
+		return errors.New("at least one fingerprint, its cluster context, and a positive PR number are required")
+	}
+	if len(fingerprintPaths) != len(clusters) {
+		return errors.New("each -fingerprint must have one corresponding -cluster, in the same order")
+	}
+	for i := range fingerprintPaths {
+		if strings.TrimSpace(fingerprintPaths[i]) == "" || strings.TrimSpace(clusters[i]) == "" {
+			return errors.New("fingerprint paths and cluster contexts cannot be empty")
+		}
 	}
 	parts := strings.Split(repository, "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
@@ -75,15 +96,19 @@ func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) e
 		return errors.New("GITHUB_TOKEN is required to post the PR report")
 	}
 
-	measurement, err := readMeasurement(fingerprintPath)
-	if err != nil {
-		return fmt.Errorf("read fingerprint: %w", err)
+	evaluations := make([]evaluation, 0, len(fingerprintPaths))
+	for i, fingerprintPath := range fingerprintPaths {
+		measurement, err := readMeasurement(fingerprintPath)
+		if err != nil {
+			return fmt.Errorf("read fingerprint %q: %w", fingerprintPath, err)
+		}
+		ev, err := evaluate(measurement, in)
+		if err != nil {
+			return fmt.Errorf("evaluate cell %q: %w", clusters[i], err)
+		}
+		evaluations = append(evaluations, ev)
 	}
-	ev, err := evaluate(measurement, in)
-	if err != nil {
-		return err
-	}
-	body := renderReport(cluster, ev)
+	body := renderReportMany(clusters, evaluations)
 	ctx := context.Background()
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
 	if err := upsertComment(ctx, client, parts[0], parts[1], prNumber, body); err != nil {
@@ -91,6 +116,49 @@ func run(fingerprintPath, cluster, repository string, prNumber int, in inputs) e
 	}
 	fmt.Print(body)
 	return nil
+}
+
+func renderReportMany(clusters []string, evaluations []evaluation) string {
+	if len(evaluations) == 1 && len(clusters) == 1 {
+		return renderReport(clusters[0], evaluations[0])
+	}
+	var b strings.Builder
+	b.WriteString(reportMarker + "\n")
+	b.WriteString("## CALIPER target-cluster evaluation\n\n")
+	violatingCells := map[string]bool{}
+	for i, ev := range evaluations {
+		findings := ev.report.Findings
+		if len(findings.ExpectationViolations) > 0 {
+			violatingCells[clusters[i]] = true
+		}
+	}
+	criterion := "not met"
+	if len(violatingCells) >= 3 {
+		criterion = "met"
+	}
+	fmt.Fprintf(&b, "**Cells evaluated:** %d  \n**Cells with expectation violations:** %d  \n**Three-cell criterion:** %s (requires expectation violations in at least 3 distinct cells)\n\n", len(evaluations), len(violatingCells), criterion)
+	b.WriteString("| Cell | Expectation violations | Claim violations | Undeclared exposures |\n|---|---:|---:|---:|\n")
+	for i, ev := range evaluations {
+		f := ev.report.Findings
+		fmt.Fprintf(&b, "| `%s` | %d | %d | %d |\n", clusters[i], len(f.ExpectationViolations), len(f.ClaimViolations), len(f.UndeclaredExposures))
+	}
+	b.WriteString("\n")
+	for i, ev := range evaluations {
+		fp, findings, attribution := ev.fingerprint, ev.report.Findings, ev.report.Attribution
+		fmt.Fprintf(&b, "### Cell: `%s`\n\n**Architecture:** `%s`  \n**Kernel:** `%s`  \n**Corpus:** `%s` revision `%s`  \n**Posture:** `%s`, tier `%s`, workload `%s/%s`\n\n",
+			clusters[i], fp.Cell.Architecture, fp.Cell.Kernel.Release, fp.CorpusSet, fp.CorpusRevision,
+			findings.PostureRevision, findings.Tier, ev.workload.Kind, ev.workload.Name)
+		writeFindings(&b, "Expectation violations", findings.ExpectationViolations)
+		writeFindings(&b, "Claim violations", findings.ClaimViolations)
+		writeExposures(&b, findings.UndeclaredExposures)
+		if attribution.UndecidableFraction == nil {
+			b.WriteString("Attribution: no denials.\n\n")
+		} else {
+			fmt.Fprintf(&b, "Attribution: undecidable %d/%d denials (%.1f%%).\n\n", attribution.Undecidable, attribution.Denials, *attribution.UndecidableFraction*100)
+		}
+	}
+	b.WriteString(control.AuthorizationNotice + "\n")
+	return b.String()
 }
 
 // kubectl logs combines the container's stdout and stderr. The probe prints
