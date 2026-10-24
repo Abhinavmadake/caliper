@@ -182,9 +182,10 @@ or failure. The cluster must expose the SPO v1 API and allow this user to create
 read, watch, and delete `SeccompProfile` resources. The runner waits for
 `.status.status=Installed` before recording the accepted profile. The underlying
 `control/cmd/caliper-pipeline` writes the per-stage findings, remediation,
-classification and verification artifacts. Verification reports “nothing to
-verify” when the baseline has no expectation findings; otherwise it fails if an
-original expectation finding is missing or does not return denied/killed.
+classification and verification artifacts. Verification reports
+`nothing-to-verify` when the baseline has no expectation findings and lists
+findings the generator could not close as `not-closable`; it fails only if a
+closable finding is missing or does not return denied/killed.
 
 ```bash
 CALIPER_POSTURE_TIER=untrusted-multi-tenant deploy/gce/run-cell2-pipeline.sh
