@@ -303,7 +303,10 @@ func kernelExplains(d Divergence, dependency KernelDependency, left, right Kerne
 		return false, nil
 	}
 	if left.Modules == nil || right.Modules == nil {
-		return false, fmt.Errorf("probe %q declares kernel module %q but a fingerprint has no kernel module list", d.ProbeID, module)
+		// An unavailable module list cannot establish a kernel explanation.
+		// Keep the divergence classifiable; absent evidence falls through to
+		// policy-explained rather than aborting a comparison across cells.
+		return false, nil
 	}
 	return containsModule(*left.Modules, module) != containsModule(*right.Modules, module), nil
 }

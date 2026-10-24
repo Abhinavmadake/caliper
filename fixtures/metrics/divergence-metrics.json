@@ -1,0 +1,164 @@
+{
+  "fingerprints_evaluated": 6,
+  "cell_pairs_compared": 15,
+  "pairs_with_policy_divergence": 14,
+  "four_pair_policy_criterion_met": true,
+  "totals": {
+    "architecture_explained": 5,
+    "kernel_version_explained": 0,
+    "runtime_class_explained": 536,
+    "policy_explained": 516
+  },
+  "pairs": [
+    {
+      "left_fingerprint": "cell1.json",
+      "right_fingerprint": "cell2.json",
+      "counts": {
+        "architecture_explained": 1,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 0,
+        "policy_explained": 0
+      }
+    },
+    {
+      "left_fingerprint": "cell1.json",
+      "right_fingerprint": "cell3.json",
+      "counts": {
+        "architecture_explained": 1,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 0,
+        "policy_explained": 15
+      }
+    },
+    {
+      "left_fingerprint": "cell1.json",
+      "right_fingerprint": "cell4.json",
+      "counts": {
+        "architecture_explained": 1,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 0,
+        "policy_explained": 54
+      }
+    },
+    {
+      "left_fingerprint": "cell1.json",
+      "right_fingerprint": "cell5.json",
+      "counts": {
+        "architecture_explained": 1,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 95,
+        "policy_explained": 20
+      }
+    },
+    {
+      "left_fingerprint": "cell1.json",
+      "right_fingerprint": "cell6.json",
+      "counts": {
+        "architecture_explained": 1,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 26,
+        "policy_explained": 67
+      }
+    },
+    {
+      "left_fingerprint": "cell2.json",
+      "right_fingerprint": "cell3.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 0,
+        "policy_explained": 15
+      }
+    },
+    {
+      "left_fingerprint": "cell2.json",
+      "right_fingerprint": "cell4.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 0,
+        "policy_explained": 54
+      }
+    },
+    {
+      "left_fingerprint": "cell2.json",
+      "right_fingerprint": "cell5.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 95,
+        "policy_explained": 20
+      }
+    },
+    {
+      "left_fingerprint": "cell2.json",
+      "right_fingerprint": "cell6.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 26,
+        "policy_explained": 67
+      }
+    },
+    {
+      "left_fingerprint": "cell3.json",
+      "right_fingerprint": "cell4.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 0,
+        "policy_explained": 69
+      }
+    },
+    {
+      "left_fingerprint": "cell3.json",
+      "right_fingerprint": "cell5.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 84,
+        "policy_explained": 20
+      }
+    },
+    {
+      "left_fingerprint": "cell3.json",
+      "right_fingerprint": "cell6.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 15,
+        "policy_explained": 67
+      }
+    },
+    {
+      "left_fingerprint": "cell4.json",
+      "right_fingerprint": "cell5.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 95,
+        "policy_explained": 21
+      }
+    },
+    {
+      "left_fingerprint": "cell4.json",
+      "right_fingerprint": "cell6.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 26,
+        "policy_explained": 15
+      }
+    },
+    {
+      "left_fingerprint": "cell5.json",
+      "right_fingerprint": "cell6.json",
+      "counts": {
+        "architecture_explained": 0,
+        "kernel_version_explained": 0,
+        "runtime_class_explained": 74,
+        "policy_explained": 12
+      }
+    }
+  ]
+}

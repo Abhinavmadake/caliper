@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -221,16 +220,20 @@ func TestClassifyKernelDependencies(t *testing.T) {
 		assertClass(t, classified, "module-call", PolicyExplained)
 	})
 
-	t.Run("declared module dependency requires known module lists", func(t *testing.T) {
+	t.Run("missing module lists do not explain a declared dependency", func(t *testing.T) {
 		left := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "unimplemented", Errno: 93}})
 		right := fingerprintWithCell("x86_64", "6.8.0", "runc", []ProbeResult{{ProbeID: "module-call", Verdict: "permitted"}})
 		right.Cell.Kernel.Modules = modules("netlink_diag")
-		_, err := Classify(left, right, []ProbeMetadata{{
+		classified, err := Classify(left, right, []ProbeMetadata{{
 			ID: "module-call", Arch: Applicability{All: true},
 			Kernel: KernelDependency{AbsentErrno: intPointer(93), Module: "netlink_diag"},
 		}})
-		if err == nil || !strings.Contains(err.Error(), "no kernel module list") {
-			t.Fatalf("Classify error = %v, want missing module list error", err)
+		if err != nil {
+			t.Fatalf("Classify returned error: %v", err)
+		}
+		assertClass(t, classified, "module-call", PolicyExplained)
+		if classified.Counts.Policy != 1 {
+			t.Fatalf("counts = %#v, want one policy divergence", classified.Counts)
 		}
 	})
 
