@@ -18,6 +18,7 @@ package main
 import (
 	"fmt"
 	"hash/fnv"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -28,28 +29,36 @@ func TestVerifyClosures(t *testing.T) {
 	findings := control.FindingReport{ExpectationViolations: []control.Finding{{ProbeID: "probe.example"}}}
 
 	tests := []struct {
-		name       string
-		findings   control.FindingReport
-		results    []control.ProbeResult
-		wantStatus string
-		wantError  string
+		name        string
+		findings    control.FindingReport
+		results     []control.ProbeResult
+		wantStatus  string
+		wantProbe   string
+		wantError   string
+		notClosable []control.NotClosable
 	}{
 		{
 			name:       "closed probe passes",
 			findings:   findings,
 			results:    []control.ProbeResult{{ProbeID: "probe.example", Verdict: "denied"}},
 			wantStatus: "passed",
+			wantProbe:  "closed",
 		},
 		{
-			name:      "missing probe fails",
-			findings:  findings,
-			wantError: "missing from the post-remediation measurement",
+			name:       "missing probe fails",
+			findings:   findings,
+			wantError:  "missing from the post-remediation measurement",
+			wantStatus: "failed",
+			wantProbe:  "missing",
 		},
 		{
-			name:      "permitted probe fails",
-			findings:  findings,
-			results:   []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
-			wantError: `has verdict "permitted", want denied or killed`,
+			name:        "permitted probe fails",
+			findings:    findings,
+			results:     []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
+			wantError:   `has verdict "permitted", want denied or killed`,
+			wantStatus:  "failed",
+			wantProbe:   "still open",
+			notClosable: []control.NotClosable{{ProbeID: "probe.example", Reason: "argument constraint"}},
 		},
 		{
 			name:       "no findings needs no verification",
@@ -59,27 +68,30 @@ func TestVerifyClosures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := verifyClosures(tt.findings, control.Fingerprint{Results: tt.results})
+			got, err := verifyClosures(tt.findings, control.Fingerprint{Results: tt.results}, tt.notClosable)
 			if tt.wantError != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.wantError) {
 					t.Fatalf("verifyClosures() error = %v, want it to contain %q", err, tt.wantError)
 				}
-				return
-			}
-			if err != nil {
+			} else if err != nil {
 				t.Fatalf("verifyClosures() error = %v", err)
 			}
 			if got.Status != tt.wantStatus {
 				t.Errorf("status = %q, want %q", got.Status, tt.wantStatus)
 			}
 			if tt.name == "no findings needs no verification" {
-				if len(got.CheckedProbes) != 0 {
-					t.Errorf("checked probes = %#v, want none", got.CheckedProbes)
+				if len(got.Probes) != 0 {
+					t.Errorf("probes = %#v, want none", got.Probes)
 				}
 				return
 			}
-			if len(got.CheckedProbes) != 1 || got.CheckedProbes[0] != "probe.example" {
-				t.Errorf("checked probes = %#v, want [probe.example]", got.CheckedProbes)
+			if len(got.Probes) != 1 || got.Probes[0].ProbeID != "probe.example" {
+				t.Errorf("probes = %#v, want one entry for probe.example", got.Probes)
+			} else if got.Probes[0].Status != tt.wantProbe {
+				t.Errorf("probe status = %q, want %q", got.Probes[0].Status, tt.wantProbe)
+			}
+			if !reflect.DeepEqual(got.NotClosable, tt.notClosable) {
+				t.Errorf("not_closable = %#v, want %#v", got.NotClosable, tt.notClosable)
 			}
 		})
 	}
