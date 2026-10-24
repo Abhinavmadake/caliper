@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -70,7 +71,7 @@ func TestEvaluateAndRenderRecordedFixture(t *testing.T) {
 	}
 }
 
-func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
+func TestBuildCellMetricsCountsDistinctExpectationCells(t *testing.T) {
 	expectationFinding := control.Finding{Kind: control.ExpectationViolation, ProbeID: "expectation.probe", Family: "network"}
 	claimFinding := control.Finding{Kind: control.ClaimViolation, ProbeID: "claim.probe", Family: "filesystem"}
 	withExpectation := func(architecture string) evaluation {
@@ -86,46 +87,6 @@ func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
 		report: control.Report{Findings: control.FindingReport{
 			ClaimViolations: []control.Finding{claimFinding},
 		}},
-	}
-
-	tests := []struct {
-		name        string
-		evaluations []evaluation
-		wantCount   string
-		wantStatus  string
-		wantClaim   string
-	}{
-		{
-			name:        "criterion needs three distinct cells with expectation findings",
-			evaluations: []evaluation{withExpectation("cell-a"), withExpectation("cell-b"), claimOnly},
-			wantCount:   "**Cells with expectation violations:** 2",
-			wantStatus:  "**Three-cell criterion:** not met",
-			wantClaim:   "### Claim violations (1)",
-		},
-		{
-			name:        "repeated cell identity does not count twice",
-			evaluations: []evaluation{withExpectation("cell-a"), withExpectation("cell-b"), withExpectation("cell-c"), withExpectation("cell-c")},
-			wantCount:   "**Cells with expectation violations:** 3",
-			wantStatus:  "**Three-cell criterion:** met",
-			wantClaim:   "### Claim violations (0)",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			body := renderReportMany(tt.evaluations)
-			for _, want := range []string{
-				tt.wantCount,
-				tt.wantStatus,
-				"| Cell | Expectation violations | Claim violations | Undeclared exposures |",
-				"### Expectation violations (1)",
-				tt.wantClaim,
-				cellIdentity(tt.evaluations[0].fingerprint.Cell),
-			} {
-				if !strings.Contains(body, want) {
-					t.Errorf("multi-cell report lacks %q", want)
-				}
-			}
-		})
 	}
 
 	metrics, err := buildCellMetrics(
@@ -147,6 +108,12 @@ func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
 	if metrics.Cells[2].CategoryCounts.ClaimViolations != 1 || metrics.Cells[2].CategoryCounts.ExpectationViolations != 0 {
 		t.Errorf("per-cell category counts = %#v, want claim=1 and expectation=0", metrics.Cells[2].CategoryCounts)
 	}
+	if !reflect.DeepEqual(metrics.Cells[2].ClaimViolationsByFamily, map[string][]string{"filesystem": {"claim.probe"}}) {
+		t.Errorf("claim violations by family = %#v, want filesystem claim.probe", metrics.Cells[2].ClaimViolationsByFamily)
+	}
+	if !reflect.DeepEqual(metrics.Cells[0].ExpectationViolationsByFamily, map[string][]string{"network": {"expectation.probe"}}) {
+		t.Errorf("expectation violations by family = %#v, want network expectation.probe", metrics.Cells[0].ExpectationViolationsByFamily)
+	}
 	met, err := buildCellMetrics(
 		[]evaluation{withExpectation("cell-a"), withExpectation("cell-b"), withExpectation("cell-c")},
 		[]string{"cell1.json", "cell2.json", "cell3.json"},
@@ -156,6 +123,44 @@ func TestRenderReportManyCountsDistinctExpectationCells(t *testing.T) {
 	}
 	if !met.ThreeCellCriterionMet || met.ExpectationViolationCells != 3 {
 		t.Errorf("three-cell criterion = %t with %d cells, want true with 3", met.ThreeCellCriterionMet, met.ExpectationViolationCells)
+	}
+}
+
+func TestCellIdentityIgnoresKernelModules(t *testing.T) {
+	modulesA := []string{"overlay", "veth"}
+	modulesB := []string{"overlay", "veth", "nf_tables"}
+	cellA := control.Cell{Architecture: "amd64", Kernel: control.Kernel{Release: "6.12.1", Modules: &modulesA}}
+	cellB := control.Cell{Architecture: "amd64", Kernel: control.Kernel{Release: "6.12.1", Modules: &modulesB}}
+	if gotA, gotB := cellIdentity(cellA), cellIdentity(cellB); gotA != gotB {
+		t.Fatalf("cell identity changed with kernel modules: %s != %s", gotA, gotB)
+	}
+	cellB.Kernel.Release = "6.12.2"
+	if cellIdentity(cellA) == cellIdentity(cellB) {
+		t.Fatal("cell identity ignored kernel release")
+	}
+}
+
+func TestCommittedFindingMetricsMatchRegeneratedFixtures(t *testing.T) {
+	generated := filepath.Join(t.TempDir(), "finding-metrics.json")
+	in := inputs{
+		posture:  "../../../posture/v1/posture.yaml",
+		corpus:   "../../../corpus/index.json",
+		manifest: "../../../deploy/k8s/job.yaml",
+		tier:     "restricted",
+	}
+	if err := runCellMetrics("../../../fixtures/cells", generated, in); err != nil {
+		t.Fatalf("regenerate cell metrics: %v", err)
+	}
+	got, err := os.ReadFile(generated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile("../../../fixtures/metrics/finding-metrics.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatal("committed finding metrics do not match regenerated cell fixtures")
 	}
 }
 

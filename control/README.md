@@ -25,15 +25,17 @@ SARIF remains deferred.
 Run from `control/` to regenerate the six-cell metric:
 
 ```sh
-go run ./cmd/caliper-ci-report -cell-fixtures ../fixtures/cells -metrics-out finding-metrics.json
+go run ./cmd/caliper-ci-report -cell-fixtures ../fixtures/cells -metrics-out ../fixtures/metrics/finding-metrics.json
 ```
 
 The command evaluates the six committed GCE fingerprints against the selected
-posture and workload. Its report includes expectation, claim, and
-undeclared-exposure findings per cell and in total, plus the count of distinct
-cells with expectation violations and whether the three-cell criterion is met.
-Cell IDs are derived from each fingerprint's cell identity; the fingerprint
-filename is retained as the source.
+posture and workload. The committed report contains totals and per-cell counts
+with probe IDs grouped by family for expectation, claim, and undeclared
+exposure findings. It also records the count of distinct cells with expectation
+violations and whether the three-cell criterion is met. Cell IDs are derived
+from the fingerprint cell identity, excluding kernel modules, and the
+fingerprint filename is retained as the source. A test regenerates this report
+from `fixtures/cells/` and compares it with the committed file.
 
 Attribution is an optional refinement of the raw reachability measurement.
 `Attribute` assigns every result one confidence grade: **high** for a positive

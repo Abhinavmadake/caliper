@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// caliper-ci-report evaluates either a target-cluster measurement for a pull
-// request comment or the committed cell fingerprints for the six-cell metric.
+// caliper-ci-report evaluates a target-cluster measurement for a pull request
+// comment or the committed cell fingerprints for the six-cell metric.
 package main
 
 import (
@@ -38,9 +38,8 @@ import (
 const reportMarker = "<!-- caliper-ci-cell-report -->"
 
 func main() {
-	var fingerprintPaths, clusters stringListFlag
-	flag.Var(&fingerprintPaths, "fingerprint", "path to a target-cluster measurement JSON (repeat for multiple cells)")
-	flag.Var(&clusters, "cluster", "named target cluster context, in the same order as -fingerprint (repeat for multiple cells)")
+	fingerprintPath := flag.String("fingerprint", "", "path to a target-cluster measurement JSON")
+	cluster := flag.String("cluster", "", "named target cluster context")
 	cellFixtures := flag.String("cell-fixtures", "", "directory of committed cellN.json fingerprints for the six-cell metric")
 	metricsOut := flag.String("metrics-out", "", "write the six-cell finding metric JSON to this path")
 	repository := flag.String("repository", "", "GitHub repository in owner/name form")
@@ -59,7 +58,7 @@ func main() {
 		}
 		return
 	}
-	if err := runMany(fingerprintPaths, clusters, *repository, *prNumber, in); err != nil {
+	if err := runOne(*fingerprintPath, *cluster, *repository, *prNumber, in); err != nil {
 		fmt.Fprintln(os.Stderr, "caliper-ci-report:", err)
 		os.Exit(1)
 	}
@@ -93,34 +92,17 @@ type findingCategoryTotals struct {
 }
 
 type cellFindingMetric struct {
-	CellID                string                `json:"cell_id"`
-	Fingerprint           string                `json:"fingerprint"`
-	Cell                  control.Cell          `json:"cell"`
-	CategoryCounts        findingCategoryTotals `json:"category_counts"`
-	ExpectationViolations []control.Finding     `json:"expectation_violations"`
-	ClaimViolations       []control.Finding     `json:"claim_violations"`
-	UndeclaredExposures   []control.Finding     `json:"undeclared_exposures"`
+	CellID                        string                `json:"cell_id"`
+	Fingerprint                   string                `json:"fingerprint"`
+	CategoryCounts                findingCategoryTotals `json:"category_counts"`
+	ExpectationViolationsByFamily map[string][]string   `json:"expectation_violations_by_family"`
+	ClaimViolationsByFamily       map[string][]string   `json:"claim_violations_by_family"`
+	UndeclaredExposuresByFamily   map[string][]string   `json:"undeclared_exposures_by_family"`
 }
 
-type stringListFlag []string
-
-func (values *stringListFlag) String() string { return strings.Join(*values, ",") }
-func (values *stringListFlag) Set(value string) error {
-	*values = append(*values, value)
-	return nil
-}
-
-func runMany(fingerprintPaths, clusters []string, repository string, prNumber int, in inputs) error {
-	if len(fingerprintPaths) == 0 || len(clusters) == 0 || prNumber < 1 {
-		return errors.New("at least one fingerprint, its cluster context, and a positive PR number are required")
-	}
-	if len(fingerprintPaths) != len(clusters) {
-		return errors.New("each -fingerprint must have one corresponding -cluster, in the same order")
-	}
-	for i := range fingerprintPaths {
-		if strings.TrimSpace(fingerprintPaths[i]) == "" || strings.TrimSpace(clusters[i]) == "" {
-			return errors.New("fingerprint paths and cluster contexts cannot be empty")
-		}
+func runOne(fingerprintPath, cluster, repository string, prNumber int, in inputs) error {
+	if strings.TrimSpace(fingerprintPath) == "" || strings.TrimSpace(cluster) == "" || prNumber < 1 {
+		return errors.New("a fingerprint, its cluster context, and a positive PR number are required")
 	}
 	parts := strings.Split(repository, "/")
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
@@ -131,24 +113,15 @@ func runMany(fingerprintPaths, clusters []string, repository string, prNumber in
 		return errors.New("GITHUB_TOKEN is required to post the PR report")
 	}
 
-	evaluations := make([]evaluation, 0, len(fingerprintPaths))
-	for i, fingerprintPath := range fingerprintPaths {
-		measurement, err := readMeasurement(fingerprintPath)
-		if err != nil {
-			return fmt.Errorf("read fingerprint %q: %w", fingerprintPath, err)
-		}
-		ev, err := evaluate(measurement, in)
-		if err != nil {
-			return fmt.Errorf("evaluate cell %q: %w", clusters[i], err)
-		}
-		evaluations = append(evaluations, ev)
+	measurement, err := readMeasurement(fingerprintPath)
+	if err != nil {
+		return fmt.Errorf("read fingerprint %q: %w", fingerprintPath, err)
 	}
-	var body string
-	if len(evaluations) == 1 {
-		body = renderReport(clusters[0], evaluations[0])
-	} else {
-		body = renderReportMany(evaluations)
+	ev, err := evaluate(measurement, in)
+	if err != nil {
+		return fmt.Errorf("evaluate cell %q: %w", cluster, err)
 	}
+	body := renderReport(cluster, ev)
 	ctx := context.Background()
 	client := github.NewClient(oauth2.NewClient(ctx, oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
 	if err := upsertComment(ctx, client, parts[0], parts[1], prNumber, body); err != nil {
@@ -231,15 +204,14 @@ func buildCellMetrics(evaluations []evaluation, sources []string) (cellFindingMe
 		metrics.Cells = append(metrics.Cells, cellFindingMetric{
 			CellID:      id,
 			Fingerprint: sources[i],
-			Cell:        ev.fingerprint.Cell,
 			CategoryCounts: findingCategoryTotals{
 				ExpectationViolations: len(findings.ExpectationViolations),
 				ClaimViolations:       len(findings.ClaimViolations),
 				UndeclaredExposures:   len(findings.UndeclaredExposures),
 			},
-			ExpectationViolations: findings.ExpectationViolations,
-			ClaimViolations:       findings.ClaimViolations,
-			UndeclaredExposures:   findings.UndeclaredExposures,
+			ExpectationViolationsByFamily: findingsByFamily(findings.ExpectationViolations),
+			ClaimViolationsByFamily:       findingsByFamily(findings.ClaimViolations),
+			UndeclaredExposuresByFamily:   findingsByFamily(findings.UndeclaredExposures),
 		})
 	}
 	metrics.DistinctCells = len(distinctCells)
@@ -248,14 +220,15 @@ func buildCellMetrics(evaluations []evaluation, sources []string) (cellFindingMe
 	return metrics, nil
 }
 
-// cellIdentity hashes the complete cell object so the identifier stays tied
-// to measured cell properties instead of a cluster context or fingerprint digest.
+// cellIdentity excludes kernel modules because autoloading can change that
+// list between runs of the same cell.
 func cellIdentity(cell control.Cell) string {
 	identity, _ := cellIdentityChecked(cell)
 	return identity
 }
 
 func cellIdentityChecked(cell control.Cell) (string, error) {
+	cell.Kernel.Modules = nil
 	data, err := json.Marshal(cell)
 	if err != nil {
 		return "", err
@@ -264,46 +237,12 @@ func cellIdentityChecked(cell control.Cell) (string, error) {
 	return "cell-" + hex.EncodeToString(digest[:6]), nil
 }
 
-func renderReportMany(evaluations []evaluation) string {
-	var b strings.Builder
-	b.WriteString(reportMarker + "\n")
-	b.WriteString("## CALIPER target-cluster evaluation\n\n")
-	violatingCells := map[string]bool{}
-	cellIDs := make([]string, len(evaluations))
-	for i, ev := range evaluations {
-		cellIDs[i] = cellIdentity(ev.fingerprint.Cell)
-		findings := ev.report.Findings
-		if len(findings.ExpectationViolations) > 0 {
-			violatingCells[cellIDs[i]] = true
-		}
+func findingsByFamily(findings []control.Finding) map[string][]string {
+	byFamily := make(map[string][]string)
+	for _, finding := range findings {
+		byFamily[finding.Family] = append(byFamily[finding.Family], finding.ProbeID)
 	}
-	criterion := "not met"
-	if len(violatingCells) >= 3 {
-		criterion = "met"
-	}
-	fmt.Fprintf(&b, "**Cells evaluated:** %d  \n**Cells with expectation violations:** %d  \n**Three-cell criterion:** %s (requires expectation violations in at least 3 distinct cells)\n\n", len(evaluations), len(violatingCells), criterion)
-	b.WriteString("| Cell | Expectation violations | Claim violations | Undeclared exposures |\n|---|---:|---:|---:|\n")
-	for i, ev := range evaluations {
-		f := ev.report.Findings
-		fmt.Fprintf(&b, "| `%s` | %d | %d | %d |\n", cellIDs[i], len(f.ExpectationViolations), len(f.ClaimViolations), len(f.UndeclaredExposures))
-	}
-	b.WriteString("\n")
-	for i, ev := range evaluations {
-		fp, findings, attribution := ev.fingerprint, ev.report.Findings, ev.report.Attribution
-		fmt.Fprintf(&b, "### Cell: `%s`\n\n**Architecture:** `%s`  \n**Kernel:** `%s`  \n**Corpus:** `%s` revision `%s`  \n**Posture:** `%s`, tier `%s`, workload `%s/%s`\n\n",
-			cellIDs[i], fp.Cell.Architecture, fp.Cell.Kernel.Release, fp.CorpusSet, fp.CorpusRevision,
-			findings.PostureRevision, findings.Tier, ev.workload.Kind, ev.workload.Name)
-		writeFindings(&b, "Expectation violations", findings.ExpectationViolations)
-		writeFindings(&b, "Claim violations", findings.ClaimViolations)
-		writeExposures(&b, findings.UndeclaredExposures)
-		if attribution.UndecidableFraction == nil {
-			b.WriteString("Attribution: no denials.\n\n")
-		} else {
-			fmt.Fprintf(&b, "Attribution: undecidable %d/%d denials (%.1f%%).\n\n", attribution.Undecidable, attribution.Denials, *attribution.UndecidableFraction*100)
-		}
-	}
-	b.WriteString(control.AuthorizationNotice + "\n")
-	return b.String()
+	return byFamily
 }
 
 // kubectl logs combines the container's stdout and stderr. The probe prints

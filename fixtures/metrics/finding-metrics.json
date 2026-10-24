@@ -1,0 +1,576 @@
+{
+  "posture_revision": "v1",
+  "tier": "restricted",
+  "fingerprints_evaluated": 6,
+  "distinct_cells": 6,
+  "expectation_violation_cells": 3,
+  "three_cell_criterion_met": true,
+  "category_totals": {
+    "expectation_violations": 108,
+    "claim_violations": 3,
+    "undeclared_exposures": 282
+  },
+  "cells": [
+    {
+      "cell_id": "cell-9cea34c83479",
+      "fingerprint": "cell1.json",
+      "category_counts": {
+        "expectation_violations": 0,
+        "claim_violations": 0,
+        "undeclared_exposures": 53
+      },
+      "expectation_violations_by_family": {},
+      "claim_violations_by_family": {},
+      "undeclared_exposures_by_family": {
+        "capability": [
+          "capability.net_bind_service"
+        ],
+        "device": [
+          "device.open.null"
+        ],
+        "mount": [
+          "mount.type.autofs",
+          "mount.type.binfmt_misc",
+          "mount.type.bpf",
+          "mount.type.cgroup",
+          "mount.type.cgroup2",
+          "mount.type.configfs",
+          "mount.type.debugfs",
+          "mount.type.devpts",
+          "mount.type.devtmpfs",
+          "mount.type.ecryptfs",
+          "mount.type.efivarfs",
+          "mount.type.ext4",
+          "mount.type.fuse",
+          "mount.type.fusectl",
+          "mount.type.hugetlbfs",
+          "mount.type.mqueue",
+          "mount.type.overlay",
+          "mount.type.proc",
+          "mount.type.pstore",
+          "mount.type.securityfs",
+          "mount.type.squashfs",
+          "mount.type.sysfs",
+          "mount.type.tmpfs",
+          "mount.type.tracefs",
+          "mount.type.vfat"
+        ],
+        "netlink": [
+          "netlink.protocol.audit",
+          "netlink.protocol.connector",
+          "netlink.protocol.crypto",
+          "netlink.protocol.fib_lookup",
+          "netlink.protocol.generic",
+          "netlink.protocol.iscsi",
+          "netlink.protocol.kobject_uevent",
+          "netlink.protocol.netfilter",
+          "netlink.protocol.out_of_range",
+          "netlink.protocol.rdma",
+          "netlink.protocol.route",
+          "netlink.protocol.scsitransport",
+          "netlink.protocol.sock_diag",
+          "netlink.protocol.usersock",
+          "netlink.protocol.xfrm"
+        ],
+        "path": [
+          "path.control.proc_self_status"
+        ],
+        "socket": [
+          "socket.family.af_alg",
+          "socket.family.af_can",
+          "socket.family.af_inet",
+          "socket.family.af_inet6",
+          "socket.family.af_kcm",
+          "socket.family.af_mctp",
+          "socket.family.af_rxrpc",
+          "socket.family.af_smc",
+          "socket.family.af_unix",
+          "socket.family.out_of_range"
+        ]
+      }
+    },
+    {
+      "cell_id": "cell-f8eb92658544",
+      "fingerprint": "cell2.json",
+      "category_counts": {
+        "expectation_violations": 0,
+        "claim_violations": 0,
+        "undeclared_exposures": 53
+      },
+      "expectation_violations_by_family": {},
+      "claim_violations_by_family": {},
+      "undeclared_exposures_by_family": {
+        "capability": [
+          "capability.net_bind_service"
+        ],
+        "device": [
+          "device.open.null"
+        ],
+        "mount": [
+          "mount.type.autofs",
+          "mount.type.binfmt_misc",
+          "mount.type.bpf",
+          "mount.type.cgroup",
+          "mount.type.cgroup2",
+          "mount.type.configfs",
+          "mount.type.debugfs",
+          "mount.type.devpts",
+          "mount.type.devtmpfs",
+          "mount.type.ecryptfs",
+          "mount.type.efivarfs",
+          "mount.type.ext4",
+          "mount.type.fuse",
+          "mount.type.fusectl",
+          "mount.type.hugetlbfs",
+          "mount.type.mqueue",
+          "mount.type.overlay",
+          "mount.type.proc",
+          "mount.type.pstore",
+          "mount.type.securityfs",
+          "mount.type.squashfs",
+          "mount.type.sysfs",
+          "mount.type.tmpfs",
+          "mount.type.tracefs",
+          "mount.type.vfat"
+        ],
+        "netlink": [
+          "netlink.protocol.audit",
+          "netlink.protocol.connector",
+          "netlink.protocol.crypto",
+          "netlink.protocol.fib_lookup",
+          "netlink.protocol.generic",
+          "netlink.protocol.iscsi",
+          "netlink.protocol.kobject_uevent",
+          "netlink.protocol.netfilter",
+          "netlink.protocol.out_of_range",
+          "netlink.protocol.rdma",
+          "netlink.protocol.route",
+          "netlink.protocol.scsitransport",
+          "netlink.protocol.sock_diag",
+          "netlink.protocol.usersock",
+          "netlink.protocol.xfrm"
+        ],
+        "path": [
+          "path.control.proc_self_status"
+        ],
+        "socket": [
+          "socket.family.af_alg",
+          "socket.family.af_can",
+          "socket.family.af_inet",
+          "socket.family.af_inet6",
+          "socket.family.af_kcm",
+          "socket.family.af_mctp",
+          "socket.family.af_rxrpc",
+          "socket.family.af_smc",
+          "socket.family.af_unix",
+          "socket.family.out_of_range"
+        ]
+      }
+    },
+    {
+      "cell_id": "cell-7cc89a1e2619",
+      "fingerprint": "cell3.json",
+      "category_counts": {
+        "expectation_violations": 0,
+        "claim_violations": 0,
+        "undeclared_exposures": 44
+      },
+      "expectation_violations_by_family": {},
+      "claim_violations_by_family": {},
+      "undeclared_exposures_by_family": {
+        "capability": [
+          "capability.net_bind_service"
+        ],
+        "device": [
+          "device.open.null"
+        ],
+        "mount": [
+          "mount.type.autofs",
+          "mount.type.bpf",
+          "mount.type.cgroup",
+          "mount.type.cgroup2",
+          "mount.type.configfs",
+          "mount.type.debugfs",
+          "mount.type.devpts",
+          "mount.type.devtmpfs",
+          "mount.type.efivarfs",
+          "mount.type.fuse",
+          "mount.type.fusectl",
+          "mount.type.hugetlbfs",
+          "mount.type.mqueue",
+          "mount.type.overlay",
+          "mount.type.proc",
+          "mount.type.pstore",
+          "mount.type.securityfs",
+          "mount.type.sysfs",
+          "mount.type.tmpfs",
+          "mount.type.tracefs",
+          "mount.type.vfat",
+          "mount.type.xfs"
+        ],
+        "netlink": [
+          "netlink.protocol.audit",
+          "netlink.protocol.connector",
+          "netlink.protocol.crypto",
+          "netlink.protocol.fib_lookup",
+          "netlink.protocol.generic",
+          "netlink.protocol.kobject_uevent",
+          "netlink.protocol.netfilter",
+          "netlink.protocol.out_of_range",
+          "netlink.protocol.route",
+          "netlink.protocol.scsitransport",
+          "netlink.protocol.selinux",
+          "netlink.protocol.sock_diag",
+          "netlink.protocol.usersock",
+          "netlink.protocol.xfrm"
+        ],
+        "path": [
+          "path.control.proc_self_status"
+        ],
+        "socket": [
+          "socket.family.af_alg",
+          "socket.family.af_inet",
+          "socket.family.af_inet6",
+          "socket.family.af_unix",
+          "socket.family.out_of_range"
+        ]
+      }
+    },
+    {
+      "cell_id": "cell-8485ae9dcb52",
+      "fingerprint": "cell4.json",
+      "category_counts": {
+        "expectation_violations": 53,
+        "claim_violations": 0,
+        "undeclared_exposures": 52
+      },
+      "expectation_violations_by_family": {
+        "io_uring": [
+          "io_uring.opcode.accept",
+          "io_uring.opcode.bind",
+          "io_uring.opcode.close",
+          "io_uring.opcode.connect",
+          "io_uring.opcode.epoll_ctl",
+          "io_uring.opcode.fadvise",
+          "io_uring.opcode.fallocate",
+          "io_uring.opcode.fgetxattr",
+          "io_uring.opcode.fixed_fd_install",
+          "io_uring.opcode.fsetxattr",
+          "io_uring.opcode.fsync",
+          "io_uring.opcode.ftruncate",
+          "io_uring.opcode.futex_wait",
+          "io_uring.opcode.futex_waitv",
+          "io_uring.opcode.futex_wake",
+          "io_uring.opcode.getxattr",
+          "io_uring.opcode.linkat",
+          "io_uring.opcode.listen",
+          "io_uring.opcode.madvise",
+          "io_uring.opcode.mkdirat",
+          "io_uring.opcode.msg_ring",
+          "io_uring.opcode.nop",
+          "io_uring.opcode.openat",
+          "io_uring.opcode.openat2",
+          "io_uring.opcode.poll_add",
+          "io_uring.opcode.read",
+          "io_uring.opcode.read_fixed",
+          "io_uring.opcode.read_multishot",
+          "io_uring.opcode.readv",
+          "io_uring.opcode.recv",
+          "io_uring.opcode.recvmsg",
+          "io_uring.opcode.renameat",
+          "io_uring.opcode.send",
+          "io_uring.opcode.send_zc",
+          "io_uring.opcode.sendmsg",
+          "io_uring.opcode.sendmsg_zc",
+          "io_uring.opcode.setxattr",
+          "io_uring.opcode.shutdown",
+          "io_uring.opcode.socket",
+          "io_uring.opcode.splice",
+          "io_uring.opcode.statx",
+          "io_uring.opcode.symlinkat",
+          "io_uring.opcode.sync_file_range",
+          "io_uring.opcode.tee",
+          "io_uring.opcode.timeout",
+          "io_uring.opcode.unlinkat",
+          "io_uring.opcode.uring_cmd",
+          "io_uring.opcode.waitid",
+          "io_uring.opcode.write",
+          "io_uring.opcode.write_fixed",
+          "io_uring.opcode.writev",
+          "io_uring.register.probe",
+          "io_uring.setup.zero_entries"
+        ]
+      },
+      "claim_violations_by_family": {},
+      "undeclared_exposures_by_family": {
+        "device": [
+          "device.open.null"
+        ],
+        "mount": [
+          "mount.type.autofs",
+          "mount.type.binfmt_misc",
+          "mount.type.bpf",
+          "mount.type.cgroup",
+          "mount.type.cgroup2",
+          "mount.type.configfs",
+          "mount.type.debugfs",
+          "mount.type.devpts",
+          "mount.type.devtmpfs",
+          "mount.type.ecryptfs",
+          "mount.type.efivarfs",
+          "mount.type.ext4",
+          "mount.type.fuse",
+          "mount.type.fusectl",
+          "mount.type.hugetlbfs",
+          "mount.type.mqueue",
+          "mount.type.overlay",
+          "mount.type.proc",
+          "mount.type.pstore",
+          "mount.type.securityfs",
+          "mount.type.squashfs",
+          "mount.type.sysfs",
+          "mount.type.tmpfs",
+          "mount.type.tracefs",
+          "mount.type.vfat"
+        ],
+        "netlink": [
+          "netlink.protocol.audit",
+          "netlink.protocol.connector",
+          "netlink.protocol.crypto",
+          "netlink.protocol.fib_lookup",
+          "netlink.protocol.generic",
+          "netlink.protocol.iscsi",
+          "netlink.protocol.kobject_uevent",
+          "netlink.protocol.netfilter",
+          "netlink.protocol.out_of_range",
+          "netlink.protocol.rdma",
+          "netlink.protocol.route",
+          "netlink.protocol.scsitransport",
+          "netlink.protocol.sock_diag",
+          "netlink.protocol.usersock",
+          "netlink.protocol.xfrm"
+        ],
+        "path": [
+          "path.control.proc_self_status"
+        ],
+        "socket": [
+          "socket.family.af_alg",
+          "socket.family.af_can",
+          "socket.family.af_inet",
+          "socket.family.af_inet6",
+          "socket.family.af_kcm",
+          "socket.family.af_mctp",
+          "socket.family.af_rxrpc",
+          "socket.family.af_smc",
+          "socket.family.af_unix",
+          "socket.family.out_of_range"
+        ]
+      }
+    },
+    {
+      "cell_id": "cell-aa5ce1df0ae8",
+      "fingerprint": "cell5.json",
+      "category_counts": {
+        "expectation_violations": 1,
+        "claim_violations": 3,
+        "undeclared_exposures": 33
+      },
+      "expectation_violations_by_family": {
+        "device": [
+          "device.open.fuse"
+        ]
+      },
+      "claim_violations_by_family": {
+        "capability": [
+          "capability.sys_nice"
+        ],
+        "clone": [
+          "clone.flags.newns",
+          "unshare.flags.newtime"
+        ]
+      },
+      "undeclared_exposures_by_family": {
+        "capability": [
+          "capability.net_bind_service"
+        ],
+        "clone": [
+          "clone.flags.newuser",
+          "clone.flags.newuser_newnet",
+          "clone3.args.short",
+          "unshare.flags.invalid",
+          "unshare.flags.newuser",
+          "unshare.flags.newuser_newnet"
+        ],
+        "device": [
+          "device.open.net_tun",
+          "device.open.null"
+        ],
+        "mount": [
+          "mount.type.9p",
+          "mount.type.cgroup",
+          "mount.type.devpts",
+          "mount.type.devtmpfs",
+          "mount.type.fuse",
+          "mount.type.mqueue",
+          "mount.type.overlay",
+          "mount.type.proc",
+          "mount.type.sysfs",
+          "mount.type.tmpfs"
+        ],
+        "netlink": [
+          "netlink.protocol.kobject_uevent",
+          "netlink.protocol.out_of_range",
+          "netlink.protocol.route"
+        ],
+        "path": [
+          "path.control.proc_self_status",
+          "path.masked.sys_firmware",
+          "path.readonly.proc_bus",
+          "path.readonly.proc_fs",
+          "path.readonly.proc_irq",
+          "path.readonly.proc_sys",
+          "path.readonly.proc_sysrq_trigger"
+        ],
+        "socket": [
+          "socket.family.af_inet",
+          "socket.family.af_inet6",
+          "socket.family.af_unix",
+          "socket.family.out_of_range"
+        ]
+      }
+    },
+    {
+      "cell_id": "cell-22ca76741543",
+      "fingerprint": "cell6.json",
+      "category_counts": {
+        "expectation_violations": 54,
+        "claim_violations": 0,
+        "undeclared_exposures": 47
+      },
+      "expectation_violations_by_family": {
+        "io_uring": [
+          "io_uring.opcode.accept",
+          "io_uring.opcode.bind",
+          "io_uring.opcode.close",
+          "io_uring.opcode.connect",
+          "io_uring.opcode.epoll_ctl",
+          "io_uring.opcode.fadvise",
+          "io_uring.opcode.fallocate",
+          "io_uring.opcode.fgetxattr",
+          "io_uring.opcode.fixed_fd_install",
+          "io_uring.opcode.fsetxattr",
+          "io_uring.opcode.fsync",
+          "io_uring.opcode.ftruncate",
+          "io_uring.opcode.futex_wait",
+          "io_uring.opcode.futex_waitv",
+          "io_uring.opcode.futex_wake",
+          "io_uring.opcode.getxattr",
+          "io_uring.opcode.linkat",
+          "io_uring.opcode.listen",
+          "io_uring.opcode.madvise",
+          "io_uring.opcode.mkdirat",
+          "io_uring.opcode.msg_ring",
+          "io_uring.opcode.nop",
+          "io_uring.opcode.openat",
+          "io_uring.opcode.openat2",
+          "io_uring.opcode.poll_add",
+          "io_uring.opcode.read",
+          "io_uring.opcode.read_fixed",
+          "io_uring.opcode.read_multishot",
+          "io_uring.opcode.readv",
+          "io_uring.opcode.recv",
+          "io_uring.opcode.recvmsg",
+          "io_uring.opcode.renameat",
+          "io_uring.opcode.send",
+          "io_uring.opcode.send_zc",
+          "io_uring.opcode.sendmsg",
+          "io_uring.opcode.sendmsg_zc",
+          "io_uring.opcode.setxattr",
+          "io_uring.opcode.shutdown",
+          "io_uring.opcode.socket",
+          "io_uring.opcode.splice",
+          "io_uring.opcode.statx",
+          "io_uring.opcode.symlinkat",
+          "io_uring.opcode.sync_file_range",
+          "io_uring.opcode.tee",
+          "io_uring.opcode.timeout",
+          "io_uring.opcode.unlinkat",
+          "io_uring.opcode.uring_cmd",
+          "io_uring.opcode.waitid",
+          "io_uring.opcode.write",
+          "io_uring.opcode.write_fixed",
+          "io_uring.opcode.writev",
+          "io_uring.register.probe",
+          "io_uring.setup.zero_entries"
+        ],
+        "mount": [
+          "mount.reach"
+        ]
+      },
+      "claim_violations_by_family": {},
+      "undeclared_exposures_by_family": {
+        "capability": [
+          "capability.net_bind_service"
+        ],
+        "clone": [
+          "clone.flags.newuser",
+          "clone.flags.newuser_newnet",
+          "clone3.args.short",
+          "unshare.flags.invalid",
+          "unshare.flags.newuser",
+          "unshare.flags.newuser_newnet"
+        ],
+        "device": [
+          "device.open.null"
+        ],
+        "mount": [
+          "mount.type.9p",
+          "mount.type.autofs",
+          "mount.type.binfmt_misc",
+          "mount.type.bpf",
+          "mount.type.cgroup",
+          "mount.type.cgroup2",
+          "mount.type.devpts",
+          "mount.type.devtmpfs",
+          "mount.type.ext4",
+          "mount.type.fuse",
+          "mount.type.fusectl",
+          "mount.type.hugetlbfs",
+          "mount.type.mqueue",
+          "mount.type.overlay",
+          "mount.type.proc",
+          "mount.type.sysfs",
+          "mount.type.tmpfs",
+          "mount.type.virtiofs",
+          "mount.type.xfs"
+        ],
+        "netlink": [
+          "netlink.protocol.audit",
+          "netlink.protocol.fib_lookup",
+          "netlink.protocol.generic",
+          "netlink.protocol.kobject_uevent",
+          "netlink.protocol.netfilter",
+          "netlink.protocol.out_of_range",
+          "netlink.protocol.route",
+          "netlink.protocol.selinux",
+          "netlink.protocol.sock_diag",
+          "netlink.protocol.usersock",
+          "netlink.protocol.xfrm"
+        ],
+        "path": [
+          "path.control.proc_self_status",
+          "path.masked.proc_acpi",
+          "path.masked.sys_firmware"
+        ],
+        "socket": [
+          "socket.family.af_alg",
+          "socket.family.af_inet",
+          "socket.family.af_inet6",
+          "socket.family.af_unix",
+          "socket.family.af_vsock",
+          "socket.family.out_of_range"
+        ]
+      }
+    }
+  ]
+}
