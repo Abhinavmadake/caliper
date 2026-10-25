@@ -16,6 +16,7 @@
 package control
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -54,6 +55,10 @@ func EvaluateFindings(fingerprint Fingerprint, workload ManifestWorkload, tier s
 	if _, err := resultsByID(fingerprint.Results); err != nil {
 		return FindingReport{}, err
 	}
+	loadedByRun, err := modulesLoadedByRun(fingerprint)
+	if err != nil {
+		return FindingReport{}, err
+	}
 
 	report := FindingReport{
 		PostureRevision:       posture.Revision,
@@ -83,6 +88,7 @@ func EvaluateFindings(fingerprint Fingerprint, workload ManifestWorkload, tier s
 			expectationFinding.Kind = ExpectationViolation
 			expectationFinding.Reason = assertion.Rationale
 			expectationFinding.Citations = append([]PostureCitation(nil), assertion.Citations...)
+			expectationFinding.Modules = moduleStates(fingerprint, loadedByRun, probe.Kernel)
 			if err := expectationFinding.Validate(); err != nil {
 				return FindingReport{}, fmt.Errorf("invalid expectation finding for %q: %w", result.ProbeID, err)
 			}
@@ -111,6 +117,35 @@ func EvaluateFindings(fingerprint Fingerprint, workload ManifestWorkload, tier s
 	sortFindings(report.ClaimViolations)
 	sortFindings(report.UndeclaredExposures)
 	return report, nil
+}
+
+func moduleStates(fingerprint Fingerprint, loadedByRun []string, dependency KernelDependency) []ModuleState {
+	var states []ModuleState
+	for _, module := range []string{dependency.Module, dependency.ProtocolModule} {
+		if module == "" {
+			continue
+		}
+		state := ModuleState{Name: module, LoadedByRun: containsModule(loadedByRun, module)}
+		if fingerprint.Cell.Kernel.Modules != nil {
+			before := containsModule(*fingerprint.Cell.Kernel.Modules, module)
+			state.LoadedBefore = &before
+		}
+		states = append(states, state)
+	}
+	return states
+}
+
+func modulesLoadedByRun(fingerprint Fingerprint) ([]string, error) {
+	if len(fingerprint.ModuleDelta) == 0 {
+		return nil, nil
+	}
+	var delta struct {
+		LoadedByRun []string `json:"loaded_by_run"`
+	}
+	if err := json.Unmarshal(fingerprint.ModuleDelta, &delta); err != nil {
+		return nil, fmt.Errorf("decode module_delta: %w", err)
+	}
+	return delta.LoadedByRun, nil
 }
 
 func sortFindings(findings []Finding) {
