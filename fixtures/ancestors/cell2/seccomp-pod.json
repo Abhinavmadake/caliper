@@ -1,0 +1,1 @@
+{"metadata":{"name":"issue47-seccomp-target","namespace":"caliper","uid":"b12fa9e8-43ca-45d0-8c8c-02de40be34a4","attempt":0},"log_directory":"/var/tmp/issue47-seccomp-target/logs","linux":{"security_context":{"namespace_options":{"network":0,"pid":1,"ipc":0},"seccomp":{"profile_type":0}}}}

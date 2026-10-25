@@ -2,9 +2,11 @@
 
 ## Scope and method
 
-This comparison uses one live target on `caliper-cell2` in `asia-south1-a`.
-CALIPER, `amicontained`, and `seccomp-diff` inspected the same long-lived
-container. Its OCI image was BusyBox 1.36.1
+This comparison uses a target on `caliper-cell2` in `asia-south1-a`.
+CALIPER and `amicontained` inspected the same long-lived container. After the
+cell was restarted, `seccomp-diff` captured the filter from a fresh BusyBox
+container with the same image and CRI security settings. Its OCI image was
+BusyBox 1.36.1
 (`sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662`).
 The CALIPER probe binary came from the committed probe image
 `ghcr.io/abhinavmadake/caliper@sha256:9be163f1b987f8563f9d71114d6a025d9335b9627cdafc4676da2b327da3f969`.
@@ -16,8 +18,11 @@ containerd AppArmor profile, kubelet's masked and read-only paths, and an
 isolated PID namespace. CALIPER ran its probe in that container;
 `amicontained` ran there as well; `seccomp-diff` attached from the host to the
 container's init process to extract its active seccomp-BPF filter. The
-container's filter had default action `SCMP_ACT_ERRNO`; syscalls not matched by
-an allow rule therefore fall through to `ERRNO`.
+container's filter had default action `SCMP_ACT_ERRNO`; in the captured BPF,
+the default return is `ERRNO(1)`. The x86_64 table below was decoded from the
+`AUDIT_ARCH_X86_64` branch of the raw filter. The upstream summary's ABI labels
+did not preserve that branch correctly, so its mixed-ABI row counts are not
+used here.
 
 The cell reported Ubuntu 24.04, kernel `7.0.0-1014-gcp`, containerd 2.2.1,
 runc 1.3.4, and enforced AppArmor. The CALIPER result used corpus revision
@@ -30,7 +35,7 @@ cell 2, not a six-cell matrix.
 | --- | --- | --- |
 | CALIPER | 107 denied, 53 permitted, and 25 unimplemented probe results | Individual probe outcomes, including argument-level, filesystem, mount, and kernel-dependent behavior. |
 | `amicontained` v0.4.9 | Seccomp filtering; 65 blocked syscall names; PID namespace present, user namespace absent; enforced AppArmor profile; empty capability listing; runtime reported as `not-found` | A container summary and coarse blocked-syscall list. The runtime socket was not mounted into the target, so `not-found` does not mean containerd was absent on the host. |
-| `seccomp-diff` at `68d4f4571c6f570ecd31c3a9ed614aeb74439d2e` | Extracted and rendered the filter as a syscall table: 710 `ALLOW`, 2 explicit `ERRNO`, and 0 `KILL` rows. The explicit `ERRNO` rows were `I386.personality` and `x32.socket`; all unlisted syscalls fall through to the filter's `SCMP_ACT_ERRNO` default. | The active seccomp-BPF filter across syscall ABI entries, not observed syscall reachability or the effects of other isolation controls. |
+| `seccomp-diff` at `68d4f4571c6f570ecd31c3a9ed614aeb74439d2e` | Across syscall numbers 0–456 in the native x86_64 BPF branch: 297 `ALLOW`, 156 default `ERRNO(1)`, 3 `CONDITION` (`clone`, `personality`, `socket`), 1 explicit `ERRNO(38)` (`clone3`), and 0 `KILL`. | The active x86_64 seccomp-BPF filter, not observed syscall reachability or the effects of other isolation controls. |
 
 The counts have different units and are not scores against one another. CALIPER
 reports probe outcomes; `amicontained` reports a coarse syscall list and
@@ -49,9 +54,10 @@ visibility, kernel modules, or behavior behind syscall arguments.
   `mount.reach`, and individual `mount.type.*` probes. The two comparators do
   not probe filesystem mount attempts or report per-filesystem reachability.
 - **Socket families:** CALIPER reported `socket.family.af_alg` as permitted.
-  `seccomp-diff` shows the `socket` syscall allowed for this family value, but
-  does not report the family-level probe result; `amicontained` does not
-  enumerate socket families either.
+  The re-decoded x86_64 filter marks `socket` as `CONDITION`: it allows family
+  values other than 40, including AF_ALG (38). It does not report the
+  family-level probe result; `amicontained` does not enumerate socket families
+  either.
 - **Socket and netlink probes:** CALIPER reported 10 permitted, 5 denied, and
   9 unimplemented `socket.family.*` results, plus 15 permitted and 3
   unimplemented `netlink.protocol.*` results. The ancestor tools do not
