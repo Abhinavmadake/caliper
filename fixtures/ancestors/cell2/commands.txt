@@ -1,0 +1,25 @@
+Target: caliper-cell2, zone asia-south1-a, project caliper-ci
+Long-lived target container ID: 88e281fc7616d
+Host PID inspected by seccomp-diff: 1448
+Target image: docker.io/library/busybox:1.36.1
+Target settings: temporary copy of deploy/gce/measure.sh with command ["/bin/sh"], args ["-c", "sleep 600"], and the probe wait limit increased from 300 to 900 seconds. All CRI security settings came from deploy/gce/measure.sh.
+CALIPER probe image: ghcr.io/abhinavmadake/caliper@sha256:9be163f1b987f8563f9d71114d6a025d9335b9627cdafc4676da2b327da3f969
+amicontained: v0.4.9; SHA-256 d8c49e2cf44ee9668219acd092ed961fc1aa420a6e036e0822d7a31033776c9f
+seccomp-diff: https://github.com/antitree/seccomp-diff at 68d4f4571c6f570ecd31c3a9ed614aeb74439d2e
+
+Target start command:
+sudo systemd-run --unit=issue47-measure --collect /bin/bash /tmp/issue47-measure.sh docker.io/library/busybox:1.36.1
+
+CALIPER fingerprint command (output committed as caliper-fingerprint.json):
+sudo crictl exec 88e281fc7616d /tmp/caliper-probe --run > /tmp/issue47-same-target.json 2>/tmp/issue47-caliper.log
+
+amicontained command (output committed as amicontained.txt):
+sudo crictl exec 88e281fc7616d /tmp/amicontained > /tmp/issue47-amico.txt 2>&1
+
+seccomp-diff command (output committed as seccomp-diff.txt):
+sudo env PYTHONPATH=/tmp/seccomp-site python3 /tmp/seccomp-diff/seccomp_dump.py --summary 1448 > /tmp/issue47-seccomp-summary.txt 2>&1
+
+Effective filter default-action check:
+sudo crictl inspect 88e281fc7616d | grep -n defaultAction
+
+The default-action check printed: "defaultAction": "SCMP_ACT_ERRNO".
