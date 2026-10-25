@@ -1,0 +1,84 @@
+{
+  "cases": [
+    {
+      "name": "seccomp-guaranteed-eperm",
+      "known_cause": "seccomp-eperm",
+      "expected_mechanism": "seccomp",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "socket.invalid", "family": "socket", "oracle": {"guarantees": 97, "isolates": "seccomp", "reason": "EAFNOSUPPORT is guaranteed after entry"}},
+      "result": {"probe_id": "socket.invalid", "verdict": "denied", "errno": 1}
+    },
+    {
+      "name": "seccomp-enosys",
+      "known_cause": "seccomp-enosys",
+      "expected_mechanism": "seccomp",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "io_uring.setup", "family": "io_uring", "oracle": {"guarantees": 9, "isolates": "seccomp", "reason": "EBADF is guaranteed after entry"}},
+      "result": {"probe_id": "io_uring.setup", "verdict": "denied", "errno": 38}
+    },
+    {
+      "name": "seccomp-kill",
+      "known_cause": "seccomp-kill",
+      "expected_mechanism": "seccomp",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "mount.fstype.proc", "family": "mount", "oracle": {"isolates": "seccomp", "reason": "filter kills before entry"}},
+      "result": {"probe_id": "mount.fstype.proc", "verdict": "killed", "errno": 0}
+    },
+    {
+      "name": "lsm-only-eacces",
+      "known_cause": "lsm-only",
+      "expected_mechanism": "lsm",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "apparmor", "lsm_label": "caliper-ground-truth (enforce)", "lsm_enforcing": true},
+      "probe": {"id": "socket.lsm", "family": "socket", "oracle": {"isolates": "seccomp-or-lsm", "reason": "LSM hook precedes the socket family lookup"}},
+      "result": {"probe_id": "socket.lsm", "verdict": "denied", "errno": 13}
+    },
+    {
+      "name": "capability-only",
+      "known_cause": "capability-missing",
+      "expected_mechanism": "capability",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none", "capabilities": {"effective": "0000000000000000", "bounding": "0000000000400000"}},
+      "probe": {"id": "capability.sys_boot", "family": "capability", "oracle": {"isolates": "undecidable", "reason": "CAP_SYS_BOOT gate returns EPERM"}, "capability": "CAP_SYS_BOOT"},
+      "result": {"probe_id": "capability.sys_boot", "verdict": "denied", "errno": 1}
+    },
+    {
+      "name": "masked-mount",
+      "known_cause": "mount-mask",
+      "expected_mechanism": "mount",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "path.masked.proc_kcore", "family": "path", "oracle": {"isolates": "seccomp-or-lsm", "reason": "ENODATA encodes a masking mount"}},
+      "result": {"probe_id": "path.masked.proc_kcore", "verdict": "denied", "errno": 61}
+    },
+    {
+      "name": "readonly-mount",
+      "known_cause": "mount-readonly",
+      "expected_mechanism": "mount",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "path.readonly.proc_sys", "family": "path", "oracle": {"isolates": "seccomp-or-lsm", "reason": "EROFS encodes a read-only mount"}},
+      "result": {"probe_id": "path.readonly.proc_sys", "verdict": "denied", "errno": 30}
+    },
+    {
+      "name": "kernel-userns-limit",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "kernel-limit",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none", "user_namespaces": {"max": 0}},
+      "probe": {"id": "unshare.flags.newuser", "family": "clone", "kernel": {"user_namespace_limits": true}, "oracle": {"isolates": "seccomp-or-lsm", "reason": "user namespace creation is gated by a kernel limit"}},
+      "result": {"probe_id": "unshare.flags.newuser", "verdict": "denied", "errno": 28}
+    },
+    {
+      "name": "seccomp-structural-eperm",
+      "known_cause": "seccomp-structural",
+      "expected_mechanism": "seccomp",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "clone.flags.newuser", "family": "clone", "oracle": {"isolates": "seccomp", "reason": "the filter sees clone flags at entry"}},
+      "result": {"probe_id": "clone.flags.newuser", "verdict": "denied", "errno": 1}
+    },
+    {
+      "name": "seccomp-guaranteed-einval",
+      "known_cause": "seccomp-eperm",
+      "expected_mechanism": "seccomp",
+      "cell": {"architecture": "x86_64", "kernel": {"release": "6.8.0"}, "lsm": "none"},
+      "probe": {"id": "io_uring.register", "family": "io_uring", "oracle": {"guarantees": 9, "isolates": "seccomp", "reason": "EBADF is guaranteed after entry"}},
+      "result": {"probe_id": "io_uring.register", "verdict": "denied", "errno": 1}
+    }
+  ]
+}

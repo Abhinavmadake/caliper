@@ -1,0 +1,96 @@
+{
+  "ground_truth_environments": 10,
+  "denials": 10,
+  "attributed_denials": 10,
+  "correct_attributions": 10,
+  "incorrect_attributions": 0,
+  "undecidable": 0,
+  "accuracy": 1,
+  "undecidable_fraction": 0,
+  "accuracy_criterion_met": true,
+  "undecidable_criterion_met": true,
+  "enosys_filter_included": true,
+  "lsm_only_included": true,
+  "cases": [
+    {
+      "name": "seccomp-guaranteed-eperm",
+      "known_cause": "seccomp-eperm",
+      "expected_mechanism": "seccomp",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp-enosys",
+      "known_cause": "seccomp-enosys",
+      "expected_mechanism": "seccomp",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp-kill",
+      "known_cause": "seccomp-kill",
+      "expected_mechanism": "seccomp",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "lsm-only-eacces",
+      "known_cause": "lsm-only",
+      "expected_mechanism": "lsm",
+      "observed_mechanism": "lsm",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "capability-only",
+      "known_cause": "capability-missing",
+      "expected_mechanism": "capability",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "masked-mount",
+      "known_cause": "mount-mask",
+      "expected_mechanism": "mount",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "readonly-mount",
+      "known_cause": "mount-readonly",
+      "expected_mechanism": "mount",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "kernel-userns-limit",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "kernel-limit",
+      "observed_mechanism": "kernel-limit",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp-structural-eperm",
+      "known_cause": "seccomp-structural",
+      "expected_mechanism": "seccomp",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp-guaranteed-einval",
+      "known_cause": "seccomp-eperm",
+      "expected_mechanism": "seccomp",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    }
+  ]
+}
