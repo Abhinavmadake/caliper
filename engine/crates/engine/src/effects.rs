@@ -39,8 +39,9 @@ pub enum ResidualClass {
     /// Entries in the mount table (`/proc/self/mountinfo`).
     Mounts,
     /// Keys this process may view (`/proc/keys`): the session and user
-    /// keyrings' contents and whatever else is visible — a superset, and
-    /// the whole file is masked under RuntimeDefault.
+    /// keyrings' contents and whatever else is visible — a superset. Where
+    /// the runtime masks that file, as RuntimeDefault does, the keys the
+    /// process's own user owns (`/proc/key-users`).
     Keyrings,
     /// Directories under the cgroup subtree this process can see.
     Cgroups,

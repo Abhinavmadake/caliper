@@ -42,6 +42,7 @@ type Fingerprint struct {
 	Unmeasured        []Unmeasured    `json:"unmeasured"`
 	ModuleDelta       json.RawMessage `json:"module_delta,omitempty"`
 	Residual          json.RawMessage `json:"residual,omitempty"`
+	ElapsedMS         *uint64         `json:"elapsed_ms,omitempty"`
 	unmeasuredPresent bool
 }
 
@@ -93,6 +94,7 @@ type ProbeMeasurement struct {
 	Unmeasured     []Unmeasured    `json:"unmeasured"`
 	ModuleDelta    json.RawMessage `json:"module_delta,omitempty"`
 	Residual       json.RawMessage `json:"residual,omitempty"`
+	ElapsedMS      *uint64         `json:"elapsed_ms,omitempty"`
 }
 
 // DecodeFingerprint reads the supported fingerprint version while allowing
@@ -173,6 +175,7 @@ func CompleteFingerprint(probe ProbeMeasurement, metadata CellMetadata) (Fingerp
 		Unmeasured:     probe.Unmeasured,
 		ModuleDelta:    probe.ModuleDelta,
 		Residual:       probe.Residual,
+		ElapsedMS:      probe.ElapsedMS,
 	}
 	digest, err := ComputeFingerprintDigest(completed)
 	if err != nil {
