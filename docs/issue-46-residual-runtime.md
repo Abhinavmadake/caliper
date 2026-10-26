@@ -65,10 +65,11 @@ classes. Kata exposes no module list, so cell 6 reports no autoload.
 ## What the zero covers
 
 Only two classes have probes that create objects: mounts (4 probes) and
-network namespaces (4). Under RuntimeDefault none of them is permitted, except
-two network-namespace probes under gVisor, so a zero there means nothing was
-created. `cell2-none.json` is the run in which all eight are permitted and
-create their objects, and it ends with nothing left. No probe creates
+network namespaces (4). Under RuntimeDefault none of them is permitted on
+cells 1 to 4, so a zero there means nothing was created. gVisor permits two
+network-namespace probes, and Kata one mount and two network-namespace probes.
+`cell2-none.json` is the run in which all eight are permitted and create their
+objects, and it ends with nothing left. No probe creates
 keyrings, cgroups or IPC objects; the engine's leak tests
 (`engine/crates/engine/tests/effects.rs`) are the evidence that those classes
 would be caught.
