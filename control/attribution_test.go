@@ -86,10 +86,19 @@ func TestCorrelationUsesProcessCapabilitiesAndLSMLabel(t *testing.T) {
 		t.Errorf("missing capability correlation = %+v", got)
 	}
 
-	withBoot := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000400000","bounding":"0000000000400000"}`)}
+	initial := true
+	withBoot := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000400000","bounding":"0000000000400000"}`),
+		UserNamespaces: &UserNamespaces{Initial: &initial}}
 	got = correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, withBoot)
 	if got.Mechanism != nil || !got.Undecidable || !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, LSM}) {
 		t.Errorf("present capability correlation = %+v", got)
+	}
+	// Not known to be the initial user namespace: the capability may not
+	// hold against the object, so it stays a candidate.
+	withBoot.UserNamespaces = nil
+	got = correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, withBoot)
+	if !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, LSM, CapabilityMissing}) {
+		t.Errorf("present capability outside a known initial namespace = %+v", got)
 	}
 
 	outsideBounding := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}

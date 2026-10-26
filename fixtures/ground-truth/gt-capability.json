@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.3.2",
   "corpus_set": "full",
-  "digest": "sha256:b61bfd344b3e255937fe85059310495bd1eaa73851de4020c9fca2bd4448a73c",
+  "digest": "sha256:70b3c8e50117506b1bbc1b5b0df45286ae1aee4d78aa6dd1d79b887cddc68c48",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -88,7 +88,8 @@
     "user_namespaces": {
       "max": 28082,
       "unprivileged_clone": 1,
-      "apparmor_restricted": 1
+      "apparmor_restricted": 0,
+      "initial": true
     }
   },
   "results": [
@@ -743,6 +744,21 @@
       "errno": 19
     },
     {
+      "probe_id": "mount.fs.proc",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "mount.fs.overlay",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
+      "probe_id": "mount.fs.fuse",
+      "verdict": "denied",
+      "errno": 1
+    },
+    {
       "probe_id": "device.open.fuse",
       "verdict": "denied",
       "errno": 2
@@ -980,7 +996,7 @@
     {
       "probe_id": "capability.mknod",
       "verdict": "denied",
-      "errno": 13
+      "errno": 1
     },
     {
       "probe_id": "capability.sys_ptrace",
@@ -1004,36 +1020,6 @@
     }
   ],
   "unmeasured": [
-    {
-      "probe_id": "mount.fs.proc",
-      "why": {
-        "not-measured": {
-          "fault": {
-            "setup-failed": 13
-          }
-        }
-      }
-    },
-    {
-      "probe_id": "mount.fs.overlay",
-      "why": {
-        "not-measured": {
-          "fault": {
-            "setup-failed": 13
-          }
-        }
-      }
-    },
-    {
-      "probe_id": "mount.fs.fuse",
-      "why": {
-        "not-measured": {
-          "fault": {
-            "setup-failed": 13
-          }
-        }
-      }
-    },
     {
       "probe_id": "ioctl.request.fioclex",
       "why": "deferred"
@@ -1320,7 +1306,7 @@
     },
     "before": {
       "mounts": 12,
-      "keyrings": 463,
+      "keyrings": 1,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
@@ -1328,7 +1314,7 @@
     },
     "after": {
       "mounts": 12,
-      "keyrings": 463,
+      "keyrings": 1,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

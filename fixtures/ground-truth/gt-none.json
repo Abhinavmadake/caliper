@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.3.2",
   "corpus_set": "full",
-  "digest": "sha256:9d41869e2234d5c213141e636d72f84cd923c5a2fc5bc634b24e59ef9de0f4ff",
+  "digest": "sha256:47cb0f1655c0aab1f26333e08adf4811d53b5149b50245defb69aecc10894ef7",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -88,7 +88,8 @@
     "user_namespaces": {
       "max": 28082,
       "unprivileged_clone": 1,
-      "apparmor_restricted": 1
+      "apparmor_restricted": 1,
+      "initial": true
     }
   },
   "results": [
@@ -1305,7 +1306,7 @@
     },
     "before": {
       "mounts": 12,
-      "keyrings": 457,
+      "keyrings": 461,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
@@ -1313,7 +1314,7 @@
     },
     "after": {
       "mounts": 12,
-      "keyrings": 457,
+      "keyrings": 461,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

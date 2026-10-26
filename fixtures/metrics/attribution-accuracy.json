@@ -27,10 +27,10 @@
     {
       "name": "capability",
       "mechanism": "capability",
-      "denials": 23,
-      "correct_attributions": 23,
+      "denials": 26,
+      "correct_attributions": 25,
       "incorrect": 0,
-      "undecidable": 0
+      "undecidable": 1
     },
     {
       "name": "paths",
@@ -49,15 +49,19 @@
       "undecidable": 0
     }
   ],
-  "denials": 218,
+  "denials": 221,
   "excluded_by_control": 48,
-  "attributed_denials": 218,
-  "correct_attributions": 218,
-  "undecidable": 0,
+  "attributed_denials": 220,
+  "correct_attributions": 220,
+  "undecidable": 1,
   "accuracy": 1,
-  "undecidable_fraction": 0,
+  "undecidable_fraction": 0.004524886877828055,
   "accuracy_criterion_met": true,
   "undecidable_criterion_met": true,
+  "without_cell_elimination": {
+    "correct_attributions": 139,
+    "undecidable": 82
+  },
   "enosys_filter_included": true,
   "lsm_only_included": true,
   "cases": [
@@ -1344,6 +1348,27 @@
     },
     {
       "environment": "capability",
+      "probe_id": "mount.fs.proc",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "mount.fs.overlay",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "mount.fs.fuse",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
       "probe_id": "unshare.flags.newns",
       "errno": 1,
       "attributed": "capability",
@@ -1457,7 +1482,7 @@
     {
       "environment": "capability",
       "probe_id": "capability.mknod",
-      "errno": 13,
+      "errno": 1,
       "attributed": "capability",
       "correct": true
     },
@@ -1465,8 +1490,7 @@
       "environment": "capability",
       "probe_id": "capability.sys_nice",
       "errno": 13,
-      "attributed": "capability",
-      "correct": true
+      "correct": false
     },
     {
       "environment": "capability",

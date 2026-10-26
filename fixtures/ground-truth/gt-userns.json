@@ -2,7 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.3.2",
   "corpus_set": "full",
-  "digest": "sha256:7c9f39b49031046331a25bbee4c18edd1a3d07a98f06524f3ffc2f589552df3b",
+  "digest": "sha256:a9d77cc9ba558bb689e41077ffac0146e82b6e9928670ee0e8e4567ff8425df7",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -48,7 +48,6 @@
         "sch_fq_codel",
         "serio_raw",
         "stp",
-        "tls",
         "veth",
         "virtio_balloon",
         "virtio_rng",
@@ -89,7 +88,8 @@
     "user_namespaces": {
       "max": 0,
       "unprivileged_clone": 1,
-      "apparmor_restricted": 0
+      "apparmor_restricted": 0,
+      "initial": true
     }
   },
   "results": [
@@ -1170,7 +1170,6 @@
       "sch_fq_codel",
       "serio_raw",
       "stp",
-      "tls",
       "veth",
       "virtio_balloon",
       "virtio_rng",
@@ -1242,7 +1241,6 @@
       "serio_raw",
       "smc",
       "stp",
-      "tls",
       "udp_tunnel",
       "veth",
       "virtio_balloon",

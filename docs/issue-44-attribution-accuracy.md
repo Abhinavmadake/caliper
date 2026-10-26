@@ -5,7 +5,9 @@ one known cause (§11.2). They are probe runs on cell 2 (Ubuntu 24.04, kernel
 7.0.0-1014-gcp, containerd 2.2.1, runc 1.3.4), each from a fresh boot, made
 with `deploy/gce/measure.sh`'s ground-truth modes. Every control is off
 (UID 0, all capabilities, seccomp and AppArmor unconfined, no masked or
-read-only paths) except the one the mode names:
+read-only paths) except the one the mode names. The capability environment
+runs as UID 65534, so its probes reach their own capability checks rather than
+a root-owned file's permissions:
 
 | Environment | Only control in force | Fingerprint |
 |---|---|---|
@@ -13,7 +15,7 @@ read-only paths) except the one the mode names:
 | seccomp | containerd's RuntimeDefault | `gt-seccomp.json` |
 | seccomp-hardened | `engine/fixtures/seccomp/hardened.json` as a Localhost profile | `gt-seccomp-hardened.json` |
 | apparmor | containerd's RuntimeDefault AppArmor profile, enforcing | `gt-apparmor.json` |
-| capability | all capabilities dropped | `gt-capability.json` |
+| capability | all capabilities dropped, UID 65534, Ubuntu's AppArmor user-namespace restriction lifted | `gt-capability.json` |
 | paths | kubelet's masked and read-only paths | `gt-paths.json` |
 | userns | `user.max_user_namespaces=0`, with Ubuntu's `kernel.apparmor_restrict_unprivileged_userns` lifted for the run | `gt-userns.json` |
 
@@ -41,15 +43,22 @@ by its test.
 | seccomp | 54 | 54 | 0 | 0 |
 | seccomp-hardened | 122 | 122 | 0 | 0 |
 | apparmor | 3 | 3 | 0 | 0 |
-| capability | 23 | 23 | 0 | 0 |
+| capability | 26 | 25 | 0 | 1 |
 | paths | 12 | 12 | 0 | 0 |
 | userns | 4 | 4 | 0 | 0 |
-| **Total** | **218** | **218** | **0** | **0** |
+| **Total** | **221** | **220** | **0** | **1** |
 
-Both criteria are met: 100% of attributed denials are correct, and 0% of
+Both criteria are met: 100% of attributed denials are correct, and 0.5% of
 denials are undecidable. The two cases §6.1 marks ambiguous are included:
 `clone3.args.short` denied with ENOSYS under the hardened profile, and the
-AppArmor profile's `deny mount` answering `mount.fs.*` with EACCES.
+AppArmor profile's `deny mount` answering `mount.fs.*` with EACCES. The one
+undecidable denial is `capability.sys_nice`'s EACCES without
+CAP_DAC_OVERRIDE, which a file-permission check could also have produced.
+
+With the oracle and correlations alone, without the cell elimination below,
+139 of the 221 denials are attributed correctly and 82 are undecidable. The
+cell decides 81 of those 82, all EPERM or EACCES, and these environments are
+built so that it can; the remaining one is `capability.sys_nice` above.
 
 ## What makes these decidable
 
@@ -60,6 +69,13 @@ the attributor rules a candidate out when the cell does: seccomp mode 0
 installs no filter, a non-enforcing AppArmor or SELinux label refuses nothing,
 and a capability in the effective set is not missing. One survivor is the
 attribution, at medium confidence.
+
+A held capability counts only in the initial user namespace, which the probe
+also records (`user_namespaces.initial`, from `/proc/self/uid_map`): under
+`hostUsers: false` it need not hold against the node's objects. An EACCES on a
+capability-gated call is decided only when CAP_DAC_OVERRIDE is held, since
+otherwise a file-permission check, which is not one of the mechanisms the
+attributor names, could have answered it.
 
 That is why these environments, built so that the cell rules out all but one
 mechanism, are fully decided. A production cell with several controls in
