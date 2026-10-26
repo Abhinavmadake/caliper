@@ -19,7 +19,8 @@ import "fmt"
 
 // AttributionGroundTruth names measured environments in which one mechanism
 // is the only control in force (#44), and a control run with none, whose
-// denials are the kernel's own and are left out of every environment.
+// denials are the kernel's own: the same probe denied with the same errno is
+// left out of every environment.
 type AttributionGroundTruth struct {
 	Control      string                              `json:"control"`
 	Environments []AttributionGroundTruthEnvironment `json:"environments"`
@@ -80,10 +81,14 @@ func EvaluateAttributionAccuracy(truth AttributionGroundTruth, control Fingerpri
 	if len(truth.Environments) == 0 {
 		return AttributionAccuracy{}, fmt.Errorf("ground truth has no environments")
 	}
-	kernelDenials := map[string]bool{}
+	type denial struct {
+		probe string
+		errno int
+	}
+	kernelDenials := map[denial]bool{}
 	for _, r := range control.Results {
 		if isDenial(r) {
-			kernelDenials[r.ProbeID] = true
+			kernelDenials[denial{r.ProbeID, r.Errno}] = true
 		}
 	}
 
@@ -109,7 +114,7 @@ func EvaluateAttributionAccuracy(truth AttributionGroundTruth, control Fingerpri
 			if !isDenial(r) {
 				continue
 			}
-			if kernelDenials[r.ProbeID] {
+			if kernelDenials[denial{r.ProbeID, r.Errno}] {
 				m.ExcludedByControl++
 				continue
 			}

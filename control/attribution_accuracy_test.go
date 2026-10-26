@@ -36,8 +36,10 @@ func TestAttributionAccuracyScoresEveryDenialAgainstItsEnvironment(t *testing.T)
 		{Name: "seccomp", Mechanism: Seccomp},
 		{Name: "lsm", Mechanism: LSM},
 	}}
-	// The control run denies d on its own, so d is left out everywhere.
-	control := fp(&zero, ProbeResult{ProbeID: "d", Verdict: "denied", Errno: 1})
+	// The control run denies d on its own, so d with that errno is left out
+	// everywhere; c with another errno is not.
+	control := fp(&zero, ProbeResult{ProbeID: "d", Verdict: "denied", Errno: 1},
+		ProbeResult{ProbeID: "c", Verdict: "denied", Errno: 14})
 	fingerprints := map[string]Fingerprint{
 		"seccomp": fp(nil,
 			ProbeResult{ProbeID: "a", Verdict: "denied", Errno: errnoENOSYS},

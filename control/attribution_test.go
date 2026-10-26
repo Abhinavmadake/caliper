@@ -343,6 +343,11 @@ func TestCellStateEliminatesCandidates(t *testing.T) {
 	if a := attribute(capCell(allCaps, &nested), capProbe); !a.Undecidable {
 		t.Errorf("held capability in a nested user namespace = %+v, want undecidable", a)
 	}
+	ptrace := ProbeMetadata{ID: "capability.sys_ptrace", Family: "capability", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_PTRACE"}
+	if a := attribute(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero}, Capabilities: noCaps,
+		UserNamespaces: &UserNamespaces{Initial: &initial}}, ptrace); !a.Undecidable {
+		t.Errorf("ptrace EPERM with an unconfined label = %+v, want undecidable (Yama)", a)
+	}
 
 	if a := attribute(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing}, lsmProbe); !a.Undecidable {
 		t.Errorf("no seccomp state under an enforcing label = %+v, want undecidable", a)

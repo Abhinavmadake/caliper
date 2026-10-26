@@ -20,8 +20,9 @@ a root-owned file's permissions:
 | userns | `user.max_user_namespaces=0`, with Ubuntu's `kernel.apparmor_restrict_unprivileged_userns` lifted for the run | `gt-userns.json` |
 
 The control run's eight denials (seven `device.open.*` with ENOENT, nodes the
-runtime does not create, and `capability.sys_ptrace` with EFAULT) are the
-kernel's own, so those probes are left out of every environment.
+runtime does not create, and `capability.sys_ptrace` with EFAULT, its capable
+path) are the kernel's own, so the same probe denied with the same errno is
+left out of every environment.
 
 ```sh
 cells.sh measure cell2 <image> "" <mode>
@@ -41,24 +42,27 @@ by its test.
 | Environment | Denials | Correct | Incorrect | Undecidable |
 |---|---:|---:|---:|---:|
 | seccomp | 54 | 54 | 0 | 0 |
-| seccomp-hardened | 122 | 122 | 0 | 0 |
+| seccomp-hardened | 123 | 123 | 0 | 0 |
 | apparmor | 3 | 3 | 0 | 0 |
-| capability | 26 | 25 | 0 | 1 |
+| capability | 27 | 24 | 0 | 3 |
 | paths | 12 | 12 | 0 | 0 |
 | userns | 4 | 4 | 0 | 0 |
-| **Total** | **221** | **220** | **0** | **1** |
+| **Total** | **223** | **220** | **0** | **3** |
 
-Both criteria are met: 100% of attributed denials are correct, and 0.5% of
+Both criteria are met: 100% of attributed denials are correct, and 1.3% of
 denials are undecidable. The two cases §6.1 marks ambiguous are included:
 `clone3.args.short` denied with ENOSYS under the hardened profile, and the
-AppArmor profile's `deny mount` answering `mount.fs.*` with EACCES. The one
-undecidable denial is `capability.sys_nice`'s EACCES without
-CAP_DAC_OVERRIDE, which a file-permission check could also have produced.
+AppArmor profile's `deny mount` answering `mount.fs.*` with EACCES. The three
+undecidable denials are in the capability environment:
+`capability.sys_nice`'s EACCES without CAP_DAC_OVERRIDE, which a
+file-permission check could also have produced, and the EPERM of
+`capability.sys_ptrace` and `capability.sys_rawio`, which Yama and lockdown
+can also return whatever the major LSM's label says.
 
 With the oracle and correlations alone, without the cell elimination below,
-139 of the 221 denials are attributed correctly and 82 are undecidable. The
-cell decides 81 of those 82, all EPERM or EACCES, and these environments are
-built so that it can; the remaining one is `capability.sys_nice` above.
+140 of the 223 denials are attributed correctly and 83 are undecidable. The
+cell decides 80 of those 83, all EPERM or EACCES, and these environments are
+built so that it can.
 
 ## What makes these decidable
 
@@ -66,7 +70,9 @@ The oracles alone leave most EPERM undecidable (seccomp or an LSM, seccomp
 or a missing capability). The probe now records the seccomp mode and filter
 count from `/proc/self/status` (`cell.seccomp`, as §6.1 always specified), and
 the attributor rules a candidate out when the cell does: seccomp mode 0
-installs no filter, a non-enforcing AppArmor or SELinux label refuses nothing,
+installs no filter, a non-enforcing AppArmor or SELinux label refuses nothing
+(except through Yama or lockdown, which have no label, so a ptrace or raw-I/O
+denial keeps the LSM),
 and a capability in the effective set is not missing. One survivor is the
 attribution, at medium confidence.
 

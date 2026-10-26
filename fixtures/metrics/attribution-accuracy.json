@@ -11,8 +11,8 @@
     {
       "name": "seccomp-hardened",
       "mechanism": "seccomp",
-      "denials": 122,
-      "correct_attributions": 122,
+      "denials": 123,
+      "correct_attributions": 123,
       "incorrect": 0,
       "undecidable": 0
     },
@@ -27,10 +27,10 @@
     {
       "name": "capability",
       "mechanism": "capability",
-      "denials": 26,
-      "correct_attributions": 25,
+      "denials": 27,
+      "correct_attributions": 24,
       "incorrect": 0,
-      "undecidable": 1
+      "undecidable": 3
     },
     {
       "name": "paths",
@@ -49,18 +49,18 @@
       "undecidable": 0
     }
   ],
-  "denials": 221,
-  "excluded_by_control": 48,
+  "denials": 223,
+  "excluded_by_control": 46,
   "attributed_denials": 220,
   "correct_attributions": 220,
-  "undecidable": 1,
+  "undecidable": 3,
   "accuracy": 1,
-  "undecidable_fraction": 0.004524886877828055,
+  "undecidable_fraction": 0.013452914798206279,
   "accuracy_criterion_met": true,
   "undecidable_criterion_met": true,
   "without_cell_elimination": {
-    "correct_attributions": 139,
-    "undecidable": 82
+    "correct_attributions": 140,
+    "undecidable": 83
   },
   "enosys_filter_included": true,
   "lsm_only_included": true,
@@ -1278,6 +1278,13 @@
     },
     {
       "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_ptrace",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
       "probe_id": "capability.net_bind_service",
       "errno": 0,
       "attributed": "seccomp",
@@ -1488,6 +1495,12 @@
     },
     {
       "environment": "capability",
+      "probe_id": "capability.sys_ptrace",
+      "errno": 1,
+      "correct": false
+    },
+    {
+      "environment": "capability",
       "probe_id": "capability.sys_nice",
       "errno": 13,
       "correct": false
@@ -1496,8 +1509,7 @@
       "environment": "capability",
       "probe_id": "capability.sys_rawio",
       "errno": 1,
-      "attributed": "capability",
-      "correct": true
+      "correct": false
     },
     {
       "environment": "paths",

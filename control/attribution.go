@@ -131,6 +131,10 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 				candidates = []Mechanism{Seccomp, CapabilityMissing}
 				reason = fmt.Sprintf("%s is absent from both Effective and Bounding; it is still missing, but Docker's default seccomp policy can produce the same EPERM first", p.Capability)
 			}
+			if minorLSMGated[p.Capability] {
+				candidates = appendMechanism(candidates, LSM)
+				reason += "; Yama or lockdown can also refuse it"
+			}
 			return undecidable(candidates, reason)
 		}
 	}
@@ -213,6 +217,11 @@ func ruledOut(m Mechanism, p ProbeMetadata, cell Cell) string {
 			return "seccomp mode is 0, so no filter is installed"
 		}
 	case LSM:
+		// Yama and lockdown have no label to read: they refuse whatever the
+		// major LSM's state.
+		if minorLSMGated[p.Capability] {
+			return ""
+		}
 		// AppArmor's user-namespace restriction applies to unconfined tasks too.
 		if p.Kernel.UserNamespaceLimits && cell.UserNamespaces != nil &&
 			cell.UserNamespaces.ApparmorRestricted != nil && *cell.UserNamespaces.ApparmorRestricted == 1 {
@@ -282,6 +291,10 @@ func capabilityState(raw json.RawMessage, capability string) (effectivePresent, 
 	}
 	return effective&(uint64(1)<<bit) != 0, bounding&(uint64(1)<<bit) != 0, true
 }
+
+// minorLSMGated are capabilities whose calls Yama (ptrace_scope) or lockdown
+// can refuse with EPERM independently of the major LSM's label.
+var minorLSMGated = map[string]bool{"CAP_SYS_PTRACE": true, "CAP_SYS_RAWIO": true}
 
 func initialUserNamespace(cell Cell) bool {
 	return cell.UserNamespaces != nil && cell.UserNamespaces.Initial != nil && *cell.UserNamespaces.Initial
