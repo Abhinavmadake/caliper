@@ -1,0 +1,10 @@
+probe docker.io/library/caliper-probe:46-amd64 (local build of 9dde9c1, image ID sha256:39afe54e248e57da5885472513a2cf5e995dc85522b412b2404508aa9679f586)
+kernel 5.14.0-687.56.1.el9_8.x86_64
+containerd containerd containerd.io v2.2.1 dea7da592f5d1d2b7755e3a161be07f43fad8f75
+runc runc version 1.3.4
+containerd.io-2.2.1-1.el9.x86_64
+kernel-5.14.0-687.56.1.el9_8.x86_64
+selinux-policy-targeted-38.1.75-2.el9_8.1.noarch
+container-selinux-2.245.0-1.el9.noarch
+libseccomp-2.5.2-2.el9.x86_64
+applied: seccomp SCMP_ACT_ERRNO | apparmor None | selinux system_u:system_r:container_t:s0:c264,c646 | masked 12 readonly 5 | own pid ns True | uid 65534 | no_new_privs True

@@ -61,6 +61,13 @@ go run ./cmd/caliper-attribution-accuracy \
 It reports accuracy over attributed denials and the undecidable fraction over
 all denials, overall and per environment.
 
+Issue #46 reports residual state and runtime cost from the runs in
+`fixtures/runtime/` (`docs/issue-46-residual-runtime.md`):
+
+```sh
+go run ./cmd/caliper-residual-metrics -out ../fixtures/metrics/residual-metrics.json
+```
+
 `GenerateRemediation` turns posture expectation violations into the smallest
 available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
 resource, which the Security Profiles Operator distributes to nodes; it also
