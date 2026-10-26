@@ -19,10 +19,11 @@
 #   cells.sh create  <cell>          VM from a pinned image, then provision
 #   cells.sh provision <cell>        re-run the cell's provisioning script
 #   cells.sh load    <cell> <tar>    import an image archive (docker save), e.g. arm64 for cell1
-#   cells.sh measure <cell> [image] [profile.json]
+#   cells.sh measure <cell> [image] [profile.json] [mode]
 #                                    reboot, then run the probe through CRI (measure.sh),
 #                                    under RuntimeDefault or the given Localhost seccomp
-#                                    profile; raw probe output on stdout
+#                                    profile, or in a ground-truth mode (#44); raw probe
+#                                    output on stdout
 #   cells.sh packages <cell>         the cell's recorded kernel and package versions
 #   cells.sh runtime-default <cell> <output.json>
 #                                    copy the RuntimeDefault captured by the last default measurement
@@ -111,7 +112,7 @@ reboot_cell() {
 }
 
 measure() {
-    local image=${2:-$IMAGE} profile=${3:-} dir ref=""
+    local image=${2:-$IMAGE} profile=${3:-} mode=${4:-default} dir ref=""
     reboot_cell
     if [ -n "$profile" ]; then
         dir=$(upload "$here/measure.sh" "$profile")
@@ -119,7 +120,7 @@ measure() {
     else
         dir=$(upload "$here/measure.sh")
     fi
-    on "sudo bash $dir/measure.sh '$image' '$handler' '$ref'; rc=\$?; rm -rf $dir; exit \$rc"
+    on "sudo bash $dir/measure.sh '$image' '$handler' '$ref' '$mode'; rc=\$?; rm -rf $dir; exit \$rc"
 }
 
 runtime_default() {
@@ -128,14 +129,14 @@ runtime_default() {
     on "sudo rm -f /var/tmp/caliper-runtime-default.json"
 }
 
-[ $# -ge 2 ] || { sed -n '17,32p' "$0" >&2; exit 2; }
+[ $# -ge 2 ] || { sed -n '17,33p' "$0" >&2; exit 2; }
 cmd=$1
 cell "$2"
 case "$cmd" in
     create) create "$2" ;;
     provision) provision "$2" ;;
     load) load "$2" "${3:?archive}" ;;
-    measure) measure "$2" "${3:-}" "${4:-}" ;;
+    measure) measure "$2" "${3:-}" "${4:-}" "${5:-}" ;;
     packages) on "cat /etc/caliper/packages" ;;
     runtime-default) runtime_default "$2" "$3" ;;
     stop) gc compute instances stop "$vm" --zone "$ZONE" ;;

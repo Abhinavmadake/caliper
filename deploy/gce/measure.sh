@@ -21,8 +21,10 @@
 #   measure.sh <image> [runtime-handler] [localhost-seccomp-profile] [ground-truth-mode]
 #
 # With a profile, the probe runs under it as Kubernetes' Localhost type
-# instead of RuntimeDefault (the hardened fixture). Exit 3 from the probe is a
-# measurement with defects: the document is still printed.
+# instead of RuntimeDefault (the hardened fixture). A ground-truth mode (none,
+# seccomp, capability, paths, apparmor or userns) runs it for #44's
+# single-cause environments instead. Exit 3 from the probe is a measurement
+# with defects: the document is still printed.
 set -euo pipefail
 export PATH=/usr/local/bin:$PATH
 
@@ -32,14 +34,27 @@ profile=${3:-}
 ground_truth_mode=${4:-default}
 work=$(mktemp -d /var/lib/caliper-measure.XXXXXX)
 pod=""
+restore=()
 cleanup() {
     if [ -n "$pod" ]; then
         crictl stopp "$pod" >/dev/null || true
         crictl rmp -f "$pod" >/dev/null || true
     fi
+    [ ${#restore[@]} -eq 0 ] || sysctl -qw "${restore[@]}"
     rm -rf "$work"
 }
 trap cleanup EXIT
+
+# The userns ground truth: the kernel's limit is the only thing that refuses
+# a user namespace, so Ubuntu's AppArmor restriction is lifted for the run.
+if [ "$ground_truth_mode" = userns ]; then
+    restore+=("user.max_user_namespaces=$(sysctl -n user.max_user_namespaces)")
+    sysctl -qw user.max_user_namespaces=0
+    if aa=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null); then
+        restore+=("kernel.apparmor_restrict_unprivileged_userns=$aa")
+        sysctl -qw kernel.apparmor_restrict_unprivileged_userns=0
+    fi
+fi
 
 install -d -o 65534 -g 65534 "$work/tmp"
 install -d "$work/logs"
@@ -84,30 +99,28 @@ security = {
 if apparmor:
     security["apparmor"] = {"profile_type": 0}
 
-# Issue #44 capture modes deliberately remove every control except the named
-# mechanism. They are used only on the provisioned GCE cells; the normal
-# Kubernetes/GCE path remains the restricted RuntimeDefault measurement.
-if ground_truth_mode == "seccomp":
-    security.pop("capabilities", None)
-    security["masked_paths"] = []
-    security["readonly_paths"] = []
-    security["apparmor"] = {"profile_type": 1}
-elif ground_truth_mode == "capability":
-    security["seccomp"] = {"profile_type": 1}
-    security["masked_paths"] = []
-    security["readonly_paths"] = []
-    security["apparmor"] = {"profile_type": 1}
-elif ground_truth_mode == "paths":
-    security["seccomp"] = {"profile_type": 1}
-    security.pop("capabilities", None)
-    security["apparmor"] = {"profile_type": 1}
-elif ground_truth_mode == "apparmor":
-    security["seccomp"] = {"profile_type": 1}
-    security.pop("capabilities", None)
-    security["masked_paths"] = []
-    security["readonly_paths"] = []
-elif ground_truth_mode != "default":
-    raise SystemExit("unknown ground-truth mode: " + ground_truth_mode)
+# Issue #44 ground truth: every control off (root, all capabilities, no
+# filter, no LSM profile, no masks) except the one the mode names, so each
+# denial in the run has that one cause. "none" leaves everything off, to find
+# the denials the kernel makes on its own; "userns" sets the limit on the host
+# (below). GCE cells only.
+if ground_truth_mode != "default":
+    security.update({"run_as_user": {"value": 0}, "capabilities": {"add_capabilities": ["ALL"]},
+                     "seccomp": {"profile_type": 1}, "masked_paths": [], "readonly_paths": []})
+    if apparmor:
+        security["apparmor"] = {"profile_type": 1}
+    if ground_truth_mode == "seccomp":
+        security["seccomp"] = seccomp
+    elif ground_truth_mode == "capability":
+        security["capabilities"] = {"drop_capabilities": ["ALL"]}
+    elif ground_truth_mode == "paths":
+        security["masked_paths"], security["readonly_paths"] = masked, readonly
+    elif ground_truth_mode == "apparmor":
+        if not apparmor:
+            raise SystemExit("ground-truth mode apparmor needs AppArmor on the cell")
+        security["apparmor"] = {"profile_type": 0}
+    elif ground_truth_mode not in ("none", "userns"):
+        raise SystemExit("unknown ground-truth mode: " + ground_truth_mode)
 container = {
     "metadata": {"name": "probe"},
     "image": {"image": image},
