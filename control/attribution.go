@@ -82,7 +82,7 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 			return Fingerprint{}, fmt.Errorf("no corpus metadata for probe %q", r.ProbeID)
 		}
 		probe = withKernelHooks(probe, fp.Cell.Kernel.Release)
-		a := correlate(attribute(r, probe), r, probe, fp.Cell)
+		a := eliminate(correlate(attribute(r, probe), r, probe, fp.Cell), probe, fp.Cell)
 		r.Attribution = &a
 		results[i] = r
 	}
@@ -135,6 +135,61 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 // withKernelHooks applies a dependency's lsm_hook_since: on that release or
 // later, or when the release cannot be read, a seccomp oracle reads as
 // seccomp or an LSM.
+// eliminate drops the candidates the cell rules out: seccomp mode 0 installs
+// no filter, a non-enforcing LSM refuses nothing, and a capability in the
+// effective set is not missing. A single survivor is the attribution.
+func eliminate(a Attribution, p ProbeMetadata, cell Cell) Attribution {
+	if !a.Undecidable || len(a.Candidates) == 0 {
+		return a
+	}
+	var kept []Mechanism
+	var ruled []string
+	for _, m := range a.Candidates {
+		if why := ruledOut(m, p, cell); why != "" {
+			ruled = append(ruled, why)
+			continue
+		}
+		kept = append(kept, m)
+	}
+	if len(ruled) == 0 || len(kept) == 0 {
+		return a
+	}
+	reason := a.Reason + "; " + strings.Join(ruled, " and ")
+	if len(kept) == 1 {
+		m := kept[0]
+		return Attribution{Mechanism: &m, Confidence: Medium, Reason: reason + ", which leaves " + mechanismPhrases[m]}
+	}
+	a.Candidates = kept
+	a.Reason = reason
+	return a
+}
+
+func ruledOut(m Mechanism, p ProbeMetadata, cell Cell) string {
+	switch m {
+	case Seccomp:
+		if cell.Seccomp != nil && cell.Seccomp.Mode != nil && *cell.Seccomp.Mode == 0 {
+			return "seccomp mode is 0, so no filter is installed"
+		}
+	case LSM:
+		// AppArmor's user-namespace restriction applies to unconfined tasks too.
+		if p.Kernel.UserNamespaceLimits && cell.UserNamespaces != nil &&
+			cell.UserNamespaces.ApparmorRestricted != nil && *cell.UserNamespaces.ApparmorRestricted == 1 {
+			return ""
+		}
+		if cell.LSM == "none" {
+			return "no LSM is active"
+		}
+		if cell.LSMEnforcing != nil && !*cell.LSMEnforcing {
+			return fmt.Sprintf("%s is not enforcing", cell.LSM)
+		}
+	case CapabilityMissing:
+		if effective, _, known := capabilityState(cell.Capabilities, p.Capability); known && effective {
+			return fmt.Sprintf("%s is in the effective set", p.Capability)
+		}
+	}
+	return ""
+}
+
 func withKernelHooks(p ProbeMetadata, release string) ProbeMetadata {
 	since := p.Kernel.LSMHookSince
 	if since == nil || p.Oracle.Isolates != "seccomp" {

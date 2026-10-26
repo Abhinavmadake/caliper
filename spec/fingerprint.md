@@ -36,6 +36,9 @@ measurement is not a policy finding and must not be reported as one:
   each of `max`, `unprivileged_clone` and `apparmor_restricted` is the sysctl's
   value and absent where the kernel has none)*, so a user-namespace denial can
   be read against them
+- the seccomp state, `seccomp` *(probe, optional; `mode` and `filters` are the
+  `Seccomp` and `Seccomp_filters` lines of `/proc/self/status`, each absent
+  where the line is)*, so mode 0 rules a filter out of every denial
 
 Every control-plane field records its source. The probe emits a raw
 measurement; the control plane completes it into a fingerprint and computes the

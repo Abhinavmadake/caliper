@@ -196,7 +196,15 @@ type Cell struct {
 	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
 	RuntimeClass   *SourcedValue   `json:"runtime_class,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	Seccomp        *SeccompState   `json:"seccomp,omitempty"`
 	UserNamespaces *UserNamespaces `json:"user_namespaces,omitempty"`
+}
+
+// SeccompState is the probe's seccomp mode (0 none, 1 strict, 2 filter) and
+// installed filter count from /proc/self/status; a missing line is nil.
+type SeccompState struct {
+	Mode    *uint64 `json:"mode,omitempty"`
+	Filters *uint64 `json:"filters,omitempty"`
 }
 
 // UserNamespaces are the kernel's own limits on creating a user namespace,
@@ -217,6 +225,7 @@ type ProbeCell struct {
 	LSMLabel       *string         `json:"lsm_label,omitempty"`
 	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	Seccomp        *SeccompState   `json:"seccomp,omitempty"`
 	UserNamespaces *UserNamespaces `json:"user_namespaces,omitempty"`
 }
 
@@ -255,6 +264,7 @@ func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
 		LSMEnforcing:   probe.LSMEnforcing,
 		RuntimeClass:   metadata.RuntimeClass,
 		Capabilities:   probe.Capabilities,
+		Seccomp:        probe.Seccomp,
 		UserNamespaces: probe.UserNamespaces,
 	}
 }

@@ -42,7 +42,7 @@ pub mod probe;
 pub mod residual;
 pub mod verdict;
 
-pub use cell::{Arch, Cell, KernelVersion, Lsm, UserNamespaces};
+pub use cell::{Arch, Cell, KernelVersion, Lsm, Seccomp, UserNamespaces};
 pub use effects::{ResidualClass, SideEffects};
 pub use harness::{run_isolated, Outcome};
 pub use measurement::{measure, Measurement, ProbeResult, Unmeasurable, Unmeasured};

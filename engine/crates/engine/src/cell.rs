@@ -268,18 +268,44 @@ impl Capabilities {
         ambient: None,
     };
 
-    pub fn detect() -> Capabilities {
-        let Ok(status) = read_proc_self_status() else {
-            return Capabilities::UNKNOWN;
-        };
-        let text = String::from_utf8_lossy(&status);
+    fn parse(status: &str) -> Capabilities {
         Capabilities {
-            effective: cap_line(&text, "CapEff").ok(),
-            permitted: cap_line(&text, "CapPrm").ok(),
-            bounding: cap_line(&text, "CapBnd").ok(),
-            ambient: cap_line(&text, "CapAmb").ok(),
+            effective: cap_line(status, "CapEff").ok(),
+            permitted: cap_line(status, "CapPrm").ok(),
+            bounding: cap_line(status, "CapBnd").ok(),
+            ambient: cap_line(status, "CapAmb").ok(),
         }
     }
+}
+
+/// The process's seccomp state from `/proc/self/status`: the mode (0 none,
+/// 1 strict, 2 filter) and the number of installed filters. Their contents
+/// are not visible from inside (§6.1), but mode 0 rules seccomp out of every
+/// denial. Either line missing is `None` and left out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
+pub struct Seccomp {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filters: Option<u64>,
+}
+
+impl Seccomp {
+    fn parse(status: &str) -> Seccomp {
+        Seccomp {
+            mode: decimal_line(status, "Seccomp"),
+            filters: decimal_line(status, "Seccomp_filters"),
+        }
+    }
+}
+
+fn decimal_line(status: &str, key: &str) -> Option<u64> {
+    status
+        .lines()
+        .find_map(|line| line.strip_prefix(key)?.strip_prefix(':'))?
+        .trim()
+        .parse()
+        .ok()
 }
 
 fn read_proc_self_status() -> nix::Result<Vec<u8>> {
@@ -374,6 +400,7 @@ pub struct Cell {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lsm_enforcing: Option<bool>,
     pub capabilities: Capabilities,
+    pub seccomp: Seccomp,
     /// The kernel's own limits on creating a user namespace, which answer a
     /// user-namespace probe before or instead of a filter (#96).
     pub user_namespaces: UserNamespaces,
@@ -448,13 +475,21 @@ impl Cell {
             }
             Lsm::None => (None, None),
         };
+        let (capabilities, seccomp) = match read_proc_self_status() {
+            Ok(status) => {
+                let text = String::from_utf8_lossy(&status);
+                (Capabilities::parse(&text), Seccomp::parse(&text))
+            }
+            Err(_) => (Capabilities::UNKNOWN, Seccomp::default()),
+        };
         Ok(Cell {
             architecture: Arch::current(),
             kernel: Kernel::running()?,
             lsm,
             lsm_label,
             lsm_enforcing,
-            capabilities: Capabilities::detect(),
+            capabilities,
+            seccomp,
             user_namespaces: UserNamespaces::detect(),
         })
     }
@@ -475,6 +510,23 @@ mod tests {
             Some("cri-containerd.apparmor.d (enforce)")
         );
         assert_eq!(clean_label(b"\0"), None);
+    }
+
+    #[test]
+    fn reads_seccomp_mode_and_filter_count() {
+        let status = "CapEff:\t0000000000000000\nSeccomp:\t2\nSeccomp_filters:\t1\n";
+        assert_eq!(
+            Seccomp::parse(status),
+            Seccomp {
+                mode: Some(2),
+                filters: Some(1)
+            }
+        );
+        assert_eq!(Seccomp::parse("CapEff:\t0\n"), Seccomp::default());
+        assert_eq!(
+            serde_json::to_string(&Seccomp::parse("Seccomp:\t0\n")).unwrap(),
+            r#"{"mode":0}"#
+        );
     }
 
     #[test]
