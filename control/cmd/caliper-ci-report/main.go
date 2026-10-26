@@ -351,7 +351,11 @@ func writeFindings(b *strings.Builder, title string, findings []control.Finding)
 	b.WriteString("| Probe | Family | Reason | Evidence |\n|---|---|---|---|\n")
 	for _, f := range findings {
 		reason := strings.ReplaceAll(strings.Join(strings.Fields(f.Reason), " "), "|", "\\|")
-		fmt.Fprintf(b, "| `%s` | %s | %s | %s |\n", f.ProbeID, f.Family, reason, citationLinks(f.Citations))
+		evidence := citationLinks(f.Citations)
+		if modules := control.ModuleSummary(f.Modules); modules != "" {
+			evidence = strings.TrimPrefix(evidence+"; "+modules, "; ")
+		}
+		fmt.Fprintf(b, "| `%s` | %s | %s | %s |\n", f.ProbeID, f.Family, reason, evidence)
 	}
 	b.WriteString("\n")
 }

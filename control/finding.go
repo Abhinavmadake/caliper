@@ -41,6 +41,17 @@ type Finding struct {
 	// Claim and undeclared-exposure findings have no posture assertion, so this
 	// is empty for them.
 	Citations []PostureCitation `json:"citations,omitempty"`
+	// Modules is the state of the probe's kernel-dependency modules on an
+	// expectation finding, since exploitability can hinge on them.
+	Modules []ModuleState `json:"modules,omitempty"`
+}
+
+// ModuleState reads one module against the run's snapshots. LoadedBefore is
+// nil when the fingerprint has no pre-probe snapshot.
+type ModuleState struct {
+	Name         string `json:"name"`
+	LoadedBefore *bool  `json:"loaded_before"`
+	LoadedByRun  bool   `json:"loaded_by_run"`
 }
 
 // Validate prevents a finding from being emitted without naming the exact
