@@ -591,6 +591,90 @@
       "janitor_removals": 0,
       "unreclaimed_objects": 0,
       "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell6-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 92,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 1
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 2
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell6.json",
+      "corpus_set": "full",
+      "elapsed_ms": 109,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 1
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 2
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
     }
   ],
   "unreclaimed_objects": 0,

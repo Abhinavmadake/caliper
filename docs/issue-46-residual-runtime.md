@@ -6,7 +6,7 @@ modules reported apart, and the full corpus under 60 s and the reduced corpus
 under 5 s.
 
 The runs are in `fixtures/runtime/`: the full and the reduced corpus on cells 1
-to 5, each from a fresh boot (`cells.sh measure`, `CALIPER_CORPUS_SET=reduced`
+to 6, each from a fresh boot (`cells.sh measure`, `CALIPER_CORPUS_SET=reduced`
 for the reduced one), and `cell2-none.json`, the full corpus on cell 2 with
 every control off (`measure.sh`'s ground-truth mode `none`). Images are local
 builds of `9dde9c1`; the `.packages` files have the IDs.
@@ -52,6 +52,7 @@ per run and not counted.
 | cell3 (SELinux) | 247 | 175 | 6 | 0 | 0 |
 | cell4 (containerd 1.7) | 629 | 175 | 6 | 0 | 0 |
 | cell5 (gVisor) | 8632 | 2851 | 3 | 0 | 0 |
+| cell6 (Kata) | 109 | 92 | 6 | 0 | 0 |
 | cell2, controls off | 899 | | 6 | 0 | 0 |
 
 All three criteria are met. The slowest full run is gVisor at 8.6 s, the
@@ -59,8 +60,7 @@ slowest reduced one gVisor at 2.9 s. `ci.yml` also times the reduced corpus on
 the CI runner (`scripts/check-reduced-runtime.sh`).
 
 gVisor exposes neither keyrings nor either IPC class, so its zero covers three
-classes. Cell 6 (Kata) is not in this set: on 2026-10-26 the zone had no
-n2-standard-2 capacity to start it.
+classes. Kata exposes no module list, so cell 6 reports no autoload.
 
 ## What the zero covers
 
