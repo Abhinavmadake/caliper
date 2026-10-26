@@ -1,0 +1,462 @@
+Native x86_64 decisions from the captured classic-BPF filter.
+Counts: 297 ALLOW, 156 default ERRNO(1), 3 CONDITION, 1 explicit ERRNO(38), 0 KILL.
+Default action: ERRNO(1).
+Rows cover syscall numbers 0 through 456; unnamed slots use syscall_<number>.
+CONDITION means the action depends on syscall arguments.
+  0 read                             ALLOW
+  1 write                            ALLOW
+  2 open                             ALLOW
+  3 close                            ALLOW
+  4 stat                             ALLOW
+  5 fstat                            ALLOW
+  6 lstat                            ALLOW
+  7 poll                             ALLOW
+  8 lseek                            ALLOW
+  9 mmap                             ALLOW
+ 10 mprotect                         ALLOW
+ 11 munmap                           ALLOW
+ 12 brk                              ALLOW
+ 13 rt_sigaction                     ALLOW
+ 14 rt_sigprocmask                   ALLOW
+ 15 rt_sigreturn                     ALLOW
+ 16 ioctl                            ALLOW
+ 17 pread64                          ALLOW
+ 18 pwrite64                         ALLOW
+ 19 readv                            ALLOW
+ 20 writev                           ALLOW
+ 21 access                           ALLOW
+ 22 pipe                             ALLOW
+ 23 select                           ALLOW
+ 24 sched_yield                      ALLOW
+ 25 mremap                           ALLOW
+ 26 msync                            ALLOW
+ 27 mincore                          ALLOW
+ 28 madvise                          ALLOW
+ 29 shmget                           ALLOW
+ 30 shmat                            ALLOW
+ 31 shmctl                           ALLOW
+ 32 dup                              ALLOW
+ 33 dup2                             ALLOW
+ 34 pause                            ALLOW
+ 35 nanosleep                        ALLOW
+ 36 getitimer                        ALLOW
+ 37 alarm                            ALLOW
+ 38 setitimer                        ALLOW
+ 39 getpid                           ALLOW
+ 40 sendfile                         ALLOW
+ 41 socket                           CONDITION
+ 42 connect                          ALLOW
+ 43 accept                           ALLOW
+ 44 sendto                           ALLOW
+ 45 recvfrom                         ALLOW
+ 46 sendmsg                          ALLOW
+ 47 recvmsg                          ALLOW
+ 48 shutdown                         ALLOW
+ 49 bind                             ALLOW
+ 50 listen                           ALLOW
+ 51 getsockname                      ALLOW
+ 52 getpeername                      ALLOW
+ 53 socketpair                       ALLOW
+ 54 setsockopt                       ALLOW
+ 55 getsockopt                       ALLOW
+ 56 clone                            CONDITION
+ 57 fork                             ALLOW
+ 58 vfork                            ALLOW
+ 59 execve                           ALLOW
+ 60 exit                             ALLOW
+ 61 wait4                            ALLOW
+ 62 kill                             ALLOW
+ 63 uname                            ALLOW
+ 64 semget                           ALLOW
+ 65 semop                            ALLOW
+ 66 semctl                           ALLOW
+ 67 shmdt                            ALLOW
+ 68 msgget                           ALLOW
+ 69 msgsnd                           ALLOW
+ 70 msgrcv                           ALLOW
+ 71 msgctl                           ALLOW
+ 72 fcntl                            ALLOW
+ 73 flock                            ALLOW
+ 74 fsync                            ALLOW
+ 75 fdatasync                        ALLOW
+ 76 truncate                         ALLOW
+ 77 ftruncate                        ALLOW
+ 78 getdents                         ALLOW
+ 79 getcwd                           ALLOW
+ 80 chdir                            ALLOW
+ 81 fchdir                           ALLOW
+ 82 rename                           ALLOW
+ 83 mkdir                            ALLOW
+ 84 rmdir                            ALLOW
+ 85 creat                            ALLOW
+ 86 link                             ALLOW
+ 87 unlink                           ALLOW
+ 88 symlink                          ALLOW
+ 89 readlink                         ALLOW
+ 90 chmod                            ALLOW
+ 91 fchmod                           ALLOW
+ 92 chown                            ALLOW
+ 93 fchown                           ALLOW
+ 94 lchown                           ALLOW
+ 95 umask                            ALLOW
+ 96 gettimeofday                     ALLOW
+ 97 getrlimit                        ALLOW
+ 98 getrusage                        ALLOW
+ 99 sysinfo                          ALLOW
+100 times                            ALLOW
+101 ptrace                           ALLOW
+102 getuid                           ALLOW
+103 syslog                           ERRNO(1)
+104 getgid                           ALLOW
+105 setuid                           ALLOW
+106 setgid                           ALLOW
+107 geteuid                          ALLOW
+108 getegid                          ALLOW
+109 setpgid                          ALLOW
+110 getppid                          ALLOW
+111 getpgrp                          ALLOW
+112 setsid                           ALLOW
+113 setreuid                         ALLOW
+114 setregid                         ALLOW
+115 getgroups                        ALLOW
+116 setgroups                        ALLOW
+117 setresuid                        ALLOW
+118 getresuid                        ALLOW
+119 setresgid                        ALLOW
+120 getresgid                        ALLOW
+121 getpgid                          ALLOW
+122 setfsuid                         ALLOW
+123 setfsgid                         ALLOW
+124 getsid                           ALLOW
+125 capget                           ALLOW
+126 capset                           ALLOW
+127 rt_sigpending                    ALLOW
+128 rt_sigtimedwait                  ALLOW
+129 rt_sigqueueinfo                  ALLOW
+130 rt_sigsuspend                    ALLOW
+131 sigaltstack                      ALLOW
+132 utime                            ALLOW
+133 mknod                            ALLOW
+134 uselib                           ERRNO(1)
+135 personality                      CONDITION
+136 ustat                            ERRNO(1)
+137 statfs                           ALLOW
+138 fstatfs                          ALLOW
+139 sysfs                            ERRNO(1)
+140 getpriority                      ALLOW
+141 setpriority                      ALLOW
+142 sched_setparam                   ALLOW
+143 sched_getparam                   ALLOW
+144 sched_setscheduler               ALLOW
+145 sched_getscheduler               ALLOW
+146 sched_get_priority_max           ALLOW
+147 sched_get_priority_min           ALLOW
+148 sched_rr_get_interval            ALLOW
+149 mlock                            ALLOW
+150 munlock                          ALLOW
+151 mlockall                         ALLOW
+152 munlockall                       ALLOW
+153 vhangup                          ERRNO(1)
+154 modify_ldt                       ALLOW
+155 pivot_root                       ERRNO(1)
+156 _sysctl                          ERRNO(1)
+157 prctl                            ALLOW
+158 arch_prctl                       ALLOW
+159 adjtimex                         ALLOW
+160 setrlimit                        ALLOW
+161 chroot                           ERRNO(1)
+162 sync                             ALLOW
+163 acct                             ERRNO(1)
+164 settimeofday                     ERRNO(1)
+165 mount                            ERRNO(1)
+166 umount2                          ERRNO(1)
+167 swapon                           ERRNO(1)
+168 swapoff                          ERRNO(1)
+169 reboot                           ERRNO(1)
+170 sethostname                      ERRNO(1)
+171 setdomainname                    ERRNO(1)
+172 iopl                             ERRNO(1)
+173 ioperm                           ERRNO(1)
+174 create_module                    ERRNO(1)
+175 init_module                      ERRNO(1)
+176 delete_module                    ERRNO(1)
+177 get_kernel_syms                  ERRNO(1)
+178 query_module                     ERRNO(1)
+179 quotactl                         ERRNO(1)
+180 nfsservctl                       ERRNO(1)
+181 getpmsg                          ERRNO(1)
+182 putpmsg                          ERRNO(1)
+183 afs_syscall                      ERRNO(1)
+184 tuxcall                          ERRNO(1)
+185 security                         ERRNO(1)
+186 gettid                           ALLOW
+187 readahead                        ALLOW
+188 setxattr                         ALLOW
+189 lsetxattr                        ALLOW
+190 fsetxattr                        ALLOW
+191 getxattr                         ALLOW
+192 lgetxattr                        ALLOW
+193 fgetxattr                        ALLOW
+194 listxattr                        ALLOW
+195 llistxattr                       ALLOW
+196 flistxattr                       ALLOW
+197 removexattr                      ALLOW
+198 lremovexattr                     ALLOW
+199 fremovexattr                     ALLOW
+200 tkill                            ALLOW
+201 time                             ALLOW
+202 futex                            ALLOW
+203 sched_setaffinity                ALLOW
+204 sched_getaffinity                ALLOW
+205 set_thread_area                  ALLOW
+206 io_setup                         ALLOW
+207 io_destroy                       ALLOW
+208 io_getevents                     ALLOW
+209 io_submit                        ALLOW
+210 io_cancel                        ALLOW
+211 get_thread_area                  ALLOW
+212 lookup_dcookie                   ERRNO(1)
+213 epoll_create                     ALLOW
+214 epoll_ctl_old                    ALLOW
+215 epoll_wait_old                   ALLOW
+216 remap_file_pages                 ALLOW
+217 getdents64                       ALLOW
+218 set_tid_address                  ALLOW
+219 restart_syscall                  ALLOW
+220 semtimedop                       ALLOW
+221 fadvise64                        ALLOW
+222 timer_create                     ALLOW
+223 timer_settime                    ALLOW
+224 timer_gettime                    ALLOW
+225 timer_getoverrun                 ALLOW
+226 timer_delete                     ALLOW
+227 clock_settime                    ERRNO(1)
+228 clock_gettime                    ALLOW
+229 clock_getres                     ALLOW
+230 clock_nanosleep                  ALLOW
+231 exit_group                       ALLOW
+232 epoll_wait                       ALLOW
+233 epoll_ctl                        ALLOW
+234 tgkill                           ALLOW
+235 utimes                           ALLOW
+236 vserver                          ERRNO(1)
+237 mbind                            ERRNO(1)
+238 set_mempolicy                    ERRNO(1)
+239 get_mempolicy                    ERRNO(1)
+240 mq_open                          ALLOW
+241 mq_unlink                        ALLOW
+242 mq_timedsend                     ALLOW
+243 mq_timedreceive                  ALLOW
+244 mq_notify                        ALLOW
+245 mq_getsetattr                    ALLOW
+246 kexec_load                       ERRNO(1)
+247 waitid                           ALLOW
+248 add_key                          ERRNO(1)
+249 request_key                      ERRNO(1)
+250 keyctl                           ERRNO(1)
+251 ioprio_set                       ALLOW
+252 ioprio_get                       ALLOW
+253 inotify_init                     ALLOW
+254 inotify_add_watch                ALLOW
+255 inotify_rm_watch                 ALLOW
+256 migrate_pages                    ERRNO(1)
+257 openat                           ALLOW
+258 mkdirat                          ALLOW
+259 mknodat                          ALLOW
+260 fchownat                         ALLOW
+261 futimesat                        ALLOW
+262 newfstatat                       ALLOW
+263 unlinkat                         ALLOW
+264 renameat                         ALLOW
+265 linkat                           ALLOW
+266 symlinkat                        ALLOW
+267 readlinkat                       ALLOW
+268 fchmodat                         ALLOW
+269 faccessat                        ALLOW
+270 pselect6                         ALLOW
+271 ppoll                            ALLOW
+272 unshare                          ERRNO(1)
+273 set_robust_list                  ALLOW
+274 get_robust_list                  ALLOW
+275 splice                           ALLOW
+276 tee                              ALLOW
+277 sync_file_range                  ALLOW
+278 vmsplice                         ALLOW
+279 move_pages                       ERRNO(1)
+280 utimensat                        ALLOW
+281 epoll_pwait                      ALLOW
+282 signalfd                         ALLOW
+283 timerfd_create                   ALLOW
+284 eventfd                          ALLOW
+285 fallocate                        ALLOW
+286 timerfd_settime                  ALLOW
+287 timerfd_gettime                  ALLOW
+288 accept4                          ALLOW
+289 signalfd4                        ALLOW
+290 eventfd2                         ALLOW
+291 epoll_create1                    ALLOW
+292 dup3                             ALLOW
+293 pipe2                            ALLOW
+294 inotify_init1                    ALLOW
+295 preadv                           ALLOW
+296 pwritev                          ALLOW
+297 rt_tgsigqueueinfo                ALLOW
+298 perf_event_open                  ERRNO(1)
+299 recvmmsg                         ALLOW
+300 fanotify_init                    ERRNO(1)
+301 fanotify_mark                    ALLOW
+302 prlimit64                        ALLOW
+303 name_to_handle_at                ALLOW
+304 open_by_handle_at                ERRNO(1)
+305 clock_adjtime                    ALLOW
+306 syncfs                           ALLOW
+307 sendmmsg                         ALLOW
+308 setns                            ERRNO(1)
+309 getcpu                           ALLOW
+310 process_vm_readv                 ALLOW
+311 process_vm_writev                ALLOW
+312 kcmp                             ERRNO(1)
+313 finit_module                     ERRNO(1)
+314 sched_setattr                    ALLOW
+315 sched_getattr                    ALLOW
+316 renameat2                        ALLOW
+317 seccomp                          ALLOW
+318 getrandom                        ALLOW
+319 memfd_create                     ALLOW
+320 kexec_file_load                  ERRNO(1)
+321 bpf                              ERRNO(1)
+322 execveat                         ALLOW
+323 userfaultfd                      ERRNO(1)
+324 membarrier                       ALLOW
+325 mlock2                           ALLOW
+326 copy_file_range                  ALLOW
+327 preadv2                          ALLOW
+328 pwritev2                         ALLOW
+329 pkey_mprotect                    ALLOW
+330 pkey_alloc                       ALLOW
+331 pkey_free                        ALLOW
+332 statx                            ALLOW
+333 io_pgetevents                    ALLOW
+334 rseq                             ALLOW
+335 syscall_335                      ERRNO(1)
+336 syscall_336                      ERRNO(1)
+337 syscall_337                      ERRNO(1)
+338 syscall_338                      ERRNO(1)
+339 syscall_339                      ERRNO(1)
+340 syscall_340                      ERRNO(1)
+341 syscall_341                      ERRNO(1)
+342 syscall_342                      ERRNO(1)
+343 syscall_343                      ERRNO(1)
+344 syscall_344                      ERRNO(1)
+345 syscall_345                      ERRNO(1)
+346 syscall_346                      ERRNO(1)
+347 syscall_347                      ERRNO(1)
+348 syscall_348                      ERRNO(1)
+349 syscall_349                      ERRNO(1)
+350 syscall_350                      ERRNO(1)
+351 syscall_351                      ERRNO(1)
+352 syscall_352                      ERRNO(1)
+353 syscall_353                      ERRNO(1)
+354 syscall_354                      ERRNO(1)
+355 syscall_355                      ERRNO(1)
+356 syscall_356                      ERRNO(1)
+357 syscall_357                      ERRNO(1)
+358 syscall_358                      ERRNO(1)
+359 syscall_359                      ERRNO(1)
+360 syscall_360                      ERRNO(1)
+361 syscall_361                      ERRNO(1)
+362 syscall_362                      ERRNO(1)
+363 syscall_363                      ERRNO(1)
+364 syscall_364                      ERRNO(1)
+365 syscall_365                      ERRNO(1)
+366 syscall_366                      ERRNO(1)
+367 syscall_367                      ERRNO(1)
+368 syscall_368                      ERRNO(1)
+369 syscall_369                      ERRNO(1)
+370 syscall_370                      ERRNO(1)
+371 syscall_371                      ERRNO(1)
+372 syscall_372                      ERRNO(1)
+373 syscall_373                      ERRNO(1)
+374 syscall_374                      ERRNO(1)
+375 syscall_375                      ERRNO(1)
+376 syscall_376                      ERRNO(1)
+377 syscall_377                      ERRNO(1)
+378 syscall_378                      ERRNO(1)
+379 syscall_379                      ERRNO(1)
+380 syscall_380                      ERRNO(1)
+381 syscall_381                      ERRNO(1)
+382 syscall_382                      ERRNO(1)
+383 syscall_383                      ERRNO(1)
+384 syscall_384                      ERRNO(1)
+385 syscall_385                      ERRNO(1)
+386 syscall_386                      ERRNO(1)
+387 syscall_387                      ERRNO(1)
+388 syscall_388                      ERRNO(1)
+389 syscall_389                      ERRNO(1)
+390 syscall_390                      ERRNO(1)
+391 syscall_391                      ERRNO(1)
+392 syscall_392                      ERRNO(1)
+393 syscall_393                      ERRNO(1)
+394 syscall_394                      ERRNO(1)
+395 syscall_395                      ERRNO(1)
+396 syscall_396                      ERRNO(1)
+397 syscall_397                      ERRNO(1)
+398 syscall_398                      ERRNO(1)
+399 syscall_399                      ERRNO(1)
+400 syscall_400                      ERRNO(1)
+401 syscall_401                      ERRNO(1)
+402 syscall_402                      ERRNO(1)
+403 syscall_403                      ERRNO(1)
+404 syscall_404                      ERRNO(1)
+405 syscall_405                      ERRNO(1)
+406 syscall_406                      ERRNO(1)
+407 syscall_407                      ERRNO(1)
+408 syscall_408                      ERRNO(1)
+409 syscall_409                      ERRNO(1)
+410 syscall_410                      ERRNO(1)
+411 syscall_411                      ERRNO(1)
+412 syscall_412                      ERRNO(1)
+413 syscall_413                      ERRNO(1)
+414 syscall_414                      ERRNO(1)
+415 syscall_415                      ERRNO(1)
+416 syscall_416                      ERRNO(1)
+417 syscall_417                      ERRNO(1)
+418 syscall_418                      ERRNO(1)
+419 syscall_419                      ERRNO(1)
+420 syscall_420                      ERRNO(1)
+421 syscall_421                      ERRNO(1)
+422 syscall_422                      ERRNO(1)
+423 syscall_423                      ERRNO(1)
+424 pidfd_send_signal                ALLOW
+425 io_uring_setup                   ERRNO(1)
+426 io_uring_enter                   ERRNO(1)
+427 io_uring_register                ERRNO(1)
+428 open_tree                        ERRNO(1)
+429 move_mount                       ERRNO(1)
+430 fsopen                           ERRNO(1)
+431 fsconfig                         ERRNO(1)
+432 fsmount                          ERRNO(1)
+433 fspick                           ERRNO(1)
+434 pidfd_open                       ALLOW
+435 clone3                           ERRNO(38)
+436 close_range                      ALLOW
+437 openat2                          ALLOW
+438 pidfd_getfd                      ERRNO(1)
+439 faccessat2                       ALLOW
+440 process_madvise                  ERRNO(1)
+441 epoll_pwait2                     ALLOW
+442 mount_setattr                    ERRNO(1)
+443 quotactl_fd                      ERRNO(1)
+444 landlock_create_ruleset          ALLOW
+445 landlock_add_rule                ALLOW
+446 landlock_restrict_self           ALLOW
+447 memfd_secret                     ALLOW
+448 process_mrelease                 ALLOW
+449 futex_waitv                      ALLOW
+450 set_mempolicy_home_node          ERRNO(1)
+451 cachestat                        ALLOW
+452 fchmodat2                        ALLOW
+453 map_shadow_stack                 ALLOW
+454 futex_wake                       ALLOW
+455 futex_wait                       ALLOW
+456 futex_requeue                    ALLOW
