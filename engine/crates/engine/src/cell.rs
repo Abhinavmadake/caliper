@@ -421,11 +421,17 @@ pub struct UserNamespaces {
     /// AppArmor refuse an unprivileged creation without a userns rule.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apparmor_restricted: Option<u64>,
+    /// Whether the probe runs in the initial user namespace (an identity
+    /// `uid_map` over the whole range). Only there does a capability in the
+    /// effective set hold against the node's own objects.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initial: Option<bool>,
 }
 
 impl UserNamespaces {
     pub fn detect() -> UserNamespaces {
         UserNamespaces {
+            initial: read_small(c"/proc/self/uid_map").map(|map| initial_uid_map(&map)),
             max: read_number(c"/proc/sys/user/max_user_namespaces"),
             unprivileged_clone: read_number(c"/proc/sys/kernel/unprivileged_userns_clone"),
             apparmor_restricted: read_number(
@@ -435,9 +441,18 @@ impl UserNamespaces {
     }
 }
 
-/// A sysctl holding one decimal number, read with the run path's raw
-/// openat/read/close.
+/// A sysctl holding one decimal number.
 fn read_number(path: &std::ffi::CStr) -> Option<u64> {
+    read_small(path)?.trim().parse().ok()
+}
+
+fn initial_uid_map(map: &str) -> bool {
+    let fields: Vec<&str> = map.split_whitespace().collect();
+    fields == ["0", "0", "4294967295"]
+}
+
+/// A short procfs file, read with the run path's raw openat/read/close.
+fn read_small(path: &std::ffi::CStr) -> Option<String> {
     // SAFETY: a NUL-terminated path and constant flags.
     let fd = unsafe {
         libc::syscall(
@@ -450,13 +465,13 @@ fn read_number(path: &std::ffi::CStr) -> Option<u64> {
     if fd < 0 {
         return None;
     }
-    let mut buf = [0u8; 32];
+    let mut buf = [0u8; 256];
     // SAFETY: fd is open and buf is a valid buffer.
     let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
     // SAFETY: fd is a descriptor this function owns and closes once.
     unsafe { libc::close(fd) };
     let n = usize::try_from(n).ok()?;
-    std::str::from_utf8(&buf[..n]).ok()?.trim().parse().ok()
+    std::str::from_utf8(&buf[..n]).ok().map(str::to_owned)
 }
 
 impl Cell {
@@ -510,6 +525,13 @@ mod tests {
             Some("cri-containerd.apparmor.d (enforce)")
         );
         assert_eq!(clean_label(b"\0"), None);
+    }
+
+    #[test]
+    fn only_the_identity_uid_map_is_the_initial_namespace() {
+        assert!(initial_uid_map("         0          0 4294967295\n"));
+        assert!(!initial_uid_map("         0     100000      65536\n"));
+        assert!(!initial_uid_map(""));
     }
 
     #[test]

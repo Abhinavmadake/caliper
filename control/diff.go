@@ -213,6 +213,8 @@ type UserNamespaces struct {
 	Max                *uint64 `json:"max,omitempty"`
 	UnprivilegedClone  *uint64 `json:"unprivileged_clone,omitempty"`
 	ApparmorRestricted *uint64 `json:"apparmor_restricted,omitempty"`
+	// Initial is whether the probe ran in the initial user namespace.
+	Initial *bool `json:"initial,omitempty"`
 }
 
 // ProbeCell contains the identity measured inside the workload. Runtime,

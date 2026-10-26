@@ -57,6 +57,9 @@ func TestAttributionAccuracyScoresEveryDenialAgainstItsEnvironment(t *testing.T)
 	if m.CorrectAttributions != 2 || m.AttributedDenials != 2 || m.Undecidable != 1 {
 		t.Fatalf("correct/attributed/undecidable = %d/%d/%d, want 2/2/1", m.CorrectAttributions, m.AttributedDenials, m.Undecidable)
 	}
+	if m.WithoutElimination != (WithoutElimination{CorrectAttributions: 1, Undecidable: 2}) {
+		t.Fatalf("without cell elimination = %+v, want 1 correct and 2 undecidable", m.WithoutElimination)
+	}
 	if !m.ENOSYSFilterIncluded || !m.LSMOnlyIncluded {
 		t.Fatalf("ENOSYS/LSM-only included = %t/%t, want both", m.ENOSYSFilterIncluded, m.LSMOnlyIncluded)
 	}

@@ -44,9 +44,17 @@ type AttributionAccuracy struct {
 	UndecidableFraction     *float64                  `json:"undecidable_fraction"`
 	AccuracyCriterionMet    bool                      `json:"accuracy_criterion_met"`
 	UndecidableCriterionMet bool                      `json:"undecidable_criterion_met"`
+	WithoutElimination      WithoutElimination        `json:"without_cell_elimination"`
 	ENOSYSFilterIncluded    bool                      `json:"enosys_filter_included"`
 	LSMOnlyIncluded         bool                      `json:"lsm_only_included"`
 	Cases                   []AttributionAccuracyCase `json:"cases"`
+}
+
+// WithoutElimination is the same scoring with the oracle and correlations
+// alone: what the cell's seccomp mode, LSM state and capabilities decide.
+type WithoutElimination struct {
+	CorrectAttributions int `json:"correct_attributions"`
+	Undecidable         int `json:"undecidable"`
 }
 
 type EnvironmentAccuracy struct {
@@ -92,14 +100,24 @@ func EvaluateAttributionAccuracy(truth AttributionGroundTruth, control Fingerpri
 		if err != nil {
 			return AttributionAccuracy{}, fmt.Errorf("attribute %q: %w", env.Name, err)
 		}
+		oracleOnly, err := attributeFingerprint(fp, corpus, false)
+		if err != nil {
+			return AttributionAccuracy{}, fmt.Errorf("attribute %q: %w", env.Name, err)
+		}
 		e := EnvironmentAccuracy{Name: env.Name, Mechanism: env.Mechanism}
-		for _, r := range attributed.Results {
+		for i, r := range attributed.Results {
 			if !isDenial(r) {
 				continue
 			}
 			if kernelDenials[r.ProbeID] {
 				m.ExcludedByControl++
 				continue
+			}
+			switch o := oracleOnly.Results[i].Attribution; {
+			case o.Undecidable:
+				m.WithoutElimination.Undecidable++
+			case o.Mechanism != nil && *o.Mechanism == env.Mechanism:
+				m.WithoutElimination.CorrectAttributions++
 			}
 			c := AttributionAccuracyCase{Environment: env.Name, ProbeID: r.ProbeID, Errno: r.Errno, Attributed: r.Attribution.Mechanism}
 			e.Denials++

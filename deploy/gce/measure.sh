@@ -45,15 +45,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# The userns ground truth: the kernel's limit is the only thing that refuses
-# a user namespace, so Ubuntu's AppArmor restriction is lifted for the run.
-if [ "$ground_truth_mode" = userns ]; then
-    restore+=("user.max_user_namespaces=$(sysctl -n user.max_user_namespaces)")
-    sysctl -qw user.max_user_namespaces=0
+# Ground truth where AppArmor must refuse nothing: Ubuntu's restriction on
+# unprivileged user namespaces applies even to unconfined tasks, so it is
+# lifted for the run. In userns mode the kernel's limit is then the only thing
+# that refuses one.
+if [ "$ground_truth_mode" = userns ] || [ "$ground_truth_mode" = capability ]; then
     if aa=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null); then
         restore+=("kernel.apparmor_restrict_unprivileged_userns=$aa")
         sysctl -qw kernel.apparmor_restrict_unprivileged_userns=0
     fi
+fi
+if [ "$ground_truth_mode" = userns ]; then
+    restore+=("user.max_user_namespaces=$(sysctl -n user.max_user_namespaces)")
+    sysctl -qw user.max_user_namespaces=0
 fi
 
 install -d -o 65534 -g 65534 "$work/tmp"
@@ -112,6 +116,9 @@ if ground_truth_mode != "default":
     if ground_truth_mode == "seccomp":
         security["seccomp"] = seccomp
     elif ground_truth_mode == "capability":
+        # Unprivileged, so the probes reach their capability checks rather
+        # than a root-owned file's permissions (the probe's /tmp is 65534's).
+        security["run_as_user"] = {"value": 65534}
         security["capabilities"] = {"drop_capabilities": ["ALL"]}
     elif ground_truth_mode == "paths":
         security["masked_paths"], security["readonly_paths"] = masked, readonly

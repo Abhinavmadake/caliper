@@ -302,6 +302,8 @@ func TestCellStateEliminatesCandidates(t *testing.T) {
 		attribute(Cell{LSM: "none", Seccomp: &SeccompState{Mode: &zero}, Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}, capProbe), CapabilityMissing)
 
 	allCaps := json.RawMessage(`{"effective":"000001ffffffffff","bounding":"000001ffffffffff"}`)
+	noCaps := json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)
+	initial, nested := true, false
 	mountProbe := ProbeMetadata{ID: "mount.fs.proc", Family: "mount", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_ADMIN"}
 	eacces := func(cell Cell) Attribution {
 		fp := Fingerprint{Cell: cell, Results: []ProbeResult{{ProbeID: mountProbe.ID, Verdict: "denied", Errno: errnoEACCES}}}
@@ -311,11 +313,27 @@ func TestCellStateEliminatesCandidates(t *testing.T) {
 		}
 		return *got.Results[0].Attribution
 	}
-	want("EACCES with the capability held and no filter",
-		eacces(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero}, Capabilities: allCaps}), LSM)
-	want("EACCES without the capability, no filter and no LSM",
-		eacces(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero},
-			Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}), CapabilityMissing)
+	want("EACCES with the capability and CAP_DAC_OVERRIDE held, no filter",
+		eacces(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero},
+			Capabilities: allCaps, UserNamespaces: &UserNamespaces{Initial: &initial}}), LSM)
+	if a := eacces(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero},
+		Capabilities: noCaps, UserNamespaces: &UserNamespaces{Initial: &initial}}); !a.Undecidable {
+		t.Errorf("EACCES without CAP_DAC_OVERRIDE = %+v, want undecidable (DAC)", a)
+	}
+	// Outside the initial user namespace (hostUsers: false) a capability in
+	// the effective set does not hold against the node's objects.
+	if a := eacces(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero},
+		Capabilities: allCaps, UserNamespaces: &UserNamespaces{Initial: &nested}}); !a.Undecidable {
+		t.Errorf("EACCES in a nested user namespace = %+v, want undecidable", a)
+	}
+	capCell := func(caps json.RawMessage, init *bool) Cell {
+		return Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Capabilities: caps,
+			UserNamespaces: &UserNamespaces{Initial: init}}
+	}
+	want("EPERM with the capability held in the initial namespace", attribute(capCell(allCaps, &initial), capProbe), Seccomp)
+	if a := attribute(capCell(allCaps, &nested), capProbe); !a.Undecidable {
+		t.Errorf("held capability in a nested user namespace = %+v, want undecidable", a)
+	}
 
 	if a := attribute(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing}, lsmProbe); !a.Undecidable {
 		t.Errorf("no seccomp state under an enforcing label = %+v, want undecidable", a)

@@ -72,6 +72,12 @@ const (
 // fingerprint: consumers must not recompute it after decoding because
 // additive fields unknown to this control-plane version may have been dropped.
 func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
+	return attributeFingerprint(fp, corpus, true)
+}
+
+// attributeFingerprint without cell elimination is the oracle and the
+// correlations alone, which #44 reports beside the full result.
+func attributeFingerprint(fp Fingerprint, corpus []ProbeMetadata, eliminateByCell bool) (Fingerprint, error) {
 	metadata, err := metadataByID(corpus)
 	if err != nil {
 		return Fingerprint{}, err
@@ -83,7 +89,10 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 			return Fingerprint{}, fmt.Errorf("no corpus metadata for probe %q", r.ProbeID)
 		}
 		probe = withKernelHooks(probe, fp.Cell.Kernel.Release)
-		a := eliminate(correlate(attribute(r, probe), r, probe, fp.Cell), probe, fp.Cell)
+		a := correlate(attribute(r, probe), r, probe, fp.Cell)
+		if eliminateByCell {
+			a = eliminate(a, probe, fp.Cell)
+		}
 		r.Attribution = &a
 		results[i] = r
 	}
@@ -112,6 +121,12 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 
 			candidates := []Mechanism{Seccomp, LSM}
 			reason := fmt.Sprintf("%s is present in the effective set, so seccomp and an LSM capability or namespace hook can also return EPERM", p.Capability)
+			if !initialUserNamespace(cell) {
+				// Outside the initial user namespace the capability need not
+				// hold against the object (hostUsers: false).
+				candidates = append(candidates, CapabilityMissing)
+				reason = fmt.Sprintf("%s is present in the effective set, but not known to be in the initial user namespace, so it may not hold against the object; seccomp or an LSM hook can also return EPERM", p.Capability)
+			}
 			if !bounding {
 				candidates = []Mechanism{Seccomp, CapabilityMissing}
 				reason = fmt.Sprintf("%s is absent from both Effective and Bounding; it is still missing, but Docker's default seccomp policy can produce the same EPERM first", p.Capability)
@@ -126,6 +141,19 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 		}
 	}
 
+	// EACCES on a capability-gated call is a security module, the missing
+	// capability (documented EACCES), or a filter answering with it, once
+	// CAP_DAC_OVERRIDE rules out a file-permission check. Without it DAC is
+	// possible and is not a mechanism the attributor names, so it stays
+	// undecidable.
+	if r.Errno == errnoEACCES && p.Capability != "" && p.Oracle.Isolates != "seccomp-or-lsm" {
+		if effective, _, known := capabilityState(cell.Capabilities, "CAP_DAC_OVERRIDE"); known && effective && initialUserNamespace(cell) {
+			return undecidable([]Mechanism{Seccomp, LSM, CapabilityMissing},
+				fmt.Sprintf("EACCES with CAP_DAC_OVERRIDE held is a security module, the missing %s, or a filter answering with it", p.Capability))
+		}
+		return undecidable(nil, "EACCES without CAP_DAC_OVERRIDE can be a file-permission check, which is not separable from inside the container")
+	}
+
 	if r.Errno == errnoEACCES && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
 		return correlated(LSM,
 			fmt.Sprintf("EACCES follows the security-module hook and %s is enforcing label %q", cell.LSM, *cell.LSMLabel))
@@ -136,9 +164,22 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 // withKernelHooks applies a dependency's lsm_hook_since: on that release or
 // later, or when the release cannot be read, a seccomp oracle reads as
 // seccomp or an LSM.
+func withKernelHooks(p ProbeMetadata, release string) ProbeMetadata {
+	since := p.Kernel.LSMHookSince
+	if since == nil || p.Oracle.Isolates != "seccomp" {
+		return p
+	}
+	if version, known := parseKernelVersion(release); known && before(version, *since) {
+		return p
+	}
+	p.Oracle.Isolates = "seccomp-or-lsm"
+	return p
+}
+
 // eliminate drops the candidates the cell rules out: seccomp mode 0 installs
 // no filter, a non-enforcing LSM refuses nothing, and a capability in the
-// effective set is not missing. A single survivor is the attribution.
+// effective set of the initial user namespace is not missing. A single
+// survivor is the attribution.
 func eliminate(a Attribution, p ProbeMetadata, cell Cell) Attribution {
 	if !a.Undecidable || len(a.Candidates) == 0 {
 		return a
@@ -184,23 +225,14 @@ func ruledOut(m Mechanism, p ProbeMetadata, cell Cell) string {
 			return fmt.Sprintf("%s is not enforcing", cell.LSM)
 		}
 	case CapabilityMissing:
+		if !initialUserNamespace(cell) {
+			return ""
+		}
 		if effective, _, known := capabilityState(cell.Capabilities, p.Capability); known && effective {
-			return fmt.Sprintf("%s is in the effective set", p.Capability)
+			return fmt.Sprintf("%s is in the effective set in the initial user namespace", p.Capability)
 		}
 	}
 	return ""
-}
-
-func withKernelHooks(p ProbeMetadata, release string) ProbeMetadata {
-	since := p.Kernel.LSMHookSince
-	if since == nil || p.Oracle.Isolates != "seccomp" {
-		return p
-	}
-	if version, known := parseKernelVersion(release); known && before(version, *since) {
-		return p
-	}
-	p.Oracle.Isolates = "seccomp-or-lsm"
-	return p
 }
 
 func correlated(mechanism Mechanism, reason string) Attribution {
@@ -213,6 +245,7 @@ type capabilityMasks struct {
 }
 
 var capabilityBits = map[string]uint{
+	"CAP_DAC_OVERRIDE":     1,
 	"CAP_NET_ADMIN":        12,
 	"CAP_NET_RAW":          13,
 	"CAP_SYS_ADMIN":        21,
@@ -248,6 +281,10 @@ func capabilityState(raw json.RawMessage, capability string) (effectivePresent, 
 		return false, false, false
 	}
 	return effective&(uint64(1)<<bit) != 0, bounding&(uint64(1)<<bit) != 0, true
+}
+
+func initialUserNamespace(cell Cell) bool {
+	return cell.UserNamespaces != nil && cell.UserNamespaces.Initial != nil && *cell.UserNamespaces.Initial
 }
 
 func confiningLSM(cell Cell) bool {
@@ -304,12 +341,6 @@ func denied(r ProbeResult, p ProbeMetadata) Attribution {
 	// The verdict is denied, not unimplemented, only when it does.
 	if r.Errno == errnoENOSYS {
 		return proof(Seccomp, "the kernel implements this syscall, so ENOSYS is a filter answering in its voice")
-	}
-	// A permission check (DAC, or a call documented to answer EACCES without
-	// its capability), a security module or a filter's chosen errno.
-	if r.Errno == errnoEACCES && p.Capability != "" {
-		return undecidable([]Mechanism{Seccomp, LSM, CapabilityMissing},
-			fmt.Sprintf("EACCES is a security module, the missing %s or another permission check, or a filter answering with it", p.Capability))
 	}
 	if r.Errno != errnoEPERM {
 		return undecidable(nil, fmt.Sprintf("%s is not separated by the oracle; see the probe's oracle reason", errnoName(r.Errno)))
