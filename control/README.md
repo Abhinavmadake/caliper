@@ -46,6 +46,21 @@ and reports those denials as unknown and undecidable, rather than inventing a
 mechanism. The undecidable fraction is therefore a measured result, not an
 assumption that the residual is zero.
 
+Issue #44 measures the attributor against single-cause environments: probe
+runs on cell 2 in which one mechanism is the only control in force
+(`deploy/gce/measure.sh`'s ground-truth modes), plus a control run with none,
+whose denials are the kernel's own and are left out. Regenerate the committed
+record with:
+
+```sh
+go run ./cmd/caliper-attribution-accuracy \
+  -ground-truth ../fixtures/ground-truth/attribution.json \
+  -out ../fixtures/metrics/attribution-accuracy.json
+```
+
+It reports accuracy over attributed denials and the undecidable fraction over
+all denials, overall and per environment.
+
 `GenerateRemediation` turns posture expectation violations into the smallest
 available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
 resource, which the Security Profiles Operator distributes to nodes; it also

@@ -268,18 +268,44 @@ impl Capabilities {
         ambient: None,
     };
 
-    pub fn detect() -> Capabilities {
-        let Ok(status) = read_proc_self_status() else {
-            return Capabilities::UNKNOWN;
-        };
-        let text = String::from_utf8_lossy(&status);
+    fn parse(status: &str) -> Capabilities {
         Capabilities {
-            effective: cap_line(&text, "CapEff").ok(),
-            permitted: cap_line(&text, "CapPrm").ok(),
-            bounding: cap_line(&text, "CapBnd").ok(),
-            ambient: cap_line(&text, "CapAmb").ok(),
+            effective: cap_line(status, "CapEff").ok(),
+            permitted: cap_line(status, "CapPrm").ok(),
+            bounding: cap_line(status, "CapBnd").ok(),
+            ambient: cap_line(status, "CapAmb").ok(),
         }
     }
+}
+
+/// The process's seccomp state from `/proc/self/status`: the mode (0 none,
+/// 1 strict, 2 filter) and the number of installed filters. Their contents
+/// are not visible from inside (§6.1), but mode 0 rules seccomp out of every
+/// denial. Either line missing is `None` and left out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
+pub struct Seccomp {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub filters: Option<u64>,
+}
+
+impl Seccomp {
+    fn parse(status: &str) -> Seccomp {
+        Seccomp {
+            mode: decimal_line(status, "Seccomp"),
+            filters: decimal_line(status, "Seccomp_filters"),
+        }
+    }
+}
+
+fn decimal_line(status: &str, key: &str) -> Option<u64> {
+    status
+        .lines()
+        .find_map(|line| line.strip_prefix(key)?.strip_prefix(':'))?
+        .trim()
+        .parse()
+        .ok()
 }
 
 fn read_proc_self_status() -> nix::Result<Vec<u8>> {
@@ -374,6 +400,7 @@ pub struct Cell {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lsm_enforcing: Option<bool>,
     pub capabilities: Capabilities,
+    pub seccomp: Seccomp,
     /// The kernel's own limits on creating a user namespace, which answer a
     /// user-namespace probe before or instead of a filter (#96).
     pub user_namespaces: UserNamespaces,
@@ -394,11 +421,17 @@ pub struct UserNamespaces {
     /// AppArmor refuse an unprivileged creation without a userns rule.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apparmor_restricted: Option<u64>,
+    /// Whether the probe runs in the initial user namespace (an identity
+    /// `uid_map` over the whole range). Only there does a capability in the
+    /// effective set hold against the node's own objects.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initial: Option<bool>,
 }
 
 impl UserNamespaces {
     pub fn detect() -> UserNamespaces {
         UserNamespaces {
+            initial: read_small(c"/proc/self/uid_map").map(|map| initial_uid_map(&map)),
             max: read_number(c"/proc/sys/user/max_user_namespaces"),
             unprivileged_clone: read_number(c"/proc/sys/kernel/unprivileged_userns_clone"),
             apparmor_restricted: read_number(
@@ -408,9 +441,18 @@ impl UserNamespaces {
     }
 }
 
-/// A sysctl holding one decimal number, read with the run path's raw
-/// openat/read/close.
+/// A sysctl holding one decimal number.
 fn read_number(path: &std::ffi::CStr) -> Option<u64> {
+    read_small(path)?.trim().parse().ok()
+}
+
+fn initial_uid_map(map: &str) -> bool {
+    let fields: Vec<&str> = map.split_whitespace().collect();
+    fields == ["0", "0", "4294967295"]
+}
+
+/// A short procfs file, read with the run path's raw openat/read/close.
+fn read_small(path: &std::ffi::CStr) -> Option<String> {
     // SAFETY: a NUL-terminated path and constant flags.
     let fd = unsafe {
         libc::syscall(
@@ -423,13 +465,13 @@ fn read_number(path: &std::ffi::CStr) -> Option<u64> {
     if fd < 0 {
         return None;
     }
-    let mut buf = [0u8; 32];
+    let mut buf = [0u8; 256];
     // SAFETY: fd is open and buf is a valid buffer.
     let n = unsafe { libc::read(fd, buf.as_mut_ptr().cast(), buf.len()) };
     // SAFETY: fd is a descriptor this function owns and closes once.
     unsafe { libc::close(fd) };
     let n = usize::try_from(n).ok()?;
-    std::str::from_utf8(&buf[..n]).ok()?.trim().parse().ok()
+    std::str::from_utf8(&buf[..n]).ok().map(str::to_owned)
 }
 
 impl Cell {
@@ -448,13 +490,21 @@ impl Cell {
             }
             Lsm::None => (None, None),
         };
+        let (capabilities, seccomp) = match read_proc_self_status() {
+            Ok(status) => {
+                let text = String::from_utf8_lossy(&status);
+                (Capabilities::parse(&text), Seccomp::parse(&text))
+            }
+            Err(_) => (Capabilities::UNKNOWN, Seccomp::default()),
+        };
         Ok(Cell {
             architecture: Arch::current(),
             kernel: Kernel::running()?,
             lsm,
             lsm_label,
             lsm_enforcing,
-            capabilities: Capabilities::detect(),
+            capabilities,
+            seccomp,
             user_namespaces: UserNamespaces::detect(),
         })
     }
@@ -475,6 +525,30 @@ mod tests {
             Some("cri-containerd.apparmor.d (enforce)")
         );
         assert_eq!(clean_label(b"\0"), None);
+    }
+
+    #[test]
+    fn only_the_identity_uid_map_is_the_initial_namespace() {
+        assert!(initial_uid_map("         0          0 4294967295\n"));
+        assert!(!initial_uid_map("         0     100000      65536\n"));
+        assert!(!initial_uid_map(""));
+    }
+
+    #[test]
+    fn reads_seccomp_mode_and_filter_count() {
+        let status = "CapEff:\t0000000000000000\nSeccomp:\t2\nSeccomp_filters:\t1\n";
+        assert_eq!(
+            Seccomp::parse(status),
+            Seccomp {
+                mode: Some(2),
+                filters: Some(1)
+            }
+        );
+        assert_eq!(Seccomp::parse("CapEff:\t0\n"), Seccomp::default());
+        assert_eq!(
+            serde_json::to_string(&Seccomp::parse("Seccomp:\t0\n")).unwrap(),
+            r#"{"mode":0}"#
+        );
     }
 
     #[test]

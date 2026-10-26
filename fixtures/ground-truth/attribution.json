@@ -1,0 +1,11 @@
+{
+  "control": "gt-none.json",
+  "environments": [
+    {"name": "seccomp", "mechanism": "seccomp", "fingerprint": "gt-seccomp.json"},
+    {"name": "seccomp-hardened", "mechanism": "seccomp", "fingerprint": "gt-seccomp-hardened.json"},
+    {"name": "apparmor", "mechanism": "lsm", "fingerprint": "gt-apparmor.json"},
+    {"name": "capability", "mechanism": "capability", "fingerprint": "gt-capability.json"},
+    {"name": "paths", "mechanism": "mount", "fingerprint": "gt-paths.json"},
+    {"name": "userns", "mechanism": "kernel-limit", "fingerprint": "gt-userns.json"}
+  ]
+}

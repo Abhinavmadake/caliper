@@ -196,7 +196,15 @@ type Cell struct {
 	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
 	RuntimeClass   *SourcedValue   `json:"runtime_class,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	Seccomp        *SeccompState   `json:"seccomp,omitempty"`
 	UserNamespaces *UserNamespaces `json:"user_namespaces,omitempty"`
+}
+
+// SeccompState is the probe's seccomp mode (0 none, 1 strict, 2 filter) and
+// installed filter count from /proc/self/status; a missing line is nil.
+type SeccompState struct {
+	Mode    *uint64 `json:"mode,omitempty"`
+	Filters *uint64 `json:"filters,omitempty"`
 }
 
 // UserNamespaces are the kernel's own limits on creating a user namespace,
@@ -205,6 +213,8 @@ type UserNamespaces struct {
 	Max                *uint64 `json:"max,omitempty"`
 	UnprivilegedClone  *uint64 `json:"unprivileged_clone,omitempty"`
 	ApparmorRestricted *uint64 `json:"apparmor_restricted,omitempty"`
+	// Initial is whether the probe ran in the initial user namespace.
+	Initial *bool `json:"initial,omitempty"`
 }
 
 // ProbeCell contains the identity measured inside the workload. Runtime,
@@ -217,6 +227,7 @@ type ProbeCell struct {
 	LSMLabel       *string         `json:"lsm_label,omitempty"`
 	LSMEnforcing   *bool           `json:"lsm_enforcing,omitempty"`
 	Capabilities   json.RawMessage `json:"capabilities,omitempty"`
+	Seccomp        *SeccompState   `json:"seccomp,omitempty"`
 	UserNamespaces *UserNamespaces `json:"user_namespaces,omitempty"`
 }
 
@@ -255,6 +266,7 @@ func CompleteCell(probe ProbeCell, metadata CellMetadata) Cell {
 		LSMEnforcing:   probe.LSMEnforcing,
 		RuntimeClass:   metadata.RuntimeClass,
 		Capabilities:   probe.Capabilities,
+		Seccomp:        probe.Seccomp,
 		UserNamespaces: probe.UserNamespaces,
 	}
 }

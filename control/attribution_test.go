@@ -86,10 +86,19 @@ func TestCorrelationUsesProcessCapabilitiesAndLSMLabel(t *testing.T) {
 		t.Errorf("missing capability correlation = %+v", got)
 	}
 
-	withBoot := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000400000","bounding":"0000000000400000"}`)}
+	initial := true
+	withBoot := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000400000","bounding":"0000000000400000"}`),
+		UserNamespaces: &UserNamespaces{Initial: &initial}}
 	got = correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, withBoot)
 	if got.Mechanism != nil || !got.Undecidable || !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, LSM}) {
 		t.Errorf("present capability correlation = %+v", got)
+	}
+	// Not known to be the initial user namespace: the capability may not
+	// hold against the object, so it stays a candidate.
+	withBoot.UserNamespaces = nil
+	got = correlate(undecidable([]Mechanism{Seccomp, CapabilityMissing}, ""), ProbeResult{Verdict: "denied", Errno: eperm}, capability, withBoot)
+	if !reflect.DeepEqual(got.Candidates, []Mechanism{Seccomp, LSM, CapabilityMissing}) {
+		t.Errorf("present capability outside a known initial namespace = %+v", got)
 	}
 
 	outsideBounding := Cell{Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}
@@ -268,4 +277,84 @@ func TestUserNamespaceLimitsWidenOrExplainTheDenial(t *testing.T) {
 	if a := attribute(errnoEPERM, UserNamespaces{Max: &one, UnprivilegedClone: &one}, "apparmor"); reflect.DeepEqual(a.Candidates, want) {
 		t.Errorf("no limit set should not add candidates: %+v", a)
 	}
+}
+
+func TestCellStateEliminatesCandidates(t *testing.T) {
+	zero, two, one := uint64(0), uint64(2), uint64(1)
+	enforcing, notEnforcing := true, false
+	label := "cri-containerd.apparmor.d (enforce)"
+	lsmProbe := ProbeMetadata{ID: "socket.lsm", Family: "socket", Oracle: Oracle{Isolates: "seccomp-or-lsm"}}
+	capProbe := ProbeMetadata{ID: "capability.sys_time", Family: "capability", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_TIME"}
+	userns := ProbeMetadata{ID: "unshare.flags.newuser", Family: "clone", Oracle: Oracle{Isolates: "seccomp-or-lsm"},
+		Kernel: KernelDependency{UserNamespaceLimits: true}}
+	attribute := func(cell Cell, probe ProbeMetadata) Attribution {
+		fp := Fingerprint{Cell: cell, Results: []ProbeResult{{ProbeID: probe.ID, Verdict: "denied", Errno: errnoEPERM}}}
+		got, err := Attribute(fp, []ProbeMetadata{probe})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return *got.Results[0].Attribution
+	}
+	want := func(name string, a Attribution, m Mechanism) {
+		t.Helper()
+		if a.Undecidable || a.Mechanism == nil || *a.Mechanism != m || a.Confidence != Medium {
+			t.Errorf("%s = %+v, want %s at medium confidence", name, a, m)
+		}
+	}
+
+	want("no filter under an enforcing label",
+		attribute(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero}}, lsmProbe), LSM)
+	want("filter with the LSM not enforcing",
+		attribute(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &two}}, lsmProbe), Seccomp)
+	want("filter and no LSM", attribute(Cell{LSM: "none"}, lsmProbe), Seccomp)
+	want("missing capability without a filter",
+		attribute(Cell{LSM: "none", Seccomp: &SeccompState{Mode: &zero}, Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}, capProbe), CapabilityMissing)
+
+	allCaps := json.RawMessage(`{"effective":"000001ffffffffff","bounding":"000001ffffffffff"}`)
+	noCaps := json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)
+	initial, nested := true, false
+	mountProbe := ProbeMetadata{ID: "mount.fs.proc", Family: "mount", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_ADMIN"}
+	eacces := func(cell Cell) Attribution {
+		fp := Fingerprint{Cell: cell, Results: []ProbeResult{{ProbeID: mountProbe.ID, Verdict: "denied", Errno: errnoEACCES}}}
+		got, err := Attribute(fp, []ProbeMetadata{mountProbe})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return *got.Results[0].Attribution
+	}
+	want("EACCES with the capability and CAP_DAC_OVERRIDE held, no filter",
+		eacces(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero},
+			Capabilities: allCaps, UserNamespaces: &UserNamespaces{Initial: &initial}}), LSM)
+	if a := eacces(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero},
+		Capabilities: noCaps, UserNamespaces: &UserNamespaces{Initial: &initial}}); !a.Undecidable {
+		t.Errorf("EACCES without CAP_DAC_OVERRIDE = %+v, want undecidable (DAC)", a)
+	}
+	// Outside the initial user namespace (hostUsers: false) a capability in
+	// the effective set does not hold against the node's objects.
+	if a := eacces(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero},
+		Capabilities: allCaps, UserNamespaces: &UserNamespaces{Initial: &nested}}); !a.Undecidable {
+		t.Errorf("EACCES in a nested user namespace = %+v, want undecidable", a)
+	}
+	capCell := func(caps json.RawMessage, init *bool) Cell {
+		return Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Capabilities: caps,
+			UserNamespaces: &UserNamespaces{Initial: init}}
+	}
+	want("EPERM with the capability held in the initial namespace", attribute(capCell(allCaps, &initial), capProbe), Seccomp)
+	if a := attribute(capCell(allCaps, &nested), capProbe); !a.Undecidable {
+		t.Errorf("held capability in a nested user namespace = %+v, want undecidable", a)
+	}
+	ptrace := ProbeMetadata{ID: "capability.sys_ptrace", Family: "capability", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_PTRACE"}
+	if a := attribute(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero}, Capabilities: noCaps,
+		UserNamespaces: &UserNamespaces{Initial: &initial}}, ptrace); !a.Undecidable {
+		t.Errorf("ptrace EPERM with an unconfined label = %+v, want undecidable (Yama)", a)
+	}
+
+	if a := attribute(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing}, lsmProbe); !a.Undecidable {
+		t.Errorf("no seccomp state under an enforcing label = %+v, want undecidable", a)
+	}
+	// AppArmor's user-namespace restriction reaches unconfined tasks, so a
+	// non-enforcing label does not rule the LSM out there.
+	a := attribute(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero},
+		UserNamespaces: &UserNamespaces{ApparmorRestricted: &one}}, userns)
+	want("restricted userns without a filter", a, LSM)
 }

@@ -60,6 +60,7 @@ type Attribution struct {
 const (
 	errnoENOENT  = 2
 	errnoEPERM   = 1
+	errnoEACCES  = 13
 	errnoENOSPC  = 28
 	errnoENOSYS  = 38
 	errnoENODATA = 61
@@ -71,6 +72,12 @@ const (
 // fingerprint: consumers must not recompute it after decoding because
 // additive fields unknown to this control-plane version may have been dropped.
 func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
+	return attributeFingerprint(fp, corpus, true)
+}
+
+// attributeFingerprint without cell elimination is the oracle and the
+// correlations alone, which #44 reports beside the full result.
+func attributeFingerprint(fp Fingerprint, corpus []ProbeMetadata, eliminateByCell bool) (Fingerprint, error) {
 	metadata, err := metadataByID(corpus)
 	if err != nil {
 		return Fingerprint{}, err
@@ -83,6 +90,9 @@ func Attribute(fp Fingerprint, corpus []ProbeMetadata) (Fingerprint, error) {
 		}
 		probe = withKernelHooks(probe, fp.Cell.Kernel.Release)
 		a := correlate(attribute(r, probe), r, probe, fp.Cell)
+		if eliminateByCell {
+			a = eliminate(a, probe, fp.Cell)
+		}
 		r.Attribution = &a
 		results[i] = r
 	}
@@ -111,9 +121,19 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 
 			candidates := []Mechanism{Seccomp, LSM}
 			reason := fmt.Sprintf("%s is present in the effective set, so seccomp and an LSM capability or namespace hook can also return EPERM", p.Capability)
+			if !initialUserNamespace(cell) {
+				// Outside the initial user namespace the capability need not
+				// hold against the object (hostUsers: false).
+				candidates = append(candidates, CapabilityMissing)
+				reason = fmt.Sprintf("%s is present in the effective set, but not known to be in the initial user namespace, so it may not hold against the object; seccomp or an LSM hook can also return EPERM", p.Capability)
+			}
 			if !bounding {
 				candidates = []Mechanism{Seccomp, CapabilityMissing}
 				reason = fmt.Sprintf("%s is absent from both Effective and Bounding; it is still missing, but Docker's default seccomp policy can produce the same EPERM first", p.Capability)
+			}
+			if minorLSMGated[p.Capability] {
+				candidates = appendMechanism(candidates, LSM)
+				reason += "; Yama or lockdown can also refuse it"
 			}
 			return undecidable(candidates, reason)
 		}
@@ -125,7 +145,20 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 		}
 	}
 
-	if r.Errno == 13 && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
+	// EACCES on a capability-gated call is a security module, the missing
+	// capability (documented EACCES), or a filter answering with it, once
+	// CAP_DAC_OVERRIDE rules out a file-permission check. Without it DAC is
+	// possible and is not a mechanism the attributor names, so it stays
+	// undecidable.
+	if r.Errno == errnoEACCES && p.Capability != "" && p.Oracle.Isolates != "seccomp-or-lsm" {
+		if effective, _, known := capabilityState(cell.Capabilities, "CAP_DAC_OVERRIDE"); known && effective && initialUserNamespace(cell) {
+			return undecidable([]Mechanism{Seccomp, LSM, CapabilityMissing},
+				fmt.Sprintf("EACCES with CAP_DAC_OVERRIDE held is a security module, the missing %s, or a filter answering with it", p.Capability))
+		}
+		return undecidable(nil, "EACCES without CAP_DAC_OVERRIDE can be a file-permission check, which is not separable from inside the container")
+	}
+
+	if r.Errno == errnoEACCES && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
 		return correlated(LSM,
 			fmt.Sprintf("EACCES follows the security-module hook and %s is enforcing label %q", cell.LSM, *cell.LSMLabel))
 	}
@@ -147,6 +180,70 @@ func withKernelHooks(p ProbeMetadata, release string) ProbeMetadata {
 	return p
 }
 
+// eliminate drops the candidates the cell rules out: seccomp mode 0 installs
+// no filter, a non-enforcing LSM refuses nothing, and a capability in the
+// effective set of the initial user namespace is not missing. A single
+// survivor is the attribution.
+func eliminate(a Attribution, p ProbeMetadata, cell Cell) Attribution {
+	if !a.Undecidable || len(a.Candidates) == 0 {
+		return a
+	}
+	var kept []Mechanism
+	var ruled []string
+	for _, m := range a.Candidates {
+		if why := ruledOut(m, p, cell); why != "" {
+			ruled = append(ruled, why)
+			continue
+		}
+		kept = append(kept, m)
+	}
+	if len(ruled) == 0 || len(kept) == 0 {
+		return a
+	}
+	reason := a.Reason + "; " + strings.Join(ruled, " and ")
+	if len(kept) == 1 {
+		m := kept[0]
+		return Attribution{Mechanism: &m, Confidence: Medium, Reason: reason + ", which leaves " + mechanismPhrases[m]}
+	}
+	a.Candidates = kept
+	a.Reason = reason
+	return a
+}
+
+func ruledOut(m Mechanism, p ProbeMetadata, cell Cell) string {
+	switch m {
+	case Seccomp:
+		if cell.Seccomp != nil && cell.Seccomp.Mode != nil && *cell.Seccomp.Mode == 0 {
+			return "seccomp mode is 0, so no filter is installed"
+		}
+	case LSM:
+		// Yama and lockdown have no label to read: they refuse whatever the
+		// major LSM's state.
+		if minorLSMGated[p.Capability] {
+			return ""
+		}
+		// AppArmor's user-namespace restriction applies to unconfined tasks too.
+		if p.Kernel.UserNamespaceLimits && cell.UserNamespaces != nil &&
+			cell.UserNamespaces.ApparmorRestricted != nil && *cell.UserNamespaces.ApparmorRestricted == 1 {
+			return ""
+		}
+		if cell.LSM == "none" {
+			return "no LSM is active"
+		}
+		if cell.LSMEnforcing != nil && !*cell.LSMEnforcing {
+			return fmt.Sprintf("%s is not enforcing", cell.LSM)
+		}
+	case CapabilityMissing:
+		if !initialUserNamespace(cell) {
+			return ""
+		}
+		if effective, _, known := capabilityState(cell.Capabilities, p.Capability); known && effective {
+			return fmt.Sprintf("%s is in the effective set in the initial user namespace", p.Capability)
+		}
+	}
+	return ""
+}
+
 func correlated(mechanism Mechanism, reason string) Attribution {
 	return Attribution{Mechanism: &mechanism, Confidence: Low, Reason: reason}
 }
@@ -157,6 +254,7 @@ type capabilityMasks struct {
 }
 
 var capabilityBits = map[string]uint{
+	"CAP_DAC_OVERRIDE":     1,
 	"CAP_NET_ADMIN":        12,
 	"CAP_NET_RAW":          13,
 	"CAP_SYS_ADMIN":        21,
@@ -192,6 +290,14 @@ func capabilityState(raw json.RawMessage, capability string) (effectivePresent, 
 		return false, false, false
 	}
 	return effective&(uint64(1)<<bit) != 0, bounding&(uint64(1)<<bit) != 0, true
+}
+
+// minorLSMGated are capabilities whose calls Yama (ptrace_scope) or lockdown
+// can refuse with EPERM independently of the major LSM's label.
+var minorLSMGated = map[string]bool{"CAP_SYS_PTRACE": true, "CAP_SYS_RAWIO": true}
+
+func initialUserNamespace(cell Cell) bool {
+	return cell.UserNamespaces != nil && cell.UserNamespaces.Initial != nil && *cell.UserNamespaces.Initial
 }
 
 func confiningLSM(cell Cell) bool {
@@ -281,7 +387,7 @@ func undecidable(candidates []Mechanism, reason string) Attribution {
 }
 
 var errnoNames = map[int]string{
-	errnoEPERM: "EPERM", errnoENOENT: "ENOENT", 9: "EBADF", 13: "EACCES", 19: "ENODEV",
+	errnoEPERM: "EPERM", errnoENOENT: "ENOENT", 9: "EBADF", errnoEACCES: "EACCES", 19: "ENODEV",
 	22: "EINVAL", errnoEROFS: "EROFS", errnoENOSYS: "ENOSYS", errnoENODATA: "ENODATA",
 	93: "EPROTONOSUPPORT", 95: "EOPNOTSUPP", 97: "EAFNOSUPPORT",
 }

@@ -1,0 +1,1627 @@
+{
+  "environments": [
+    {
+      "name": "seccomp",
+      "mechanism": "seccomp",
+      "denials": 54,
+      "correct_attributions": 54,
+      "incorrect": 0,
+      "undecidable": 0
+    },
+    {
+      "name": "seccomp-hardened",
+      "mechanism": "seccomp",
+      "denials": 123,
+      "correct_attributions": 123,
+      "incorrect": 0,
+      "undecidable": 0
+    },
+    {
+      "name": "apparmor",
+      "mechanism": "lsm",
+      "denials": 3,
+      "correct_attributions": 3,
+      "incorrect": 0,
+      "undecidable": 0
+    },
+    {
+      "name": "capability",
+      "mechanism": "capability",
+      "denials": 27,
+      "correct_attributions": 24,
+      "incorrect": 0,
+      "undecidable": 3
+    },
+    {
+      "name": "paths",
+      "mechanism": "mount",
+      "denials": 12,
+      "correct_attributions": 12,
+      "incorrect": 0,
+      "undecidable": 0
+    },
+    {
+      "name": "userns",
+      "mechanism": "kernel-limit",
+      "denials": 4,
+      "correct_attributions": 4,
+      "incorrect": 0,
+      "undecidable": 0
+    }
+  ],
+  "denials": 223,
+  "excluded_by_control": 46,
+  "attributed_denials": 220,
+  "correct_attributions": 220,
+  "undecidable": 3,
+  "accuracy": 1,
+  "undecidable_fraction": 0.013452914798206279,
+  "accuracy_criterion_met": true,
+  "undecidable_criterion_met": true,
+  "without_cell_elimination": {
+    "correct_attributions": 140,
+    "undecidable": 83
+  },
+  "enosys_filter_included": true,
+  "lsm_only_included": true,
+  "cases": [
+    {
+      "environment": "seccomp",
+      "probe_id": "socket.family.af_vsock",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.register.probe",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.setup.zero_entries",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.nop",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.readv",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.writev",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.fsync",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.read_fixed",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.write_fixed",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.poll_add",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.sendmsg",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.recvmsg",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.timeout",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.accept",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.connect",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.fallocate",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.openat",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.close",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.statx",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.read",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.write",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.fadvise",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.madvise",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.send",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.recv",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.openat2",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.splice",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.tee",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.shutdown",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.renameat",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.unlinkat",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.mkdirat",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.symlinkat",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.linkat",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.msg_ring",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.setxattr",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.getxattr",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.socket",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.send_zc",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.read_multishot",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.waitid",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.futex_wait",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.futex_wake",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.ftruncate",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.bind",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp",
+      "probe_id": "io_uring.opcode.listen",
+      "errno": 1,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_inet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_alg",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_packet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.out_of_range",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_unix",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_inet6",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_key",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_bluetooth",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_can",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_tipc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_rds",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_xdp",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_rxrpc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_phonet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_ieee802154",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_nfc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_vsock",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_kcm",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_qipcrtr",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_smc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_mctp",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_ax25",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_appletalk",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "socket.family.af_x25",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.route",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.usersock",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.sock_diag",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.nflog",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.xfrm",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.selinux",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.iscsi",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.audit",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.fib_lookup",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.connector",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.netfilter",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.kobject_uevent",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.generic",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.scsitransport",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.rdma",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.crypto",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.smc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "netlink.protocol.out_of_range",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.register.probe",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.setup.zero_entries",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.nop",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.readv",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.writev",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.fsync",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.read_fixed",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.write_fixed",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.poll_add",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.sendmsg",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.recvmsg",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.timeout",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.accept",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.connect",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.fallocate",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.openat",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.close",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.statx",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.read",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.write",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.fadvise",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.madvise",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.send",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.recv",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.openat2",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.splice",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.tee",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.shutdown",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.renameat",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.unlinkat",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.mkdirat",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.symlinkat",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.linkat",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.msg_ring",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.setxattr",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.getxattr",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.socket",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.send_zc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.read_multishot",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.waitid",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.futex_wait",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.futex_wake",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.ftruncate",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.bind",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "io_uring.opcode.listen",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "mount.reach",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.invalid",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newuser",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newns",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newnet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newpid",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newipc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newuts",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newcgroup",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newtime",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "unshare.flags.newuser_newnet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newuser",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newns",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newnet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newpid",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newipc",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newuts",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newcgroup",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone.flags.newuser_newnet",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "clone3.args.short",
+      "errno": 38,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_time",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_boot",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_module",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.mknod",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_ptrace",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.net_bind_service",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_nice",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "seccomp-hardened",
+      "probe_id": "capability.sys_rawio",
+      "errno": 0,
+      "attributed": "seccomp",
+      "correct": true
+    },
+    {
+      "environment": "apparmor",
+      "probe_id": "mount.fs.proc",
+      "errno": 13,
+      "attributed": "lsm",
+      "correct": true
+    },
+    {
+      "environment": "apparmor",
+      "probe_id": "mount.fs.overlay",
+      "errno": 13,
+      "attributed": "lsm",
+      "correct": true
+    },
+    {
+      "environment": "apparmor",
+      "probe_id": "mount.fs.fuse",
+      "errno": 13,
+      "attributed": "lsm",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "socket.family.af_packet",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "socket.family.af_key",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "socket.family.af_xdp",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "socket.family.af_phonet",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "mount.fs.proc",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "mount.fs.overlay",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "mount.fs.fuse",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newns",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newnet",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newpid",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newipc",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newuts",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newcgroup",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "unshare.flags.newtime",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "clone.flags.newns",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "clone.flags.newnet",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "clone.flags.newpid",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "clone.flags.newipc",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "clone.flags.newuts",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "clone.flags.newcgroup",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.sys_time",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.sys_boot",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.sys_module",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.mknod",
+      "errno": 1,
+      "attributed": "capability",
+      "correct": true
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.sys_ptrace",
+      "errno": 1,
+      "correct": false
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.sys_nice",
+      "errno": 13,
+      "correct": false
+    },
+    {
+      "environment": "capability",
+      "probe_id": "capability.sys_rawio",
+      "errno": 1,
+      "correct": false
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.proc_kcore",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.proc_keys",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.proc_latency_stats",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.proc_timer_list",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.proc_acpi",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.proc_scsi",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.masked.sys_firmware",
+      "errno": 61,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.readonly.proc_bus",
+      "errno": 30,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.readonly.proc_fs",
+      "errno": 30,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.readonly.proc_irq",
+      "errno": 30,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.readonly.proc_sys",
+      "errno": 30,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "paths",
+      "probe_id": "path.readonly.proc_sysrq_trigger",
+      "errno": 30,
+      "attributed": "mount",
+      "correct": true
+    },
+    {
+      "environment": "userns",
+      "probe_id": "unshare.flags.newuser",
+      "errno": 28,
+      "attributed": "kernel-limit",
+      "correct": true
+    },
+    {
+      "environment": "userns",
+      "probe_id": "unshare.flags.newuser_newnet",
+      "errno": 28,
+      "attributed": "kernel-limit",
+      "correct": true
+    },
+    {
+      "environment": "userns",
+      "probe_id": "clone.flags.newuser",
+      "errno": 28,
+      "attributed": "kernel-limit",
+      "correct": true
+    },
+    {
+      "environment": "userns",
+      "probe_id": "clone.flags.newuser_newnet",
+      "errno": 28,
+      "attributed": "kernel-limit",
+      "correct": true
+    }
+  ]
+}

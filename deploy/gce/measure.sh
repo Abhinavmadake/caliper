@@ -18,27 +18,47 @@
 # way the kubelet builds deploy/k8s/job.yaml's pod. Raw probe output on
 # stdout; what containerd applied, and the cell's packages, on stderr.
 #
-#   measure.sh <image> [runtime-handler] [localhost-seccomp-profile]
+#   measure.sh <image> [runtime-handler] [localhost-seccomp-profile] [ground-truth-mode]
 #
 # With a profile, the probe runs under it as Kubernetes' Localhost type
-# instead of RuntimeDefault (the hardened fixture). Exit 3 from the probe is a
-# measurement with defects: the document is still printed.
+# instead of RuntimeDefault (the hardened fixture). A ground-truth mode (none,
+# seccomp, capability, paths, apparmor or userns) runs it for #44's
+# single-cause environments instead. Exit 3 from the probe is a measurement
+# with defects: the document is still printed.
 set -euo pipefail
 export PATH=/usr/local/bin:$PATH
 
 image=$1
 handler=${2:-}
 profile=${3:-}
+ground_truth_mode=${4:-default}
 work=$(mktemp -d /var/lib/caliper-measure.XXXXXX)
 pod=""
+restore=()
 cleanup() {
     if [ -n "$pod" ]; then
         crictl stopp "$pod" >/dev/null || true
         crictl rmp -f "$pod" >/dev/null || true
     fi
+    [ ${#restore[@]} -eq 0 ] || sysctl -qw "${restore[@]}"
     rm -rf "$work"
 }
 trap cleanup EXIT
+
+# Ground truth where AppArmor must refuse nothing: Ubuntu's restriction on
+# unprivileged user namespaces applies even to unconfined tasks, so it is
+# lifted for the run. In userns mode the kernel's limit is then the only thing
+# that refuses one.
+if [ "$ground_truth_mode" = userns ] || [ "$ground_truth_mode" = capability ]; then
+    if aa=$(sysctl -n kernel.apparmor_restrict_unprivileged_userns 2>/dev/null); then
+        restore+=("kernel.apparmor_restrict_unprivileged_userns=$aa")
+        sysctl -qw kernel.apparmor_restrict_unprivileged_userns=0
+    fi
+fi
+if [ "$ground_truth_mode" = userns ]; then
+    restore+=("user.max_user_namespaces=$(sysctl -n user.max_user_namespaces)")
+    sysctl -qw user.max_user_namespaces=0
+fi
 
 install -d -o 65534 -g 65534 "$work/tmp"
 install -d "$work/logs"
@@ -48,10 +68,10 @@ cat /etc/caliper/packages >&2
 # defaultReadonlyPaths, including the per-CPU thermal_throttle entries it adds
 # when they exist; pid CONTAINER (no shareProcessNamespace); RuntimeDefault
 # AppArmor only where AppArmor is on; emptyDir mounts relabelled for SELinux.
-python3 - "$work" "$image" "$profile" <<'PY'
+python3 - "$work" "$image" "$profile" "$ground_truth_mode" <<'PY'
 import glob, json, os, sys, uuid
 
-work, image, profile = sys.argv[1], sys.argv[2], sys.argv[3]
+work, image, profile, ground_truth_mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 seccomp = {"profile_type": 2, "localhost_ref": profile} if profile else {"profile_type": 0}
 masked = ["/proc/asound", "/proc/acpi", "/proc/interrupts", "/proc/kcore", "/proc/keys",
           "/proc/latency_stats", "/proc/timer_list", "/proc/timer_stats", "/proc/sched_debug",
@@ -82,6 +102,32 @@ security = {
 }
 if apparmor:
     security["apparmor"] = {"profile_type": 0}
+
+# Issue #44 ground truth: every control off (root, all capabilities, no
+# filter, no LSM profile, no masks) except the one the mode names, so each
+# denial in the run has that one cause. "none" leaves everything off, to find
+# the denials the kernel makes on its own; "userns" sets the limit on the host
+# (below). GCE cells only.
+if ground_truth_mode != "default":
+    security.update({"run_as_user": {"value": 0}, "capabilities": {"add_capabilities": ["ALL"]},
+                     "seccomp": {"profile_type": 1}, "masked_paths": [], "readonly_paths": []})
+    if apparmor:
+        security["apparmor"] = {"profile_type": 1}
+    if ground_truth_mode == "seccomp":
+        security["seccomp"] = seccomp
+    elif ground_truth_mode == "capability":
+        # Unprivileged, so the probes reach their capability checks rather
+        # than a root-owned file's permissions (the probe's /tmp is 65534's).
+        security["run_as_user"] = {"value": 65534}
+        security["capabilities"] = {"drop_capabilities": ["ALL"]}
+    elif ground_truth_mode == "paths":
+        security["masked_paths"], security["readonly_paths"] = masked, readonly
+    elif ground_truth_mode == "apparmor":
+        if not apparmor:
+            raise SystemExit("ground-truth mode apparmor needs AppArmor on the cell")
+        security["apparmor"] = {"profile_type": 0}
+    elif ground_truth_mode not in ("none", "userns"):
+        raise SystemExit("unknown ground-truth mode: " + ground_truth_mode)
 container = {
     "metadata": {"name": "probe"},
     "image": {"image": image},
@@ -113,7 +159,7 @@ if [ -z "$profile" ]; then
 import json, sys
 with open(sys.argv[1]) as source:
     runtime_spec = json.load(source)["info"]["runtimeSpec"]
-json.dump(runtime_spec["linux"]["seccomp"], sys.stdout)
+json.dump(runtime_spec.get("linux", {}).get("seccomp", {}), sys.stdout)
 PY
     install -m 0644 "$work/runtime-default.json" /var/tmp/caliper-runtime-default.json
 fi
