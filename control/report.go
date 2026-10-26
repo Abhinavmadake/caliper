@@ -210,8 +210,30 @@ func writeFindings(b *strings.Builder, title string, findings []Finding) {
 		if evidence := citationSummary(finding.Citations); evidence != "" {
 			fmt.Fprintf(b, " (evidence: %s)", evidence)
 		}
+		if modules := ModuleSummary(finding.Modules); modules != "" {
+			fmt.Fprintf(b, " (modules: %s)", modules)
+		}
 		b.WriteByte('\n')
 	}
+}
+
+// ModuleSummary renders module states as "name: before, run" clauses.
+func ModuleSummary(states []ModuleState) string {
+	clauses := make([]string, 0, len(states))
+	for _, state := range states {
+		before := "no pre-probe snapshot"
+		if state.LoadedBefore != nil && *state.LoadedBefore {
+			before = "loaded before run"
+		} else if state.LoadedBefore != nil {
+			before = "not loaded before run"
+		}
+		clause := state.Name + ": " + before
+		if state.LoadedByRun {
+			clause += ", loaded by run"
+		}
+		clauses = append(clauses, clause)
+	}
+	return strings.Join(clauses, "; ")
 }
 
 func citationSummary(citations []PostureCitation) string {

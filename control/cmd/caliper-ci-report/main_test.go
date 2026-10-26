@@ -21,6 +21,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -177,13 +178,32 @@ func TestCommittedFindingMetricsMatchRegeneratedFixtures(t *testing.T) {
 }
 
 func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
-	data, err := os.ReadFile("../../../fixtures/cells/cell2.json")
+	// Cell 4's containerd 1.7.12 RuntimeDefault predates any AF_ALG deny.
+	for _, cell := range []struct{ fixture, runtimeVersion string }{
+		{"cell2.json", "2.2.1"},
+		{"cell4.json", "1.7.12"},
+	} {
+		t.Run(cell.fixture, func(t *testing.T) {
+			testAFALGDemonstration(t, cell.fixture, cell.runtimeVersion)
+		})
+	}
+}
+
+func testAFALGDemonstration(t *testing.T, fixture, runtimeVersion string) {
+	data, err := os.ReadFile(filepath.Join("../../../fixtures/cells", fixture))
 	if err != nil {
 		t.Fatal(err)
 	}
 	fingerprint, err := control.DecodeFingerprint(data)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if got := fingerprint.Cell.RuntimeVersion; got == nil || got.Value != runtimeVersion {
+		t.Fatalf("runtime_version = %#v, want %s", got, runtimeVersion)
+	}
+	// Copy Fail needs algif_aead; the pre-probe snapshot records it absent.
+	if modules := fingerprint.Cell.Kernel.Modules; modules == nil || slices.Contains(*modules, "algif_aead") {
+		t.Fatalf("pre-probe modules = %v, want a snapshot without algif_aead", modules)
 	}
 	evaluation, err := evaluate(fingerprint, inputs{
 		posture:  "../../../posture/v1/posture.yaml",
@@ -233,8 +253,51 @@ func TestAFALGRuntimeDefaultRestrictedDemonstration(t *testing.T) {
 	if len(finding.Citations) == 0 || finding.Citations[0].ID != "CVE-2026-31431" {
 		t.Fatalf("AF_ALG evidence = %#v, want CVE-2026-31431", finding.Citations)
 	}
-	if body := renderReport("test-context", evaluation); !strings.Contains(body, "[CVE-2026-31431](https://nvd.nist.gov/vuln/detail/CVE-2026-31431)") {
+	wantModules := []control.ModuleState{{Name: "af_alg", LoadedBefore: new(bool), LoadedByRun: true}}
+	if !reflect.DeepEqual(finding.Modules, wantModules) {
+		t.Fatalf("AF_ALG modules = %#v, want af_alg loaded by the run", finding.Modules)
+	}
+	if body := renderReport("test-context", evaluation); !strings.Contains(body, "[CVE-2026-31431](https://nvd.nist.gov/vuln/detail/CVE-2026-31431), [CVE-2017-2636](https://nvd.nist.gov/vuln/detail/CVE-2017-2636); af_alg: not loaded before run, loaded by run |") {
 		t.Fatalf("rendered report omitted AF_ALG evidence: %s", body)
+	}
+}
+
+// The same admitted workload on GKE, whose containerd 2.2.7 RuntimeDefault
+// carries the AF_ALG deny added in 2.2.4: nothing is reported.
+func TestAFALGDeniedOnPatchedRuntimeDefault(t *testing.T) {
+	data, err := os.ReadFile("../../../fixtures/gke-cos-containerd-2.2.7.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fingerprint, err := control.DecodeFingerprint(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	evaluation, err := evaluate(fingerprint, inputs{
+		posture:  "../../../posture/v1/posture.yaml",
+		corpus:   "../../../corpus/index.json",
+		manifest: "../../../deploy/k8s/af-alg-demonstration.yaml",
+		tier:     "untrusted-multi-tenant",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result *control.ProbeResult
+	for i := range evaluation.fingerprint.Results {
+		if evaluation.fingerprint.Results[i].ProbeID == "socket.family.af_alg" {
+			result = &evaluation.fingerprint.Results[i]
+		}
+	}
+	if result == nil || result.Verdict != "denied" || result.Errno != 1 {
+		t.Fatalf("AF_ALG result = %#v, want denied with EPERM", result)
+	}
+	findings := evaluation.report.Findings
+	for _, category := range [][]control.Finding{findings.ExpectationViolations, findings.ClaimViolations, findings.UndeclaredExposures} {
+		for _, finding := range category {
+			if finding.ProbeID == "socket.family.af_alg" {
+				t.Fatalf("denied AF_ALG produced a finding: %#v", finding)
+			}
+		}
 	}
 }
 
