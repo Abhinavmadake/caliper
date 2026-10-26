@@ -2,6 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.3.2",
   "corpus_set": "full",
+  "digest": "sha256:bebbcef6c179dc62afaacc43c76288e8b4b21181cb1aa50e8d5d7c26589e42bb",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -10,6 +11,7 @@
         "major": 7,
         "minor": 0
       },
+      "sandbox_claimed": false,
       "modules": [
         "8021q",
         "aesni_intel",
@@ -54,17 +56,37 @@
         "xt_comment"
       ]
     },
+    "distribution": {
+      "value": "Ubuntu 24.04",
+      "source": "operator"
+    },
+    "runtime": {
+      "value": "containerd",
+      "source": "operator"
+    },
+    "runtime_version": {
+      "value": "2.2.1",
+      "source": "operator"
+    },
     "lsm": "apparmor",
     "lsm_label": "cri-containerd.apparmor.d (enforce)",
     "lsm_enforcing": true,
+    "runtime_class": {
+      "value": "runc",
+      "source": "operator"
+    },
     "capabilities": {
-      "effective": "0000000000000000",
-      "permitted": "0000000000000000",
-      "bounding": "0000000000000000",
+      "effective": "000001ffffffffff",
+      "permitted": "000001ffffffffff",
+      "bounding": "000001ffffffffff",
       "ambient": "0000000000000000"
     },
+    "seccomp": {
+      "mode": 0,
+      "filters": 0
+    },
     "user_namespaces": {
-      "max": 0,
+      "max": 28082,
       "unprivileged_clone": 1,
       "apparmor_restricted": 1
     }
@@ -82,8 +104,8 @@
     },
     {
       "probe_id": "socket.family.af_packet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.out_of_range",
@@ -102,8 +124,8 @@
     },
     {
       "probe_id": "socket.family.af_key",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_bluetooth",
@@ -127,8 +149,8 @@
     },
     {
       "probe_id": "socket.family.af_xdp",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_rxrpc",
@@ -137,8 +159,8 @@
     },
     {
       "probe_id": "socket.family.af_phonet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_ieee802154",
@@ -152,8 +174,8 @@
     },
     {
       "probe_id": "socket.family.af_vsock",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_kcm",
@@ -282,273 +304,273 @@
     },
     {
       "probe_id": "io_uring.register.probe",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 9
     },
     {
       "probe_id": "io_uring.setup.zero_entries",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 22
     },
     {
       "probe_id": "io_uring.opcode.nop",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.readv",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.writev",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.fsync",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.read_fixed",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.write_fixed",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.poll_add",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.sync_file_range",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.sendmsg",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.recvmsg",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.timeout",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.accept",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.connect",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.fallocate",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.openat",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.close",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.statx",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.read",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.write",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.fadvise",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.madvise",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.send",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.recv",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.openat2",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.epoll_ctl",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.splice",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.tee",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.shutdown",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.renameat",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.unlinkat",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.mkdirat",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.symlinkat",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.linkat",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.msg_ring",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.fsetxattr",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.setxattr",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.fgetxattr",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.getxattr",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.socket",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.uring_cmd",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.send_zc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.sendmsg_zc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.read_multishot",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.waitid",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.futex_wait",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.futex_wake",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.futex_waitv",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.fixed_fd_install",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.ftruncate",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.bind",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "io_uring.opcode.listen",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "mount.reach",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 2
     },
     {
       "probe_id": "mount.type.proc",
@@ -723,17 +745,17 @@
     {
       "probe_id": "mount.fs.proc",
       "verdict": "denied",
-      "errno": 1
+      "errno": 13
     },
     {
       "probe_id": "mount.fs.overlay",
       "verdict": "denied",
-      "errno": 1
+      "errno": 13
     },
     {
       "probe_id": "mount.fs.fuse",
       "verdict": "denied",
-      "errno": 1
+      "errno": 13
     },
     {
       "probe_id": "device.open.fuse",
@@ -777,23 +799,23 @@
     },
     {
       "probe_id": "path.masked.proc_kcore",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_keys",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_latency_stats",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_timer_list",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_timer_stats",
@@ -807,8 +829,8 @@
     },
     {
       "probe_id": "path.masked.proc_acpi",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_asound",
@@ -817,13 +839,13 @@
     },
     {
       "probe_id": "path.masked.proc_scsi",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.sys_firmware",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.sys_powercap",
@@ -832,28 +854,28 @@
     },
     {
       "probe_id": "path.readonly.proc_bus",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_fs",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_irq",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_sys",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_sysrq_trigger",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.control.proc_self_status",
@@ -862,123 +884,123 @@
     },
     {
       "probe_id": "unshare.flags.invalid",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 22
     },
     {
       "probe_id": "unshare.flags.newuser",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newns",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newnet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newpid",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newipc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newuts",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newcgroup",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newtime",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newuser_newnet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newuser",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newns",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newnet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newpid",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newipc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newuts",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newcgroup",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newuser_newnet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone3.args.short",
-      "verdict": "denied",
-      "errno": 38
+      "verdict": "permitted",
+      "errno": 22
     },
     {
       "probe_id": "capability.sys_time",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "capability.sys_boot",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 22
     },
     {
       "probe_id": "capability.sys_module",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 9
     },
     {
       "probe_id": "capability.mknod",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "capability.sys_ptrace",
       "verdict": "denied",
-      "errno": 1
+      "errno": 14
     },
     {
       "probe_id": "capability.net_bind_service",
@@ -987,13 +1009,13 @@
     },
     {
       "probe_id": "capability.sys_nice",
-      "verdict": "denied",
-      "errno": 13
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "capability.sys_rawio",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     }
   ],
   "unmeasured": [
@@ -1222,6 +1244,11 @@
       "veth",
       "virtio_balloon",
       "virtio_rng",
+      "vmw_vmci",
+      "vmw_vsock_virtio_transport_common",
+      "vmw_vsock_vmci_transport",
+      "vsock",
+      "vsock_loopback",
       "x_tables",
       "xfrm_algo",
       "xfrm_user",
@@ -1258,6 +1285,11 @@
       "scsi_transport_iscsi",
       "smc",
       "udp_tunnel",
+      "vmw_vmci",
+      "vmw_vsock_virtio_transport_common",
+      "vmw_vsock_vmci_transport",
+      "vsock",
+      "vsock_loopback",
       "xfrm_algo",
       "xfrm_user"
     ]
@@ -1265,27 +1297,23 @@
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": {
-        "unobservable": {
-          "reason": "masked"
-        }
-      },
+      "keyrings": "observed",
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
       "net_namespaces": "observed"
     },
     "before": {
-      "mounts": 25,
-      "keyrings": null,
+      "mounts": 12,
+      "keyrings": 463,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
       "net_namespaces": 1
     },
     "after": {
-      "mounts": 25,
-      "keyrings": null,
+      "mounts": 12,
+      "keyrings": 463,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

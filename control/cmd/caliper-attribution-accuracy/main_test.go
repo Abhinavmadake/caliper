@@ -23,12 +23,13 @@ import (
 )
 
 func TestCommittedAttributionAccuracyMetricsMatchGroundTruth(t *testing.T) {
-	metrics, err := compute("../../../fixtures/ground-truth/attribution.json")
+	metrics, err := compute("../../../fixtures/ground-truth/attribution.json", "../../../corpus/index.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if metrics.GroundTruthEnvironments != 5 || !metrics.ENOSYSFilterIncluded || !metrics.LSMOnlyIncluded {
-		t.Fatalf("measured ground truth = %#v", metrics)
+	if len(metrics.Environments) != 6 || !metrics.ENOSYSFilterIncluded || !metrics.LSMOnlyIncluded {
+		t.Fatalf("environments/ENOSYS/LSM-only = %d/%t/%t, want 6/true/true",
+			len(metrics.Environments), metrics.ENOSYSFilterIncluded, metrics.LSMOnlyIncluded)
 	}
 	got, err := json.MarshalIndent(metrics, "", "  ")
 	if err != nil {

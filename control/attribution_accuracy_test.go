@@ -15,38 +15,57 @@
 
 package control
 
-import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"testing"
-)
+import "testing"
 
-func loadAttributionGroundTruth(t *testing.T) AttributionGroundTruth {
-	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "fixtures", "ground-truth", "attribution.json"))
+func TestAttributionAccuracyScoresEveryDenialAgainstItsEnvironment(t *testing.T) {
+	zero := uint64(0)
+	corpus := []ProbeMetadata{
+		{ID: "a", Family: "socket", Oracle: Oracle{Isolates: "seccomp"}},
+		{ID: "b", Family: "socket", Oracle: Oracle{Isolates: "seccomp-or-lsm"}},
+		{ID: "c", Family: "socket", Oracle: Oracle{Isolates: "seccomp-or-lsm"}},
+		{ID: "d", Family: "clone", Oracle: Oracle{Isolates: "seccomp"}},
+	}
+	fp := func(seccompMode *uint64, results ...ProbeResult) Fingerprint {
+		cell := Cell{LSM: "none"}
+		if seccompMode != nil {
+			cell.Seccomp = &SeccompState{Mode: seccompMode}
+		}
+		return Fingerprint{Cell: cell, Results: results}
+	}
+	truth := AttributionGroundTruth{Environments: []AttributionGroundTruthEnvironment{
+		{Name: "seccomp", Mechanism: Seccomp},
+		{Name: "lsm", Mechanism: LSM},
+	}}
+	// The control run denies d on its own, so d is left out everywhere.
+	control := fp(&zero, ProbeResult{ProbeID: "d", Verdict: "denied", Errno: 1})
+	fingerprints := map[string]Fingerprint{
+		"seccomp": fp(nil,
+			ProbeResult{ProbeID: "a", Verdict: "denied", Errno: errnoENOSYS},
+			ProbeResult{ProbeID: "b", Verdict: "denied", Errno: 1},
+			ProbeResult{ProbeID: "c", Verdict: "permitted"},
+			ProbeResult{ProbeID: "d", Verdict: "denied", Errno: 1}),
+		// EACCES with no confining label stays undecidable.
+		"lsm": fp(&zero, ProbeResult{ProbeID: "c", Verdict: "denied", Errno: 13}),
+	}
+	m, err := EvaluateAttributionAccuracy(truth, control, fingerprints, corpus)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var suite AttributionGroundTruth
-	if err := json.Unmarshal(data, &suite); err != nil {
-		t.Fatal(err)
+	if m.Denials != 3 || m.ExcludedByControl != 1 {
+		t.Fatalf("denials/excluded = %d/%d, want 3/1", m.Denials, m.ExcludedByControl)
 	}
-	return suite
-}
+	if m.CorrectAttributions != 2 || m.AttributedDenials != 2 || m.Undecidable != 1 {
+		t.Fatalf("correct/attributed/undecidable = %d/%d/%d, want 2/2/1", m.CorrectAttributions, m.AttributedDenials, m.Undecidable)
+	}
+	if !m.ENOSYSFilterIncluded || !m.LSMOnlyIncluded {
+		t.Fatalf("ENOSYS/LSM-only included = %t/%t, want both", m.ENOSYSFilterIncluded, m.LSMOnlyIncluded)
+	}
+	if !m.AccuracyCriterionMet || m.UndecidableCriterionMet {
+		t.Fatalf("criteria = %t/%t, want accuracy met and undecidable not", m.AccuracyCriterionMet, m.UndecidableCriterionMet)
+	}
 
-func TestAttributionAccuracyGroundTruthMeetsIssue44Criteria(t *testing.T) {
-	metrics, err := EvaluateAttributionAccuracy(loadAttributionGroundTruth(t))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if metrics.GroundTruthEnvironments != 5 || metrics.Denials == 0 {
-		t.Fatalf("ground-truth environments/denials = %d/%d, want 5/nonzero", metrics.GroundTruthEnvironments, metrics.Denials)
-	}
-	if metrics.Accuracy == nil || metrics.UndecidableFraction == nil {
-		t.Fatalf("missing measured metrics: %#v", metrics)
-	}
-	if !metrics.ENOSYSFilterIncluded {
-		t.Fatalf("measured ENOSYS case omitted: %#v", metrics)
+	truth.Environments[0].Mechanism = "filter"
+	if _, err := EvaluateAttributionAccuracy(truth, control, fingerprints, corpus); err == nil {
+		t.Fatal("accepted an unknown mechanism")
 	}
 }

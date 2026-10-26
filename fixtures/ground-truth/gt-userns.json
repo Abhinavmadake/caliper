@@ -2,6 +2,7 @@
   "format_version": 1,
   "corpus_revision": "0.3.2",
   "corpus_set": "full",
+  "digest": "sha256:7c9f39b49031046331a25bbee4c18edd1a3d07a98f06524f3ffc2f589552df3b",
   "cell": {
     "architecture": "x86_64",
     "kernel": {
@@ -10,99 +11,85 @@
         "major": 7,
         "minor": 0
       },
+      "sandbox_claimed": false,
       "modules": [
         "8021q",
         "aesni_intel",
-        "af_alg",
-        "af_key",
-        "appletalk",
-        "authenc",
         "autofs4",
         "binfmt_misc",
-        "bluetooth",
         "bridge",
-        "camellia_aesni_avx2",
-        "camellia_aesni_avx_x86_64",
-        "camellia_generic",
-        "camellia_x86_64",
-        "can",
-        "can_raw",
         "cfg80211",
-        "cmac",
-        "crypto_user",
-        "dibs",
         "dm_multipath",
         "dmi_sysfs",
         "efi_pstore",
-        "fcrypt",
         "garp",
         "ghash_clmulni_intel",
         "i2c_piix4",
         "i2c_smbus",
-        "ib_core",
         "input_leds",
         "intel_rapl_common",
         "intel_rapl_msr",
         "intel_uncore_frequency_common",
-        "ip6_udp_tunnel",
         "ip_tables",
-        "kcm",
-        "krb5",
-        "krb5enc",
         "llc",
         "mac_hid",
         "mrp",
         "nf_nat",
         "nf_tables",
-        "nfc",
         "nft_chain_nat",
         "nft_compat",
         "nls_iso8859_1",
         "nvme_fabrics",
         "overlay",
-        "pcbc",
-        "phonet",
         "psmouse",
-        "psnap",
         "pvpanic",
         "pvpanic_mmio",
-        "qrtr",
         "rapl",
-        "rxrpc",
         "sch_fq_codel",
-        "scsi_transport_iscsi",
         "serio_raw",
-        "smc",
         "stp",
-        "udp_tunnel",
+        "tls",
         "veth",
         "virtio_balloon",
         "virtio_rng",
-        "vmw_vmci",
-        "vmw_vsock_virtio_transport_common",
-        "vmw_vsock_vmci_transport",
-        "vsock",
-        "vsock_loopback",
         "x_tables",
-        "xfrm_algo",
-        "xfrm_user",
         "xt_MASQUERADE",
         "xt_comment"
       ]
     },
+    "distribution": {
+      "value": "Ubuntu 24.04",
+      "source": "operator"
+    },
+    "runtime": {
+      "value": "containerd",
+      "source": "operator"
+    },
+    "runtime_version": {
+      "value": "2.2.1",
+      "source": "operator"
+    },
     "lsm": "apparmor",
     "lsm_label": "runc (unconfined)",
     "lsm_enforcing": false,
+    "runtime_class": {
+      "value": "runc",
+      "source": "operator"
+    },
     "capabilities": {
-      "effective": "0000000000000000",
-      "permitted": "0000000000000000",
-      "bounding": "00000000a80425fb",
+      "effective": "000001ffffffffff",
+      "permitted": "000001ffffffffff",
+      "bounding": "000001ffffffffff",
       "ambient": "0000000000000000"
     },
+    "seccomp": {
+      "mode": 0,
+      "filters": 0
+    },
     "user_namespaces": {
-      "max": 28082,
+      "max": 0,
       "unprivileged_clone": 1,
-      "apparmor_restricted": 1
+      "apparmor_restricted": 0
     }
   },
   "results": [
@@ -118,8 +105,8 @@
     },
     {
       "probe_id": "socket.family.af_packet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.out_of_range",
@@ -138,8 +125,8 @@
     },
     {
       "probe_id": "socket.family.af_key",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_bluetooth",
@@ -163,8 +150,8 @@
     },
     {
       "probe_id": "socket.family.af_xdp",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_rxrpc",
@@ -173,8 +160,8 @@
     },
     {
       "probe_id": "socket.family.af_phonet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "socket.family.af_ieee802154",
@@ -758,18 +745,18 @@
     },
     {
       "probe_id": "mount.fs.proc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "mount.fs.overlay",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "mount.fs.fuse",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 22
     },
     {
       "probe_id": "device.open.fuse",
@@ -813,23 +800,23 @@
     },
     {
       "probe_id": "path.masked.proc_kcore",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_keys",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_latency_stats",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_timer_list",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_timer_stats",
@@ -843,8 +830,8 @@
     },
     {
       "probe_id": "path.masked.proc_acpi",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.proc_asound",
@@ -853,13 +840,13 @@
     },
     {
       "probe_id": "path.masked.proc_scsi",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.sys_firmware",
-      "verdict": "denied",
-      "errno": 61
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.masked.sys_powercap",
@@ -868,28 +855,28 @@
     },
     {
       "probe_id": "path.readonly.proc_bus",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_fs",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_irq",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_sys",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.readonly.proc_sysrq_trigger",
-      "verdict": "denied",
-      "errno": 30
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "path.control.proc_self_status",
@@ -903,88 +890,88 @@
     },
     {
       "probe_id": "unshare.flags.newuser",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 28
     },
     {
       "probe_id": "unshare.flags.newns",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newnet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newpid",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newipc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newuts",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newcgroup",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newtime",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "unshare.flags.newuser_newnet",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 28
     },
     {
       "probe_id": "clone.flags.newuser",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 28
     },
     {
       "probe_id": "clone.flags.newns",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newnet",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newpid",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newipc",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newuts",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newcgroup",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "clone.flags.newuser_newnet",
-      "verdict": "permitted",
-      "errno": 0
+      "verdict": "denied",
+      "errno": 28
     },
     {
       "probe_id": "clone3.args.short",
@@ -993,28 +980,28 @@
     },
     {
       "probe_id": "capability.sys_time",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "capability.sys_boot",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 22
     },
     {
       "probe_id": "capability.sys_module",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 9
     },
     {
       "probe_id": "capability.mknod",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "capability.sys_ptrace",
       "verdict": "denied",
-      "errno": 1
+      "errno": 14
     },
     {
       "probe_id": "capability.net_bind_service",
@@ -1023,13 +1010,13 @@
     },
     {
       "probe_id": "capability.sys_nice",
-      "verdict": "denied",
-      "errno": 13
+      "verdict": "permitted",
+      "errno": 0
     },
     {
       "probe_id": "capability.sys_rawio",
-      "verdict": "denied",
-      "errno": 1
+      "verdict": "permitted",
+      "errno": 0
     }
   ],
   "unmeasured": [
@@ -1150,79 +1137,44 @@
     "before": [
       "8021q",
       "aesni_intel",
-      "af_alg",
-      "af_key",
-      "appletalk",
-      "authenc",
       "autofs4",
       "binfmt_misc",
-      "bluetooth",
       "bridge",
-      "camellia_aesni_avx2",
-      "camellia_aesni_avx_x86_64",
-      "camellia_generic",
-      "camellia_x86_64",
-      "can",
-      "can_raw",
       "cfg80211",
-      "cmac",
-      "crypto_user",
-      "dibs",
       "dm_multipath",
       "dmi_sysfs",
       "efi_pstore",
-      "fcrypt",
       "garp",
       "ghash_clmulni_intel",
       "i2c_piix4",
       "i2c_smbus",
-      "ib_core",
       "input_leds",
       "intel_rapl_common",
       "intel_rapl_msr",
       "intel_uncore_frequency_common",
-      "ip6_udp_tunnel",
       "ip_tables",
-      "kcm",
-      "krb5",
-      "krb5enc",
       "llc",
       "mac_hid",
       "mrp",
       "nf_nat",
       "nf_tables",
-      "nfc",
       "nft_chain_nat",
       "nft_compat",
       "nls_iso8859_1",
       "nvme_fabrics",
       "overlay",
-      "pcbc",
-      "phonet",
       "psmouse",
-      "psnap",
       "pvpanic",
       "pvpanic_mmio",
-      "qrtr",
       "rapl",
-      "rxrpc",
       "sch_fq_codel",
-      "scsi_transport_iscsi",
       "serio_raw",
-      "smc",
       "stp",
-      "udp_tunnel",
+      "tls",
       "veth",
       "virtio_balloon",
       "virtio_rng",
-      "vmw_vmci",
-      "vmw_vsock_virtio_transport_common",
-      "vmw_vsock_vmci_transport",
-      "vsock",
-      "vsock_loopback",
       "x_tables",
-      "xfrm_algo",
-      "xfrm_user",
       "xt_MASQUERADE",
       "xt_comment"
     ],
@@ -1290,6 +1242,7 @@
       "serio_raw",
       "smc",
       "stp",
+      "tls",
       "udp_tunnel",
       "veth",
       "virtio_balloon",
@@ -1305,32 +1258,65 @@
       "xt_MASQUERADE",
       "xt_comment"
     ],
-    "loaded_by_run": []
+    "loaded_by_run": [
+      "af_alg",
+      "af_key",
+      "appletalk",
+      "authenc",
+      "bluetooth",
+      "camellia_aesni_avx2",
+      "camellia_aesni_avx_x86_64",
+      "camellia_generic",
+      "camellia_x86_64",
+      "can",
+      "can_raw",
+      "cmac",
+      "crypto_user",
+      "dibs",
+      "fcrypt",
+      "ib_core",
+      "ip6_udp_tunnel",
+      "kcm",
+      "krb5",
+      "krb5enc",
+      "nfc",
+      "pcbc",
+      "phonet",
+      "psnap",
+      "qrtr",
+      "rxrpc",
+      "scsi_transport_iscsi",
+      "smc",
+      "udp_tunnel",
+      "vmw_vmci",
+      "vmw_vsock_virtio_transport_common",
+      "vmw_vsock_vmci_transport",
+      "vsock",
+      "vsock_loopback",
+      "xfrm_algo",
+      "xfrm_user"
+    ]
   },
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": {
-        "unobservable": {
-          "reason": "masked"
-        }
-      },
+      "keyrings": "observed",
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
       "net_namespaces": "observed"
     },
     "before": {
-      "mounts": 25,
-      "keyrings": null,
+      "mounts": 12,
+      "keyrings": 463,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
       "net_namespaces": 1
     },
     "after": {
-      "mounts": 25,
-      "keyrings": null,
+      "mounts": 12,
+      "keyrings": 463,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,

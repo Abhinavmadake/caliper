@@ -301,6 +301,22 @@ func TestCellStateEliminatesCandidates(t *testing.T) {
 	want("missing capability without a filter",
 		attribute(Cell{LSM: "none", Seccomp: &SeccompState{Mode: &zero}, Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}, capProbe), CapabilityMissing)
 
+	allCaps := json.RawMessage(`{"effective":"000001ffffffffff","bounding":"000001ffffffffff"}`)
+	mountProbe := ProbeMetadata{ID: "mount.fs.proc", Family: "mount", Oracle: Oracle{Isolates: "undecidable"}, Capability: "CAP_SYS_ADMIN"}
+	eacces := func(cell Cell) Attribution {
+		fp := Fingerprint{Cell: cell, Results: []ProbeResult{{ProbeID: mountProbe.ID, Verdict: "denied", Errno: errnoEACCES}}}
+		got, err := Attribute(fp, []ProbeMetadata{mountProbe})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return *got.Results[0].Attribution
+	}
+	want("EACCES with the capability held and no filter",
+		eacces(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing, Seccomp: &SeccompState{Mode: &zero}, Capabilities: allCaps}), LSM)
+	want("EACCES without the capability, no filter and no LSM",
+		eacces(Cell{LSM: "apparmor", LSMEnforcing: &notEnforcing, Seccomp: &SeccompState{Mode: &zero},
+			Capabilities: json.RawMessage(`{"effective":"0000000000000000","bounding":"0000000000000000"}`)}), CapabilityMissing)
+
 	if a := attribute(Cell{LSM: "apparmor", LSMLabel: &label, LSMEnforcing: &enforcing}, lsmProbe); !a.Undecidable {
 		t.Errorf("no seccomp state under an enforcing label = %+v, want undecidable", a)
 	}

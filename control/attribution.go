@@ -60,6 +60,7 @@ type Attribution struct {
 const (
 	errnoENOENT  = 2
 	errnoEPERM   = 1
+	errnoEACCES  = 13
 	errnoENOSPC  = 28
 	errnoENOSYS  = 38
 	errnoENODATA = 61
@@ -125,7 +126,7 @@ func correlate(a Attribution, r ProbeResult, p ProbeMetadata, cell Cell) Attribu
 		}
 	}
 
-	if r.Errno == 13 && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
+	if r.Errno == errnoEACCES && p.Oracle.Isolates == "seccomp-or-lsm" && confiningLSM(cell) {
 		return correlated(LSM,
 			fmt.Sprintf("EACCES follows the security-module hook and %s is enforcing label %q", cell.LSM, *cell.LSMLabel))
 	}
@@ -304,6 +305,12 @@ func denied(r ProbeResult, p ProbeMetadata) Attribution {
 	if r.Errno == errnoENOSYS {
 		return proof(Seccomp, "the kernel implements this syscall, so ENOSYS is a filter answering in its voice")
 	}
+	// A permission check (DAC, or a call documented to answer EACCES without
+	// its capability), a security module or a filter's chosen errno.
+	if r.Errno == errnoEACCES && p.Capability != "" {
+		return undecidable([]Mechanism{Seccomp, LSM, CapabilityMissing},
+			fmt.Sprintf("EACCES is a security module, the missing %s or another permission check, or a filter answering with it", p.Capability))
+	}
 	if r.Errno != errnoEPERM {
 		return undecidable(nil, fmt.Sprintf("%s is not separated by the oracle; see the probe's oracle reason", errnoName(r.Errno)))
 	}
@@ -336,7 +343,7 @@ func undecidable(candidates []Mechanism, reason string) Attribution {
 }
 
 var errnoNames = map[int]string{
-	errnoEPERM: "EPERM", errnoENOENT: "ENOENT", 9: "EBADF", 13: "EACCES", 19: "ENODEV",
+	errnoEPERM: "EPERM", errnoENOENT: "ENOENT", 9: "EBADF", errnoEACCES: "EACCES", 19: "ENODEV",
 	22: "EINVAL", errnoEROFS: "EROFS", errnoENOSYS: "ENOSYS", errnoENODATA: "ENODATA",
 	93: "EPROTONOSUPPORT", 95: "EOPNOTSUPP", 97: "EAFNOSUPPORT",
 }

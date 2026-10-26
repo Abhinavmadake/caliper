@@ -47,16 +47,6 @@ type ProbeMetadata struct {
 	Capability string           `json:"capability"`
 }
 
-// LoadAttributionCorpus decodes the committed corpus index used by the
-// attribution accuracy measurement.
-func LoadAttributionCorpus(data []byte) ([]ProbeMetadata, error) {
-	var corpus []ProbeMetadata
-	if err := json.Unmarshal(data, &corpus); err != nil {
-		return nil, fmt.Errorf("decode corpus index: %w", err)
-	}
-	return corpus, nil
-}
-
 // Oracle is the probe's errno oracle as the corpus declares it.
 type Oracle struct {
 	Guarantees *int   `json:"guarantees"`

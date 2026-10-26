@@ -46,9 +46,11 @@ and reports those denials as unknown and undecidable, rather than inventing a
 mechanism. The undecidable fraction is therefore a measured result, not an
 assumption that the residual is zero.
 
-Issue #44 measures the attributor against ten constructed single-cause denial
-environments, including an `ENOSYS` seccomp answer and an LSM-only denial.
-Regenerate the committed accuracy record with:
+Issue #44 measures the attributor against single-cause environments: probe
+runs on cell 2 in which one mechanism is the only control in force
+(`deploy/gce/measure.sh`'s ground-truth modes), plus a control run with none,
+whose denials are the kernel's own and are left out. Regenerate the committed
+record with:
 
 ```sh
 go run ./cmd/caliper-attribution-accuracy \
@@ -57,7 +59,7 @@ go run ./cmd/caliper-attribution-accuracy \
 ```
 
 It reports accuracy over attributed denials and the undecidable fraction over
-all denials; both thresholds are checked by the regression test.
+all denials, overall and per environment.
 
 `GenerateRemediation` turns posture expectation violations into the smallest
 available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
