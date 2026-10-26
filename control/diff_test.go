@@ -36,7 +36,8 @@ func TestCompleteFingerprintEnrichesProbeMeasurement(t *testing.T) {
 		"results": [{"probe_id": "socket.test", "verdict": "permitted", "errno": 0}],
 		"unmeasured": [],
 		"module_delta": {"before": ["nf_tables"], "after": ["nf_tables"]},
-		"residual": {"leaks": [], "audit": []}
+		"residual": {"leaks": [], "audit": []},
+		"elapsed_ms": 0
 	}`
 
 	var probe ProbeMeasurement
@@ -87,7 +88,7 @@ func TestCompleteFingerprintEnrichesProbeMeasurement(t *testing.T) {
 	if cell["capabilities"] == nil || kernel["version"].(map[string]any)["major"] != float64(6) {
 		t.Errorf("probe cell fields were dropped: %s", data)
 	}
-	if output["module_delta"] == nil || output["residual"] == nil {
+	if output["module_delta"] == nil || output["residual"] == nil || output["elapsed_ms"] != float64(0) {
 		t.Errorf("engine fields were dropped: %s", data)
 	}
 }

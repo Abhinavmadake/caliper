@@ -60,6 +60,10 @@ Four fields identify the fingerprint itself rather than the cell:
   this field omitted, for identity and deduplication. It is **not** authenticity;
   see the decision below
 
+`elapsed_ms` is the run's wall time in milliseconds, from the first module
+snapshot to the end of the janitor *(probe, optional; absent in fingerprints
+produced before the field existed)*. It describes the run, not the cell.
+
 ## Per-probe result
 
 Each probe records the verdict, not an interpretation of it:

@@ -37,6 +37,8 @@
 //! user namespace, which RuntimeDefault denies and which would change
 //! what the kernel permits, so the workload's room is the only room.
 
+use std::time::Instant;
+
 use serde::Serialize;
 
 use crate::cell::Cell;
@@ -145,6 +147,9 @@ pub struct Measurement {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub module_delta: Option<ModuleDelta>,
     pub residual: Residual,
+    /// Wall time of the run, from the first module snapshot to the end of
+    /// the janitor, in milliseconds (§11.2 runtime cost).
+    pub elapsed_ms: u64,
 }
 
 /// Measure one probe against `cell`. Applicability is decided here, before
@@ -187,6 +192,7 @@ impl Measurement {
         corpus_set: &'static str,
         mut cell: Cell,
     ) -> Measurement {
+        let started = Instant::now();
         let modules_before = loaded_modules();
         cell.kernel.modules = modules_before.clone();
         let run_before = Snapshot::take();
@@ -298,6 +304,7 @@ impl Measurement {
                 audit,
                 janitor: removed,
             },
+            elapsed_ms: u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX),
         }
     }
 }

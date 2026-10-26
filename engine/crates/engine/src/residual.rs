@@ -146,7 +146,7 @@ impl Serialize for ObservabilityMap {
 fn observe(class: ResidualClass) -> Observation {
     match class {
         ResidualClass::Mounts => lines("/proc/self/mountinfo"),
-        ResidualClass::Keyrings => lines("/proc/keys"),
+        ResidualClass::Keyrings => keys(),
         ResidualClass::Cgroups => directories_below("/sys/fs/cgroup"),
         ResidualClass::SysvIpc => sum([
             // Each file has a header line.
@@ -208,6 +208,71 @@ fn lines(path: &'static str) -> Observation {
         Ok(b) => Observation::Observed(b.iter().filter(|&&c| c == b'\n').count()),
         Err(e) => unobservable(&e, "absent"),
     }
+}
+
+/// Keys in `/proc/keys`, or, where the runtime masks it (RuntimeDefault
+/// does), the keys this process's fsuid owns from `/proc/key-users`, which
+/// is not masked. The fallback counts only the probe's own user, so it
+/// misses a key a probe creates for another, which needs a capability the
+/// masking runtimes do not grant.
+fn keys() -> Observation {
+    match lines("/proc/keys") {
+        Observation::Unobservable(why) => match owned_keys() {
+            Observation::Unobservable(_) => Observation::Unobservable(why),
+            other => other,
+        },
+        other => other,
+    }
+}
+
+fn owned_keys() -> Observation {
+    let p = Path::new("/proc/key-users");
+    if masked(p) {
+        return Observation::Unobservable("masked");
+    }
+    let users = match fs::read_to_string(p) {
+        Ok(text) => text,
+        Err(e) => return unobservable(&e, "absent"),
+    };
+    let status = match fs::read_to_string("/proc/self/status") {
+        Ok(text) => text,
+        Err(e) => return Observation::Error(e.raw_os_error().unwrap_or(0)),
+    };
+    match fsuid(&status) {
+        Some(uid) => Observation::Observed(nkeys(&users, uid)),
+        None => Observation::Error(libc::EINVAL),
+    }
+}
+
+/// The fourth field of `Uid:`, the uid a new key is owned by.
+fn fsuid(status: &str) -> Option<u32> {
+    status
+        .lines()
+        .find_map(|l| l.strip_prefix("Uid:"))?
+        .split_whitespace()
+        .nth(3)?
+        .parse()
+        .ok()
+}
+
+/// `nkeys` from `uid`'s line, `"<uid>: <usage> <nkeys>/<nikeys> ..."`. No
+/// line is no keys: the kernel frees a user's entry with its last key.
+fn nkeys(users: &str, uid: u32) -> usize {
+    users
+        .lines()
+        .find_map(|l| {
+            let (u, rest) = l.split_once(':')?;
+            (u.trim().parse::<u32>().ok()? == uid).then_some(rest)
+        })
+        .and_then(|rest| {
+            rest.split_whitespace()
+                .nth(1)?
+                .split('/')
+                .next()?
+                .parse()
+                .ok()
+        })
+        .unwrap_or(0)
 }
 
 fn entries(path: &'static str) -> Observation {
@@ -526,6 +591,16 @@ mod tests {
         let d = s.delta(&s);
         assert_eq!(d[0], Some(0));
         assert_eq!(d[1], None);
+    }
+
+    #[test]
+    fn owned_keys_are_the_fsuid_line() {
+        let users = "    0:    63 62/62 5/1000000 113/25000000\n65534:     2 2/2 2/200 18/20000\n";
+        assert_eq!(nkeys(users, 65534), 2);
+        assert_eq!(nkeys(users, 0), 62);
+        assert_eq!(nkeys(users, 1000), 0);
+        assert_eq!(fsuid("Name:\tx\nUid:\t0\t0\t0\t65534\n"), Some(65534));
+        assert_eq!(fsuid("Name:\tx\n"), None);
     }
 
     #[test]

@@ -1,0 +1,692 @@
+{
+  "runs": [
+    {
+      "fingerprint": "cell1-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 56,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell1.json",
+      "corpus_set": "full",
+      "elapsed_ms": 241,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": [
+        "af_alg",
+        "af_key",
+        "appletalk",
+        "authenc",
+        "bluetooth",
+        "camellia_generic",
+        "can",
+        "can_raw",
+        "cmac",
+        "crypto_user",
+        "dibs",
+        "fcrypt",
+        "ib_core",
+        "ip6_udp_tunnel",
+        "kcm",
+        "krb5",
+        "krb5enc",
+        "nfc",
+        "pcbc",
+        "phonet",
+        "psnap",
+        "qrtr",
+        "rxrpc",
+        "scsi_transport_iscsi",
+        "smc",
+        "udp_tunnel",
+        "xfrm_algo",
+        "xfrm_user"
+      ]
+    },
+    {
+      "fingerprint": "cell2-none.json",
+      "corpus_set": "full",
+      "elapsed_ms": 899,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 4
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 4
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": [
+        "af_alg",
+        "af_key",
+        "appletalk",
+        "authenc",
+        "bluetooth",
+        "camellia_aesni_avx2",
+        "camellia_aesni_avx_x86_64",
+        "camellia_generic",
+        "camellia_x86_64",
+        "can",
+        "can_raw",
+        "cmac",
+        "crypto_user",
+        "dibs",
+        "fcrypt",
+        "ib_core",
+        "ip6_udp_tunnel",
+        "kcm",
+        "krb5",
+        "krb5enc",
+        "nfc",
+        "pcbc",
+        "phonet",
+        "psnap",
+        "qrtr",
+        "rxrpc",
+        "scsi_transport_iscsi",
+        "smc",
+        "udp_tunnel",
+        "vmw_vmci",
+        "vmw_vsock_virtio_transport_common",
+        "vmw_vsock_vmci_transport",
+        "vsock",
+        "vsock_loopback",
+        "xfrm_algo",
+        "xfrm_user"
+      ]
+    },
+    {
+      "fingerprint": "cell2-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 158,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell2.json",
+      "corpus_set": "full",
+      "elapsed_ms": 585,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": [
+        "af_alg",
+        "af_key",
+        "appletalk",
+        "authenc",
+        "bluetooth",
+        "camellia_aesni_avx2",
+        "camellia_aesni_avx_x86_64",
+        "camellia_generic",
+        "camellia_x86_64",
+        "can",
+        "can_raw",
+        "cmac",
+        "crypto_user",
+        "dibs",
+        "fcrypt",
+        "ib_core",
+        "ip6_udp_tunnel",
+        "kcm",
+        "krb5",
+        "krb5enc",
+        "nfc",
+        "pcbc",
+        "phonet",
+        "psnap",
+        "qrtr",
+        "rxrpc",
+        "scsi_transport_iscsi",
+        "smc",
+        "udp_tunnel",
+        "xfrm_algo",
+        "xfrm_user"
+      ]
+    },
+    {
+      "fingerprint": "cell3-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 175,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell3.json",
+      "corpus_set": "full",
+      "elapsed_ms": 247,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell4-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 175,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell4.json",
+      "corpus_set": "full",
+      "elapsed_ms": 629,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": [
+        "af_alg",
+        "af_key",
+        "appletalk",
+        "authenc",
+        "bluetooth",
+        "camellia_aesni_avx2",
+        "camellia_aesni_avx_x86_64",
+        "camellia_generic",
+        "camellia_x86_64",
+        "can",
+        "can_raw",
+        "cmac",
+        "crypto_user",
+        "dibs",
+        "fcrypt",
+        "ib_core",
+        "ip6_udp_tunnel",
+        "kcm",
+        "krb5",
+        "krb5enc",
+        "nfc",
+        "pcbc",
+        "phonet",
+        "psnap",
+        "qrtr",
+        "rxrpc",
+        "scsi_transport_iscsi",
+        "smc",
+        "udp_tunnel",
+        "xfrm_algo",
+        "xfrm_user"
+      ]
+    },
+    {
+      "fingerprint": "cell5-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 2851,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": false,
+          "delta": null,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 2
+        },
+        "posix_ipc": {
+          "observed": false,
+          "delta": null,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": false,
+          "delta": null,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell5.json",
+      "corpus_set": "full",
+      "elapsed_ms": 8632,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": false,
+          "delta": null,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 2
+        },
+        "posix_ipc": {
+          "observed": false,
+          "delta": null,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": false,
+          "delta": null,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell6-reduced.json",
+      "corpus_set": "reduced",
+      "elapsed_ms": 92,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 1
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 2
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    },
+    {
+      "fingerprint": "cell6.json",
+      "corpus_set": "full",
+      "elapsed_ms": 109,
+      "classes": {
+        "cgroups": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "keyrings": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "mounts": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 1
+        },
+        "net_namespaces": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 2
+        },
+        "posix_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        },
+        "sysv_ipc": {
+          "observed": true,
+          "delta": 0,
+          "permitted_declaring": 0
+        }
+      },
+      "leaks": 0,
+      "audit_mismatches": 0,
+      "janitor_removals": 0,
+      "unreclaimed_objects": 0,
+      "modules_loaded_by_run": []
+    }
+  ],
+  "unreclaimed_objects": 0,
+  "leaks": 0,
+  "zero_residual_criterion_met": true,
+  "classes_never_observed": [],
+  "classes_exercised": [
+    "mounts",
+    "net_namespaces"
+  ],
+  "slowest_full_ms": 8632,
+  "slowest_reduced_ms": 2851,
+  "full_runtime_criterion_met": true,
+  "reduced_runtime_criterion_met": true
+}
