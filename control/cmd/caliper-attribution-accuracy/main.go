@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/Abhinavmadake/caliper/control"
 )
@@ -61,7 +62,12 @@ func compute(path string) (control.AttributionAccuracy, error) {
 	if err := json.Unmarshal(data, &groundTruth); err != nil {
 		return control.AttributionAccuracy{}, fmt.Errorf("parse ground truth: %w", err)
 	}
-	return control.EvaluateAttributionAccuracy(groundTruth)
+	base := filepath.Dir(path)
+	fingerprints := make(map[string]control.Fingerprint)
+	for _, env := range groundTruth.Environments { data, err := os.ReadFile(filepath.Join(base, env.Fingerprint)); if err != nil { return control.AttributionAccuracy{}, fmt.Errorf("read %s: %w", env.Fingerprint, err) }; fp, err := control.DecodeFingerprint(data); if err != nil { return control.AttributionAccuracy{}, err }; fingerprints[env.Name] = fp }
+	corpusData, err := os.ReadFile(filepath.Join(base, "..", "..", "corpus", "index.json")); if err != nil { return control.AttributionAccuracy{}, err }
+	corpus, err := control.LoadAttributionCorpus(corpusData); if err != nil { return control.AttributionAccuracy{}, err }
+	return control.EvaluateAttributionAccuracy(groundTruth, fingerprints, corpus)
 }
 
 func fail(err error) {

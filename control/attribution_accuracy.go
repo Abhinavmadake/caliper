@@ -15,22 +15,31 @@
 
 package control
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
 
 // AttributionGroundTruth is a deliberately constructed suite: every case has
 // one known denial cause, rather than trying to infer truth from a production
 // container where several mechanisms can overlap.
 type AttributionGroundTruth struct {
-	Cases []AttributionGroundTruthCase `json:"cases"`
+	Environments []AttributionGroundTruthEnvironment `json:"environments"`
+}
+type AttributionGroundTruthEnvironment struct {
+	Name        string `json:"name"`
+	KnownCause  string `json:"known_cause"`
+	Fingerprint string `json:"fingerprint"`
 }
 
 type AttributionGroundTruthCase struct {
-	Name              string        `json:"name"`
-	KnownCause        string        `json:"known_cause"`
-	ExpectedMechanism Mechanism     `json:"expected_mechanism"`
-	Cell              Cell          `json:"cell"`
-	Probe             ProbeMetadata `json:"probe"`
-	Result            ProbeResult   `json:"result"`
+	Environment       string     `json:"environment"`
+	ProbeID           string     `json:"probe_id"`
+	KnownCause        string     `json:"known_cause"`
+	ObservedMechanism *Mechanism `json:"observed_mechanism,omitempty"`
+	Undecidable       bool       `json:"undecidable"`
+	Correct           bool       `json:"correct"`
 }
 
 // AttributionAccuracy records the evaluation required by proposal §11.2.
@@ -63,70 +72,163 @@ type AttributionAccuracyCase struct {
 
 // EvaluateAttributionAccuracy runs the attributor once for every constructed
 // environment and applies issue #44's 90% accuracy and 10% uncertainty gates.
-func EvaluateAttributionAccuracy(groundTruth AttributionGroundTruth) (AttributionAccuracy, error) {
-	if len(groundTruth.Cases) == 0 {
-		return AttributionAccuracy{}, fmt.Errorf("attribution ground truth has no cases")
-	}
-	metrics := AttributionAccuracy{GroundTruthEnvironments: len(groundTruth.Cases), Cases: make([]AttributionAccuracyCase, 0, len(groundTruth.Cases))}
-	seen := make(map[string]struct{}, len(groundTruth.Cases))
-	for _, test := range groundTruth.Cases {
-		if test.Name == "" || test.KnownCause == "" {
-			return AttributionAccuracy{}, fmt.Errorf("ground-truth case requires name and known_cause")
+func EvaluateAttributionAccuracy(groundTruth AttributionGroundTruth, extras ...interface{}) (AttributionAccuracy, error) {
+	var fingerprints map[string]Fingerprint
+	var corpus []ProbeMetadata
+	if len(extras) == 2 {
+		var ok bool
+		fingerprints, ok = extras[0].(map[string]Fingerprint)
+		if !ok {
+			return AttributionAccuracy{}, fmt.Errorf("invalid fingerprints")
 		}
-		if _, exists := seen[test.Name]; exists {
-			return AttributionAccuracy{}, fmt.Errorf("duplicate ground-truth case %q", test.Name)
+		corpus, ok = extras[1].([]ProbeMetadata)
+		if !ok {
+			return AttributionAccuracy{}, fmt.Errorf("invalid corpus")
 		}
-		seen[test.Name] = struct{}{}
-		if !validMechanism(test.ExpectedMechanism) {
-			return AttributionAccuracy{}, fmt.Errorf("ground-truth case %q has invalid expected mechanism %q", test.Name, test.ExpectedMechanism)
-		}
-		if test.Result.Verdict != "denied" && test.Result.Verdict != "killed" {
-			return AttributionAccuracy{}, fmt.Errorf("ground-truth case %q is not a denial", test.Name)
-		}
-		if test.Result.ProbeID == "" {
-			test.Result.ProbeID = test.Probe.ID
-		}
-		if test.Probe.ID == "" || test.Result.ProbeID != test.Probe.ID {
-			return AttributionAccuracy{}, fmt.Errorf("ground-truth case %q has mismatched probe id", test.Name)
-		}
-
-		attributed, err := Attribute(Fingerprint{Cell: test.Cell, Results: []ProbeResult{test.Result}}, []ProbeMetadata{test.Probe})
-		if err != nil {
-			return AttributionAccuracy{}, fmt.Errorf("attribute %q: %w", test.Name, err)
-		}
-		actual := attributed.Results[0].Attribution
-		entry := AttributionAccuracyCase{Name: test.Name, KnownCause: test.KnownCause, ExpectedMechanism: test.ExpectedMechanism, Undecidable: actual.Undecidable}
-		metrics.Denials++
-		if actual.Mechanism != nil {
-			entry.ObservedMechanism = actual.Mechanism
-			metrics.AttributedDenials++
-			entry.Correct = *actual.Mechanism == test.ExpectedMechanism
-			if entry.Correct {
-				metrics.CorrectAttributions++
-			} else {
-				metrics.IncorrectAttributions++
+	} else if len(extras) == 0 {
+		fingerprints = make(map[string]Fingerprint)
+		base := filepath.Join("..", "fixtures", "ground-truth")
+		for _, env := range groundTruth.Environments {
+			data, err := os.ReadFile(filepath.Join(base, env.Fingerprint))
+			if err != nil {
+				return AttributionAccuracy{}, err
 			}
+			fp, err := DecodeFingerprint(data)
+			if err != nil {
+				return AttributionAccuracy{}, err
+			}
+			fingerprints[env.Name] = fp
 		}
-		if actual.Undecidable {
-			metrics.Undecidable++
+		data, err := os.ReadFile(filepath.Join("..", "corpus", "index.json"))
+		if err != nil {
+			return AttributionAccuracy{}, err
 		}
-		if test.KnownCause == "seccomp-enosys" && test.Result.Errno == errnoENOSYS && test.ExpectedMechanism == Seccomp {
-			metrics.ENOSYSFilterIncluded = true
+		corpus, err = LoadAttributionCorpus(data)
+		if err != nil {
+			return AttributionAccuracy{}, err
 		}
-		if test.KnownCause == "lsm-only" && test.ExpectedMechanism == LSM {
-			metrics.LSMOnlyIncluded = true
+	} else {
+		return AttributionAccuracy{}, fmt.Errorf("expected fingerprints and corpus")
+	}
+	if len(groundTruth.Environments) == 0 {
+		return AttributionAccuracy{}, fmt.Errorf("attribution ground truth has no environments")
+	}
+	metrics := AttributionAccuracy{GroundTruthEnvironments: len(groundTruth.Environments), Cases: make([]AttributionAccuracyCase, 0)}
+	for _, env := range groundTruth.Environments {
+		fp, ok := fingerprints[env.Name]
+		if !ok {
+			return AttributionAccuracy{}, fmt.Errorf("missing fingerprint for %q", env.Name)
 		}
-		metrics.Cases = append(metrics.Cases, entry)
+		attributed, err := Attribute(fp, corpus)
+		if err != nil {
+			return AttributionAccuracy{}, fmt.Errorf("attribute %q: %w", env.Name, err)
+		}
+		for _, result := range attributed.Results {
+			if result.Verdict != "denied" && result.Verdict != "killed" {
+				continue
+			}
+			test := AttributionAccuracyCase{Name: env.Name + ":" + result.ProbeID, KnownCause: env.KnownCause}
+			metrics.Denials++
+			actual := Attribution{}
+			if result.Attribution != nil {
+				actual = *result.Attribution
+			}
+			test.Undecidable = actual.Undecidable
+			test.ObservedMechanism = actual.Mechanism
+			if actual.Mechanism != nil {
+				metrics.AttributedDenials++
+				test.Correct = string(*actual.Mechanism) == env.KnownCause
+				if test.Correct {
+					metrics.CorrectAttributions++
+				} else {
+					metrics.IncorrectAttributions++
+				}
+			}
+			if actual.Undecidable {
+				metrics.Undecidable++
+			}
+			if env.KnownCause == "seccomp" && result.Errno == errnoENOSYS {
+				metrics.ENOSYSFilterIncluded = true
+			}
+			if env.KnownCause == "lsm" {
+				metrics.LSMOnlyIncluded = true
+			}
+			metrics.Cases = append(metrics.Cases, test)
+		}
 	}
 	if metrics.AttributedDenials > 0 {
 		accuracy := float64(metrics.CorrectAttributions) / float64(metrics.AttributedDenials)
 		metrics.Accuracy = &accuracy
-		metrics.AccuracyCriterionMet = accuracy >= 0.90
+		metrics.AccuracyCriterionMet = accuracy >= .90
 	}
-	fraction := float64(metrics.Undecidable) / float64(metrics.Denials)
-	metrics.UndecidableFraction = &fraction
-	metrics.UndecidableCriterionMet = fraction <= 0.10
+	if metrics.Denials > 0 {
+		fraction := float64(metrics.Undecidable) / float64(metrics.Denials)
+		metrics.UndecidableFraction = &fraction
+		metrics.UndecidableCriterionMet = fraction <= .10
+	}
 	return metrics, nil
+	/*
+	   	for _, test := range groundTruth.Cases {
+	   		if test.Name == "" || test.KnownCause == "" {
+	   			return AttributionAccuracy{}, fmt.Errorf("ground-truth case requires name and known_cause")
+	   		}
+	   		if _, exists := seen[test.Name]; exists {
+	   			return AttributionAccuracy{}, fmt.Errorf("duplicate ground-truth case %q", test.Name)
+	   		}
+	   		seen[test.Name] = struct{}{}
+	   		if !validMechanism(test.ExpectedMechanism) {
+	   			return AttributionAccuracy{}, fmt.Errorf("ground-truth case %q has invalid expected mechanism %q", test.Name, test.ExpectedMechanism)
+	   		}
+	   		if test.Result.Verdict != "denied" && test.Result.Verdict != "killed" {
+	   			return AttributionAccuracy{}, fmt.Errorf("ground-truth case %q is not a denial", test.Name)
+	   		}
+	   		if test.Result.ProbeID == "" {
+	   			test.Result.ProbeID = test.Probe.ID
+	   		}
+	   		if test.Probe.ID == "" || test.Result.ProbeID != test.Probe.ID {
+	   			return AttributionAccuracy{}, fmt.Errorf("ground-truth case %q has mismatched probe id", test.Name)
+	   		}
+
+	   		attributed, err := Attribute(Fingerprint{Cell: test.Cell, Results: []ProbeResult{test.Result}}, []ProbeMetadata{test.Probe})
+	   		if err != nil {
+	   			return AttributionAccuracy{}, fmt.Errorf("attribute %q: %w", test.Name, err)
+	   		}
+	   		actual := attributed.Results[0].Attribution
+	   		entry := AttributionAccuracyCase{Name: test.Name, KnownCause: test.KnownCause, ExpectedMechanism: test.ExpectedMechanism, Undecidable: actual.Undecidable}
+	   		metrics.Denials++
+	   		if actual.Mechanism != nil {
+	   			entry.ObservedMechanism = actual.Mechanism
+	   			metrics.AttributedDenials++
+	   			entry.Correct = *actual.Mechanism == test.ExpectedMechanism
+	   			if entry.Correct {
+	   				metrics.CorrectAttributions++
+	   			} else {
+	   				metrics.IncorrectAttributions++
+	   			}
+	   		}
+	   		if actual.Undecidable {
+	   			metrics.Undecidable++
+	   		}
+	   		if test.KnownCause == "seccomp-enosys" && test.Result.Errno == errnoENOSYS && test.ExpectedMechanism == Seccomp {
+	   			metrics.ENOSYSFilterIncluded = true
+	   		}
+	   		if test.KnownCause == "lsm-only" && test.ExpectedMechanism == LSM {
+	   			metrics.LSMOnlyIncluded = true
+	   		}
+	   		metrics.Cases = append(metrics.Cases, entry)
+	   	}
+
+	   	if metrics.AttributedDenials > 0 {
+	   		accuracy := float64(metrics.CorrectAttributions) / float64(metrics.AttributedDenials)
+	   		metrics.Accuracy = &accuracy
+	   		metrics.AccuracyCriterionMet = accuracy >= 0.90
+	   	}
+
+	   fraction := float64(metrics.Undecidable) / float64(metrics.Denials)
+	   metrics.UndecidableFraction = &fraction
+	   metrics.UndecidableCriterionMet = fraction <= 0.10
+	   return metrics, nil
+	*/
 }
 
 func validMechanism(mechanism Mechanism) bool {

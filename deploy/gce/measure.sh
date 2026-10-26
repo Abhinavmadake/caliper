@@ -18,7 +18,7 @@
 # way the kubelet builds deploy/k8s/job.yaml's pod. Raw probe output on
 # stdout; what containerd applied, and the cell's packages, on stderr.
 #
-#   measure.sh <image> [runtime-handler] [localhost-seccomp-profile]
+#   measure.sh <image> [runtime-handler] [localhost-seccomp-profile] [ground-truth-mode]
 #
 # With a profile, the probe runs under it as Kubernetes' Localhost type
 # instead of RuntimeDefault (the hardened fixture). Exit 3 from the probe is a
@@ -29,6 +29,7 @@ export PATH=/usr/local/bin:$PATH
 image=$1
 handler=${2:-}
 profile=${3:-}
+ground_truth_mode=${4:-default}
 work=$(mktemp -d /var/lib/caliper-measure.XXXXXX)
 pod=""
 cleanup() {
@@ -48,10 +49,10 @@ cat /etc/caliper/packages >&2
 # defaultReadonlyPaths, including the per-CPU thermal_throttle entries it adds
 # when they exist; pid CONTAINER (no shareProcessNamespace); RuntimeDefault
 # AppArmor only where AppArmor is on; emptyDir mounts relabelled for SELinux.
-python3 - "$work" "$image" "$profile" <<'PY'
+python3 - "$work" "$image" "$profile" "$ground_truth_mode" <<'PY'
 import glob, json, os, sys, uuid
 
-work, image, profile = sys.argv[1], sys.argv[2], sys.argv[3]
+work, image, profile, ground_truth_mode = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
 seccomp = {"profile_type": 2, "localhost_ref": profile} if profile else {"profile_type": 0}
 masked = ["/proc/asound", "/proc/acpi", "/proc/interrupts", "/proc/kcore", "/proc/keys",
           "/proc/latency_stats", "/proc/timer_list", "/proc/timer_stats", "/proc/sched_debug",
@@ -82,6 +83,31 @@ security = {
 }
 if apparmor:
     security["apparmor"] = {"profile_type": 0}
+
+# Issue #44 capture modes deliberately remove every control except the named
+# mechanism. They are used only on the provisioned GCE cells; the normal
+# Kubernetes/GCE path remains the restricted RuntimeDefault measurement.
+if ground_truth_mode == "seccomp":
+    security.pop("capabilities", None)
+    security["masked_paths"] = []
+    security["readonly_paths"] = []
+    security["apparmor"] = {"profile_type": 1}
+elif ground_truth_mode == "capability":
+    security["seccomp"] = {"profile_type": 1}
+    security["masked_paths"] = []
+    security["readonly_paths"] = []
+    security["apparmor"] = {"profile_type": 1}
+elif ground_truth_mode == "paths":
+    security["seccomp"] = {"profile_type": 1}
+    security.pop("capabilities", None)
+    security["apparmor"] = {"profile_type": 1}
+elif ground_truth_mode == "apparmor":
+    security["seccomp"] = {"profile_type": 1}
+    security.pop("capabilities", None)
+    security["masked_paths"] = []
+    security["readonly_paths"] = []
+elif ground_truth_mode != "default":
+    raise SystemExit("unknown ground-truth mode: " + ground_truth_mode)
 container = {
     "metadata": {"name": "probe"},
     "image": {"image": image},
@@ -113,7 +139,7 @@ if [ -z "$profile" ]; then
 import json, sys
 with open(sys.argv[1]) as source:
     runtime_spec = json.load(source)["info"]["runtimeSpec"]
-json.dump(runtime_spec["linux"]["seccomp"], sys.stdout)
+json.dump(runtime_spec.get("linux", {}).get("seccomp", {}), sys.stdout)
 PY
     install -m 0644 "$work/runtime-default.json" /var/tmp/caliper-runtime-default.json
 fi

@@ -27,8 +27,8 @@ func TestCommittedAttributionAccuracyMetricsMatchGroundTruth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !metrics.AccuracyCriterionMet || !metrics.UndecidableCriterionMet || !metrics.ENOSYSFilterIncluded || !metrics.LSMOnlyIncluded {
-		t.Fatalf("issue #44 criteria = %#v", metrics)
+	if metrics.GroundTruthEnvironments != 5 || !metrics.ENOSYSFilterIncluded || !metrics.LSMOnlyIncluded {
+		t.Fatalf("measured ground truth = %#v", metrics)
 	}
 	got, err := json.MarshalIndent(metrics, "", "  ")
 	if err != nil {

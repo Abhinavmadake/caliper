@@ -1,96 +1,2269 @@
 {
-  "ground_truth_environments": 10,
-  "denials": 10,
-  "attributed_denials": 10,
-  "correct_attributions": 10,
-  "incorrect_attributions": 0,
-  "undecidable": 0,
-  "accuracy": 1,
-  "undecidable_fraction": 0,
-  "accuracy_criterion_met": true,
-  "undecidable_criterion_met": true,
+  "ground_truth_environments": 5,
+  "denials": 316,
+  "attributed_denials": 41,
+  "correct_attributions": 16,
+  "incorrect_attributions": 25,
+  "undecidable": 275,
+  "accuracy": 0.3902439024390244,
+  "undecidable_fraction": 0.870253164556962,
+  "accuracy_criterion_met": false,
+  "undecidable_criterion_met": false,
   "enosys_filter_included": true,
   "lsm_only_included": true,
   "cases": [
     {
-      "name": "seccomp-guaranteed-eperm",
-      "known_cause": "seccomp-eperm",
-      "expected_mechanism": "seccomp",
-      "observed_mechanism": "seccomp",
-      "undecidable": false,
-      "correct": true
-    },
-    {
-      "name": "seccomp-enosys",
-      "known_cause": "seccomp-enosys",
-      "expected_mechanism": "seccomp",
-      "observed_mechanism": "seccomp",
-      "undecidable": false,
-      "correct": true
-    },
-    {
-      "name": "seccomp-kill",
-      "known_cause": "seccomp-kill",
-      "expected_mechanism": "seccomp",
-      "observed_mechanism": "seccomp",
-      "undecidable": false,
-      "correct": true
-    },
-    {
-      "name": "lsm-only-eacces",
-      "known_cause": "lsm-only",
-      "expected_mechanism": "lsm",
-      "observed_mechanism": "lsm",
-      "undecidable": false,
-      "correct": true
-    },
-    {
-      "name": "capability-only",
-      "known_cause": "capability-missing",
-      "expected_mechanism": "capability",
+      "name": "seccomp:socket.family.af_packet",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
       "observed_mechanism": "capability",
       "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "seccomp:socket.family.af_key",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:socket.family.af_xdp",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "seccomp:socket.family.af_phonet",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:socket.family.af_vsock",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.register.probe",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
       "correct": true
     },
     {
-      "name": "masked-mount",
-      "known_cause": "mount-mask",
-      "expected_mechanism": "mount",
+      "name": "seccomp:io_uring.setup.zero_entries",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.nop",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.readv",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.writev",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.fsync",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.read_fixed",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.write_fixed",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.poll_add",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.sync_file_range",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.sendmsg",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.recvmsg",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.timeout",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.accept",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.connect",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.fallocate",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.openat",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.close",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.statx",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.read",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.write",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.fadvise",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.madvise",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.send",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.recv",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.openat2",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.epoll_ctl",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.splice",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.tee",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.shutdown",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.renameat",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.unlinkat",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.mkdirat",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.symlinkat",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.linkat",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.msg_ring",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.fsetxattr",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.setxattr",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.fgetxattr",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.getxattr",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.socket",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.uring_cmd",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.send_zc",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.sendmsg_zc",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.read_multishot",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.waitid",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.futex_wait",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.futex_wake",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.futex_waitv",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.fixed_fd_install",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.ftruncate",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.bind",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:io_uring.opcode.listen",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:mount.reach",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp:mount.fs.proc",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:mount.fs.overlay",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:mount.fs.fuse",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.fuse",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.net_tun",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.kvm",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.kmsg",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.mem",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.port",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:device.open.sda",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.invalid",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp:unshare.flags.newuser",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newns",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newnet",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newpid",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newipc",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newuts",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newcgroup",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newtime",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:unshare.flags.newuser_newnet",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newuser",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newns",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newnet",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newpid",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newipc",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newuts",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newcgroup",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone.flags.newuser_newnet",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:clone3.args.short",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "seccomp:capability.sys_time",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:capability.sys_boot",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:capability.sys_module",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:capability.mknod",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "seccomp:capability.sys_ptrace",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:capability.sys_nice",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "seccomp:capability.sys_rawio",
+      "known_cause": "seccomp",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:socket.family.af_packet",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "apparmor:socket.family.af_key",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:socket.family.af_xdp",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "apparmor:socket.family.af_phonet",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:mount.fs.proc",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:mount.fs.overlay",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:mount.fs.fuse",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.fuse",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.net_tun",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.kvm",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.kmsg",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.mem",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.port",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:device.open.sda",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newns",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newnet",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newpid",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newipc",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newuts",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newcgroup",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:unshare.flags.newtime",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:clone.flags.newns",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:clone.flags.newnet",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:clone.flags.newpid",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:clone.flags.newipc",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:clone.flags.newuts",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:clone.flags.newcgroup",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.sys_time",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.sys_boot",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.sys_module",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.mknod",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.sys_ptrace",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.sys_nice",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "apparmor:capability.sys_rawio",
+      "known_cause": "lsm",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:socket.family.af_packet",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:socket.family.af_key",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:socket.family.af_xdp",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:socket.family.af_phonet",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:mount.fs.proc",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:mount.fs.overlay",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:mount.fs.fuse",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.fuse",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.net_tun",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.kvm",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.kmsg",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.mem",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.port",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:device.open.sda",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newns",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newnet",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newpid",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newipc",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newuts",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newcgroup",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:unshare.flags.newtime",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:clone.flags.newns",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:clone.flags.newnet",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:clone.flags.newpid",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:clone.flags.newipc",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:clone.flags.newuts",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:clone.flags.newcgroup",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.sys_time",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.sys_boot",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.sys_module",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.mknod",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.sys_ptrace",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.sys_nice",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "capability:capability.sys_rawio",
+      "known_cause": "capability",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:socket.family.af_packet",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "paths:socket.family.af_key",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:socket.family.af_xdp",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "paths:socket.family.af_phonet",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:mount.fs.proc",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:mount.fs.overlay",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:mount.fs.fuse",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.fuse",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.net_tun",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.kvm",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.kmsg",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.mem",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.port",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:device.open.sda",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:path.masked.proc_kcore",
+      "known_cause": "mount",
+      "expected_mechanism": "",
       "observed_mechanism": "mount",
       "undecidable": false,
       "correct": true
     },
     {
-      "name": "readonly-mount",
-      "known_cause": "mount-readonly",
-      "expected_mechanism": "mount",
+      "name": "paths:path.masked.proc_keys",
+      "known_cause": "mount",
+      "expected_mechanism": "",
       "observed_mechanism": "mount",
       "undecidable": false,
       "correct": true
     },
     {
-      "name": "kernel-userns-limit",
+      "name": "paths:path.masked.proc_latency_stats",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.masked.proc_timer_list",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.masked.proc_acpi",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.masked.proc_scsi",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.masked.sys_firmware",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.readonly.proc_bus",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.readonly.proc_fs",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.readonly.proc_irq",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.readonly.proc_sys",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:path.readonly.proc_sysrq_trigger",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": true
+    },
+    {
+      "name": "paths:unshare.flags.newns",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:unshare.flags.newnet",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:unshare.flags.newpid",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:unshare.flags.newipc",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:unshare.flags.newuts",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:unshare.flags.newcgroup",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:unshare.flags.newtime",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:clone.flags.newns",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:clone.flags.newnet",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:clone.flags.newpid",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:clone.flags.newipc",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:clone.flags.newuts",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:clone.flags.newcgroup",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.sys_time",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.sys_boot",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.sys_module",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.mknod",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "observed_mechanism": "capability",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.sys_ptrace",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.sys_nice",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "paths:capability.sys_rawio",
+      "known_cause": "mount",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:socket.family.af_packet",
       "known_cause": "kernel-limit",
-      "expected_mechanism": "kernel-limit",
-      "observed_mechanism": "kernel-limit",
-      "undecidable": false,
-      "correct": true
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
     },
     {
-      "name": "seccomp-structural-eperm",
-      "known_cause": "seccomp-structural",
-      "expected_mechanism": "seccomp",
-      "observed_mechanism": "seccomp",
-      "undecidable": false,
-      "correct": true
+      "name": "userns-limit:socket.family.af_key",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
     },
     {
-      "name": "seccomp-guaranteed-einval",
-      "known_cause": "seccomp-eperm",
-      "expected_mechanism": "seccomp",
+      "name": "userns-limit:socket.family.af_xdp",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:socket.family.af_phonet",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:socket.family.af_vsock",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.register.probe",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
       "observed_mechanism": "seccomp",
       "undecidable": false,
-      "correct": true
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.setup.zero_entries",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.nop",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.readv",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.writev",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.fsync",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.read_fixed",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.write_fixed",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.poll_add",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.sync_file_range",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.sendmsg",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.recvmsg",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.timeout",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.accept",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.connect",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.fallocate",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.openat",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.close",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.statx",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.read",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.write",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.fadvise",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.madvise",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.send",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.recv",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.openat2",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.epoll_ctl",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.splice",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.tee",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.shutdown",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.renameat",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.unlinkat",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.mkdirat",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.symlinkat",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.linkat",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.msg_ring",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.fsetxattr",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.setxattr",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.fgetxattr",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.getxattr",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.socket",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.uring_cmd",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.send_zc",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.sendmsg_zc",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.read_multishot",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.waitid",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.futex_wait",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.futex_wake",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.futex_waitv",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.fixed_fd_install",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.ftruncate",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.bind",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:io_uring.opcode.listen",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:mount.reach",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:mount.fs.proc",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:mount.fs.overlay",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:mount.fs.fuse",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.fuse",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.net_tun",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.kvm",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.kmsg",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.mem",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.port",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:device.open.sda",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.proc_kcore",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.proc_keys",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.proc_latency_stats",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.proc_timer_list",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.proc_acpi",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.proc_scsi",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.masked.sys_firmware",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.readonly.proc_bus",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.readonly.proc_fs",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.readonly.proc_irq",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.readonly.proc_sys",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:path.readonly.proc_sysrq_trigger",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "mount",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.invalid",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newuser",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newns",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newnet",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newpid",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newipc",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newuts",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newcgroup",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newtime",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:unshare.flags.newuser_newnet",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newuser",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newns",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newnet",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newpid",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newipc",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newuts",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newcgroup",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone.flags.newuser_newnet",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:clone3.args.short",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "observed_mechanism": "seccomp",
+      "undecidable": false,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.sys_time",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.sys_boot",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.sys_module",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.mknod",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.sys_ptrace",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.sys_nice",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
+    },
+    {
+      "name": "userns-limit:capability.sys_rawio",
+      "known_cause": "kernel-limit",
+      "expected_mechanism": "",
+      "undecidable": true,
+      "correct": false
     }
   ]
 }
