@@ -1,0 +1,42 @@
+Target: caliper-cell2, zone asia-south1-a, project caliper-ci
+Target image: docker.io/library/busybox:1.36.1
+Original CALIPER/amicontained target container ID: 88e281fc7616d
+seccomp-diff re-capture container ID: 90235a867ac322c8c84778bb9c959f6f68336c13e2a922cd697264aa7cf796cf
+Host PID inspected by seccomp-diff: 1611
+The seccomp-diff capture used the same image and CRI security settings as the original target. The exact CRI specs are seccomp-pod.json and seccomp-container.json. After copying them to the cell under /var/tmp/issue47-seccomp-target/, the target was started with:
+pod_id=$(sudo crictl runp /var/tmp/issue47-seccomp-target/pod.json)
+container_id=$(sudo crictl create "$pod_id" /var/tmp/issue47-seccomp-target/container.json /var/tmp/issue47-seccomp-target/pod.json)
+sudo crictl start "$container_id"
+This produced container ID 90235a867ac322c8c84778bb9c959f6f68336c13e2a922cd697264aa7cf796cf and host PID 1611.
+
+Original target settings: temporary copy of deploy/gce/measure.sh with command ["/bin/sh"], args ["-c", "sleep 600"], and the probe wait limit increased from 300 to 900 seconds. All CRI security settings came from deploy/gce/measure.sh.
+CALIPER probe image: ghcr.io/abhinavmadake/caliper@sha256:9be163f1b987f8563f9d71114d6a025d9335b9627cdafc4676da2b327da3f969
+amicontained: v0.4.9; SHA-256 d8c49e2cf44ee9668219acd092ed961fc1aa420a6e036e0822d7a31033776c9f
+seccomp-diff: https://github.com/antitree/seccomp-diff at 68d4f4571c6f570ecd31c3a9ed614aeb74439d2e
+
+Original target start command:
+sudo systemd-run --unit=issue47-measure --collect /bin/bash /tmp/issue47-measure.sh docker.io/library/busybox:1.36.1
+
+CALIPER fingerprint command (output committed as caliper-fingerprint.json):
+sudo crictl exec 88e281fc7616d /tmp/caliper-probe --run > /tmp/issue47-same-target.json 2>/tmp/issue47-caliper.log
+
+amicontained command (output committed as amicontained.txt):
+sudo crictl exec 88e281fc7616d /tmp/amicontained > /tmp/issue47-amico.txt 2>&1
+
+seccomp-diff raw BPF command (output committed as seccomp-diff-bpf.txt):
+sudo env PYTHONPATH=/tmp/seccomp-diff-work python3 /tmp/seccomp-diff-work/seccomp_dump.py --dump 1611 > /var/tmp/issue47-seccomp-dump.txt 2>&1
+
+Pinned seccomp-diff source setup used for the decoder:
+sudo apt-get install -y python3-rich git
+sudo git clone https://github.com/antitree/seccomp-diff.git /tmp/seccomp-diff-work
+sudo git -C /tmp/seccomp-diff-work checkout 68d4f4571c6f570ecd31c3a9ed614aeb74439d2e
+
+Native x86_64 table regeneration (run from the repository root):
+PYTHONPATH=/tmp/seccomp-diff-work python3 fixtures/ancestors/cell2/decode_seccomp_x86_64.py fixtures/ancestors/cell2/seccomp-diff-bpf.txt > fixtures/ancestors/cell2/seccomp-diff.txt
+
+The decoder selects AUDIT_ARCH_X86_64 (0xc000003e) from the BPF and lists syscall numbers 0 through 456. It has 297 ALLOW rows, 156 default ERRNO(1) rows, 3 CONDITION rows (clone, personality, socket), one explicit ERRNO(38) row (clone3), and no KILL rows. The BPF default return is ERRNO(1).
+
+Effective filter default-action check on the original target:
+sudo crictl inspect 88e281fc7616d | grep -n defaultAction
+
+The default-action check printed: "defaultAction": "SCMP_ACT_ERRNO".
