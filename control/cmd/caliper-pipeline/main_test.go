@@ -28,10 +28,12 @@ import (
 func TestVerifyClosures(t *testing.T) {
 	findings := control.FindingReport{ExpectationViolations: []control.Finding{{ProbeID: "probe.example"}}}
 
+	mode0 := uint64(0)
 	tests := []struct {
 		name        string
 		findings    control.FindingReport
 		results     []control.ProbeResult
+		seccomp     *control.SeccompState
 		wantStatus  string
 		wantProbe   string
 		wantError   string
@@ -60,6 +62,14 @@ func TestVerifyClosures(t *testing.T) {
 			wantProbe:  "still-open",
 		},
 		{
+			name:       "open probe without seccomp is reported without failing",
+			findings:   findings,
+			results:    []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
+			seccomp:    &control.SeccompState{Mode: &mode0},
+			wantStatus: "unenforced",
+			wantProbe:  "unenforced",
+		},
+		{
 			name:        "not-closable probe is reported without failing",
 			findings:    findings,
 			results:     []control.ProbeResult{{ProbeID: "probe.example", Verdict: "permitted"}},
@@ -75,7 +85,7 @@ func TestVerifyClosures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := verifyClosures(tt.findings, control.Fingerprint{Results: tt.results}, tt.notClosable)
+			got, err := verifyClosures(tt.findings, control.Fingerprint{Results: tt.results, Cell: control.Cell{Seccomp: tt.seccomp}}, tt.notClosable)
 			if tt.wantError != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.wantError) {
 					t.Fatalf("verifyClosures() error = %v, want it to contain %q", err, tt.wantError)
