@@ -1,0 +1,1394 @@
+{
+  "posture_revision": "v1",
+  "tier": "untrusted-multi-tenant",
+  "expectation_violations": [
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.accept",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.bind",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.close",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.connect",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.fadvise",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.fallocate",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.fsync",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.ftruncate",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.futex_wait",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.futex_wake",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.getxattr",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.linkat",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.listen",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.madvise",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.mkdirat",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.msg_ring",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.nop",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.openat",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.openat2",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.poll_add",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.read",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.read_fixed",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.read_multishot",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.readv",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.recv",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.recvmsg",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.renameat",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.send",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.send_zc",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.sendmsg",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.setxattr",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.shutdown",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.socket",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.splice",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.statx",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.symlinkat",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.tee",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.timeout",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.unlinkat",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.waitid",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.write",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.write_fixed",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.opcode.writev",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.register.probe",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "io_uring",
+      "probe_id": "io_uring.setup.zero_entries",
+      "verdict": "permitted",
+      "reason": "io_uring provides a broad asynchronous syscall surface and has been a recurring source of kernel exploitation primitives; it should be absent from an untrusted tenant's reachable kernel interface.",
+      "citations": [
+        {
+          "title": "io_uring documentation",
+          "publisher": "Linux kernel documentation",
+          "url": "https://docs.kernel.org/io_uring/index.html"
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.crypto",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ],
+      "modules": [
+        {
+          "name": "crypto_user",
+          "loaded_before": false,
+          "loaded_by_run": true
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.netfilter",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ],
+      "modules": [
+        {
+          "name": "nfnetlink",
+          "loaded_before": false,
+          "loaded_by_run": false
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.rdma",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ],
+      "modules": [
+        {
+          "name": "ib_core",
+          "loaded_before": false,
+          "loaded_by_run": true
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.xfrm",
+      "verdict": "permitted",
+      "reason": "Raw netlink families expose control planes used to alter firewall, security-policy, crypto, and RDMA state; these are not appropriate for code sharing a node with unrelated tenants.",
+      "citations": [
+        {
+          "id": "CVE-2024-1086",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-1086"
+        }
+      ],
+      "modules": [
+        {
+          "name": "xfrm_user",
+          "loaded_before": false,
+          "loaded_by_run": true
+        }
+      ]
+    },
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_alg",
+      "verdict": "permitted",
+      "reason": "AF_ALG exposes the kernel crypto API to an unprivileged process and can autoload algif_* modules. Copy Fail reached algif_aead through this family from a container satisfying RuntimeDefault and PSS Restricted.",
+      "citations": [
+        {
+          "id": "CVE-2026-31431",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-31431"
+        },
+        {
+          "id": "CVE-2017-2636",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-2636"
+        }
+      ],
+      "modules": [
+        {
+          "name": "af_alg",
+          "loaded_before": false,
+          "loaded_by_run": true
+        }
+      ]
+    }
+  ],
+  "claim_violations": [],
+  "undeclared_exposures": [
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "device",
+      "probe_id": "device.open.null",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.autofs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.binfmt_misc",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.bpf",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.cgroup",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.cgroup2",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.configfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.debugfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.devpts",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.devtmpfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.ecryptfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.efivarfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.ext4",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.fuse",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.fusectl",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.hugetlbfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.mqueue",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.overlay",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.proc",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.pstore",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.securityfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.squashfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.sysfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.tmpfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.tracefs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.vfat",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.audit",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.connector",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.fib_lookup",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.generic",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.iscsi",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.kobject_uevent",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.out_of_range",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.route",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.scsitransport",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.sock_diag",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.usersock",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.control.proc_self_status",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_can",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_inet",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_inet6",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_kcm",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_mctp",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_rxrpc",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_smc",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_unix",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.out_of_range",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    }
+  ]
+}

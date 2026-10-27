@@ -24,7 +24,8 @@
 #                                    under RuntimeDefault or the given Localhost seccomp
 #                                    profile, or in a ground-truth mode (#44); raw probe
 #                                    output on stdout; CALIPER_CORPUS_SET=reduced runs
-#                                    the reduced corpus
+#                                    the reduced corpus, CALIPER_HANDLER=<name> another
+#                                    of the cell's handlers (runsc-seccomp, kata-seccomp)
 #   cells.sh packages <cell>         the cell's recorded kernel and package versions
 #   cells.sh runtime-default <cell> <output.json>
 #                                    copy the RuntimeDefault captured by the last default measurement
@@ -114,6 +115,7 @@ reboot_cell() {
 
 measure() {
     local image=${2:-$IMAGE} profile=${3:-} mode=${4:-default} set=${CALIPER_CORPUS_SET:-full} dir ref=""
+    local runtime=${CALIPER_HANDLER:-$handler}
     reboot_cell
     if [ -n "$profile" ]; then
         dir=$(upload "$here/measure.sh" "$profile")
@@ -121,7 +123,7 @@ measure() {
     else
         dir=$(upload "$here/measure.sh")
     fi
-    on "sudo bash $dir/measure.sh '$image' '$handler' '$ref' '$mode' '$set'; rc=\$?; rm -rf $dir; exit \$rc"
+    on "sudo bash $dir/measure.sh '$image' '$runtime' '$ref' '$mode' '$set'; rc=\$?; rm -rf $dir; exit \$rc"
 }
 
 runtime_default() {
@@ -130,7 +132,7 @@ runtime_default() {
     on "sudo rm -f /var/tmp/caliper-runtime-default.json"
 }
 
-[ $# -ge 2 ] || { sed -n '17,35p' "$0" >&2; exit 2; }
+[ $# -ge 2 ] || { sed -n '17,36p' "$0" >&2; exit 2; }
 cmd=$1
 cell "$2"
 case "$cmd" in

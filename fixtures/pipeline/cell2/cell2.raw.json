@@ -1,6 +1,6 @@
 {
   "format_version": 1,
-  "corpus_revision": "0.3.2",
+  "corpus_revision": "0.3.3",
   "corpus_set": "full",
   "cell": {
     "architecture": "x86_64",
@@ -63,10 +63,15 @@
       "bounding": "0000000000000000",
       "ambient": "0000000000000000"
     },
+    "seccomp": {
+      "mode": 2,
+      "filters": 1
+    },
     "user_namespaces": {
       "max": 28082,
       "unprivileged_clone": 1,
-      "apparmor_restricted": 1
+      "apparmor_restricted": 1,
+      "initial": true
     }
   },
   "results": [
@@ -1265,11 +1270,7 @@
   "residual": {
     "observability": {
       "mounts": "observed",
-      "keyrings": {
-        "unobservable": {
-          "reason": "masked"
-        }
-      },
+      "keyrings": "observed",
       "cgroups": "observed",
       "sysv_ipc": "observed",
       "posix_ipc": "observed",
@@ -1277,7 +1278,7 @@
     },
     "before": {
       "mounts": 25,
-      "keyrings": null,
+      "keyrings": 0,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
@@ -1285,7 +1286,7 @@
     },
     "after": {
       "mounts": 25,
-      "keyrings": null,
+      "keyrings": 0,
       "cgroups": 0,
       "sysv_ipc": 0,
       "posix_ipc": 0,
@@ -1295,5 +1296,6 @@
     "unverifiable": [],
     "audit": [],
     "janitor": []
-  }
+  },
+  "elapsed_ms": 617
 }

@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "probes": [
+    {
+      "probe_id": "device.open.fuse",
+      "status": "not-closable",
+      "verdict": "permitted"
+    }
+  ],
+  "not_closable": [
+    {
+      "probe_id": "device.open.fuse",
+      "reason": "the device pathname is a pointer argument; seccomp-BPF cannot distinguish it from other opens"
+    }
+  ]
+}

@@ -1,0 +1,278 @@
+{
+  "posture_revision": "v1",
+  "tier": "untrusted-multi-tenant",
+  "expectation_violations": [
+    {
+      "kind": "expectation-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "device",
+      "probe_id": "device.open.fuse",
+      "verdict": "permitted",
+      "reason": "Device nodes expose host drivers and hardware interfaces that ordinary services do not need; access is controlled by the device cgroup and DAC.",
+      "citations": [
+        {
+          "title": "Linux resources: devices",
+          "publisher": "Open Containers Initiative",
+          "url": "https://github.com/opencontainers/runtime-spec/blob/main/config-linux.md#linux-resources"
+        }
+      ]
+    }
+  ],
+  "claim_violations": [
+    {
+      "kind": "claim-violation",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "capability",
+      "probe_id": "capability.sys_nice",
+      "verdict": "permitted",
+      "reason": "manifest declares this capability unavailable, but its probe was permitted"
+    }
+  ],
+  "undeclared_exposures": [
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "capability",
+      "probe_id": "capability.net_bind_service",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "device",
+      "probe_id": "device.open.net_tun",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "device",
+      "probe_id": "device.open.null",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.9p",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.cgroup",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.devpts",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.devtmpfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.fuse",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.mqueue",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.overlay",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.proc",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.sysfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "mount",
+      "probe_id": "mount.type.tmpfs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.kobject_uevent",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.out_of_range",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "netlink",
+      "probe_id": "netlink.protocol.route",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.control.proc_self_status",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.masked.sys_firmware",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.readonly.proc_bus",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.readonly.proc_fs",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.readonly.proc_irq",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.readonly.proc_sys",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "path",
+      "probe_id": "path.readonly.proc_sysrq_trigger",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_inet",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_inet6",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.af_unix",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    },
+    {
+      "kind": "undeclared-exposure",
+      "posture_revision": "v1",
+      "tier": "untrusted-multi-tenant",
+      "family": "socket",
+      "probe_id": "socket.family.out_of_range",
+      "verdict": "permitted",
+      "reason": "probe was permitted and neither the selected posture tier nor the manifest declares it unreachable"
+    }
+  ]
+}

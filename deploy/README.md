@@ -104,8 +104,8 @@ against cell 2 only the runtime moves.
 | 2 | `e2-standard-2` | `ubuntu-2404-noble-amd64-v20261016` | containerd `2.2.1-0ubuntu1~24.04.3`, runc `1.3.4-0ubuntu1~24.04.1` |
 | 3 | `e2-standard-2` | `rocky-linux-9-v20261015` | `containerd.io-2.2.1-1.el9` (Docker repository), SELinux enforcing |
 | 4 | `e2-standard-2` | `ubuntu-2404-noble-amd64-v20261016` | containerd `1.7.12-0ubuntu4`, runc `1.1.12-0ubuntu3` (release pocket) |
-| 5 | `e2-standard-2` | as cell 2 | as cell 2, plus gVisor `release-20261005.0` as handler `runsc` |
-| 6 | `n2-standard-2`, nested virtualisation | as cell 2 | as cell 2, plus Kata `3.14.0` as handler `kata` |
+| 5 | `e2-standard-2` | as cell 2 | as cell 2, plus gVisor `release-20261005.0` as handlers `runsc` and `runsc-seccomp` (`oci-seccomp`) |
+| 6 | `n2-standard-2`, nested virtualisation | as cell 2 | as cell 2, plus Kata `3.14.0` as handlers `kata` and `kata-seccomp` (`disable_guest_seccomp = false`) |
 
 Provisioning fails unless the containerd on `PATH`, the running daemon and runc
 are the pinned versions (#90), and unless the cell's handler is registered.
@@ -173,31 +173,36 @@ kept with their tests; the hardened one predates the clone rules in
 
 ## Local end-to-end control-plane pipeline
 
-`deploy/gce/run-cell2-pipeline.sh` runs the published-image flow on cell2:
-measure, complete the fingerprint, capture containerd's applied RuntimeDefault,
-evaluate findings, generate remediation, have SPO install the generated
-SeccompProfile, apply the Localhost profile in a fresh measurement, and verify
-the re-probe. It removes the temporary SPO profile and stops the VM on success
-or failure. The cluster must expose the SPO v1 API and allow this user to create,
+`deploy/gce/run-pipeline.sh <cell>` runs the published-image flow on one cell
+(cell2 if none is given): measure, complete the fingerprint, capture
+containerd's applied RuntimeDefault, evaluate findings, generate remediation,
+have SPO install the generated SeccompProfile, apply the Localhost profile in a
+fresh measurement, and verify the re-probe. It removes the temporary SPO profile and stops the VM on success
+or failure. Without kubectl, or where the cluster does not expose the SPO v1
+API, the SPO step is skipped; otherwise this user must be allowed to create,
 read, watch, and delete `SeccompProfile` resources. The runner waits for
 `.status.status=Installed` before recording the accepted profile. The underlying
 `control/cmd/caliper-pipeline` writes the per-stage findings, remediation,
 classification and verification artifacts. Verification reports
 `nothing-to-verify` when the baseline has no expectation findings and lists
-findings the generator could not close as `not-closable`; it fails only if a
-closable finding is missing or does not return denied/killed.
+findings the generator could not close as `not-closable`. Where the re-probe
+runs without seccomp (mode 0, as under gVisor and Kata) an open finding is
+reported as `unenforced`. Otherwise it fails if a closable finding is missing or
+does not return denied/killed.
 
 ```bash
-CALIPER_POSTURE_TIER=untrusted-multi-tenant deploy/gce/run-cell2-pipeline.sh
+CALIPER_POSTURE_TIER=untrusted-multi-tenant deploy/gce/run-pipeline.sh cell2
 ```
 
 The pipeline evaluates the `restricted` posture tier by default. The command
 above selects `untrusted-multi-tenant` to exercise the generated closures. Set
 `CALIPER_POSTURE_TIER` to select another tier; `CALIPER_PIPELINE_OUT` can select
-another artifact directory. Run it from Linux or macOS with gcloud authenticated
-for `caliper-ci`, kubectl configured for the target cluster, and Go available in
-`PATH`.
+another artifact directory. `CALIPER_HANDLER=runsc-seccomp` (cell 5) or
+`kata-seccomp` (cell 6) runs under the handler that applies seccomp inside the
+sandbox, into `fixtures/pipeline/<cell>-<handler>/`. Run it from Linux or
+macOS with gcloud authenticated for `caliper-ci` and Go available in `PATH`.
+Cell 1 takes the arm64 build above through `CALIPER_PROBE_IMAGE`.
 
 The image pinned by `cells.sh` is the published build for current main. The raw
 measurements, completed fingerprints, runtime profile, and per-stage outputs
-are retained under `fixtures/pipeline/cell2/`.
+are retained under `fixtures/pipeline/<cell>/`.

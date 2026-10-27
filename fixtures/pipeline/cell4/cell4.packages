@@ -1,0 +1,10 @@
+kernel 7.0.0-1014-gcp
+containerd containerd github.com/containerd/containerd 1.7.12
+runc runc version 1.1.12-0ubuntu3
+apparmor 4.0.1really4.0.1-0ubuntu0.24.04.9
+containerd 1.7.12-0ubuntu4
+libseccomp2 2.5.5-1ubuntu3.1
+linux-image-7.0.0-1014-gcp 7.0.0-1014.14~24.04.1
+linux-image-gcp 7.0.0-1014.14~24.04.1
+runc 1.1.12-0ubuntu3
+probe ghcr.io/abhinavmadake/caliper@sha256:e2113465c415c343572c7bd4137df041edb87c202d4728aa670efad2a6093f23

@@ -273,6 +273,10 @@ func verifyClosures(findings control.FindingReport, fingerprint control.Fingerpr
 	for _, finding := range notClosable {
 		unclosable[finding.ProbeID] = struct{}{}
 	}
+	// gVisor and Kata run the workload without the profile: an open probe
+	// there is a result, not a failed closure.
+	seccomp := fingerprint.Cell.Seccomp
+	unenforced := seccomp != nil && seccomp.Mode != nil && *seccomp.Mode == 0
 	summary.Probes = make([]closureProbeVerification, 0, len(findings.ExpectationViolations))
 	var problems []string
 	for _, finding := range findings.ExpectationViolations {
@@ -292,6 +296,11 @@ func verifyClosures(findings control.FindingReport, fingerprint control.Fingerpr
 		}
 		if verdict == "denied" || verdict == "killed" {
 			summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "closed", Verdict: verdict})
+			continue
+		}
+		if unenforced {
+			summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "unenforced", Verdict: verdict})
+			summary.Status = "unenforced"
 			continue
 		}
 		summary.Probes = append(summary.Probes, closureProbeVerification{ProbeID: finding.ProbeID, Status: "still-open", Verdict: verdict})

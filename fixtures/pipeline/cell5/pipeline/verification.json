@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "probes": [
+    {
+      "probe_id": "clone.flags.newuser",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "device.open.fuse",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "unshare.flags.newuser",
+      "status": "not-closable",
+      "verdict": "permitted"
+    }
+  ],
+  "not_closable": [
+    {
+      "probe_id": "clone.flags.newuser",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "device.open.fuse",
+      "reason": "the device pathname is a pointer argument; seccomp-BPF cannot distinguish it from other opens"
+    },
+    {
+      "probe_id": "unshare.flags.newuser",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    }
+  ]
+}

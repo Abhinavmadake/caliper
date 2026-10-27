@@ -1,0 +1,526 @@
+{
+  "status": "unenforced",
+  "probes": [
+    {
+      "probe_id": "clone.flags.newuser",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.accept",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.bind",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.close",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.connect",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.fadvise",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.fallocate",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.fsync",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.ftruncate",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wait",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wake",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.getxattr",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.linkat",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.listen",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.madvise",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.mkdirat",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.msg_ring",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.nop",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.openat",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.openat2",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.poll_add",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.read",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.read_fixed",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.read_multishot",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.readv",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.recv",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.recvmsg",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.renameat",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.send",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.send_zc",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.setxattr",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.shutdown",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.socket",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.splice",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.statx",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.symlinkat",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.tee",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.timeout",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.unlinkat",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.waitid",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.write",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.write_fixed",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.opcode.writev",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.register.probe",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "io_uring.setup.zero_entries",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "mount.reach",
+      "status": "not-closable",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "status": "unenforced",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "status": "unenforced",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "socket.family.af_alg",
+      "status": "unenforced",
+      "verdict": "permitted"
+    },
+    {
+      "probe_id": "unshare.flags.newuser",
+      "status": "not-closable",
+      "verdict": "permitted"
+    }
+  ],
+  "not_closable": [
+    {
+      "probe_id": "clone.flags.newuser",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.accept",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.bind",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.close",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.connect",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.fadvise",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.fallocate",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.fsync",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.ftruncate",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wait",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wake",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.getxattr",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.linkat",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.listen",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.madvise",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.mkdirat",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.msg_ring",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.nop",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.openat",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.openat2",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.poll_add",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.read",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.read_fixed",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.read_multishot",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.readv",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.recv",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.recvmsg",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.renameat",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.send",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.send_zc",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.setxattr",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.shutdown",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.socket",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.splice",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.statx",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.symlinkat",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.tee",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.timeout",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.unlinkat",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.waitid",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.write",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.write_fixed",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.opcode.writev",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.register.probe",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "io_uring.setup.zero_entries",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    },
+    {
+      "probe_id": "mount.reach",
+      "reason": "the mount filesystem type is a pointer argument; seccomp-BPF cannot inspect it without blocking mount(2) entirely"
+    },
+    {
+      "probe_id": "unshare.flags.newuser",
+      "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow"
+    }
+  ]
+}

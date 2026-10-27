@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "probes": [
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "socket.family.af_alg",
+      "status": "closed",
+      "verdict": "denied"
+    }
+  ],
+  "not_closable": []
+}

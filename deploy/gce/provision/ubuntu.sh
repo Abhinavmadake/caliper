@@ -54,3 +54,16 @@ version = 3
   runtime_type = '$type'
 EOF
 }
+
+# A further handler with shim options, after add_handler_v3 has written the
+# file; each option is one "key = 'value'" line.
+append_handler_v3() {
+    local name=$1 type=$2 option
+    shift 2
+    {
+        echo "[plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.$name]"
+        echo "  runtime_type = '$type'"
+        echo "  [plugins.'io.containerd.cri.v1.runtime'.containerd.runtimes.$name.options]"
+        for option in "$@"; do echo "    $option"; done
+    } >> /etc/containerd/config.toml
+}

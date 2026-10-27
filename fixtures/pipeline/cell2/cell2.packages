@@ -7,4 +7,4 @@ libseccomp2 2.5.5-1ubuntu3.1
 linux-image-7.0.0-1014-gcp 7.0.0-1014.14~24.04.1
 linux-image-gcp 7.0.0-1014.14~24.04.1
 runc 1.3.4-0ubuntu1~24.04.1
-probe ghcr.io/abhinavmadake/caliper@sha256:9be163f1b987f8563f9d71114d6a025d9335b9627cdafc4676da2b327da3f969
+probe ghcr.io/abhinavmadake/caliper@sha256:e2113465c415c343572c7bd4137df041edb87c202d4728aa670efad2a6093f23

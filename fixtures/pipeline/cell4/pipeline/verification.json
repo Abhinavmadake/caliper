@@ -1,0 +1,296 @@
+{
+  "status": "passed",
+  "probes": [
+    {
+      "probe_id": "io_uring.opcode.accept",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.bind",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.close",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.connect",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.epoll_ctl",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.fadvise",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.fallocate",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.fgetxattr",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.fixed_fd_install",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.fsetxattr",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.fsync",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.ftruncate",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wait",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_waitv",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.futex_wake",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.getxattr",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.linkat",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.listen",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.madvise",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.mkdirat",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.msg_ring",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.nop",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.openat",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.openat2",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.poll_add",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.read",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.read_fixed",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.read_multishot",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.readv",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.recv",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.recvmsg",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.renameat",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.send",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.send_zc",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.sendmsg_zc",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.setxattr",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.shutdown",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.socket",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.splice",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.statx",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.symlinkat",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.sync_file_range",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.tee",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.timeout",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.unlinkat",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.uring_cmd",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.waitid",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.write",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.write_fixed",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.opcode.writev",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.register.probe",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "io_uring.setup.zero_entries",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.crypto",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.netfilter",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.rdma",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "netlink.protocol.xfrm",
+      "status": "closed",
+      "verdict": "denied"
+    },
+    {
+      "probe_id": "socket.family.af_alg",
+      "status": "closed",
+      "verdict": "denied"
+    }
+  ],
+  "not_closable": []
+}
