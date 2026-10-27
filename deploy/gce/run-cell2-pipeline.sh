@@ -89,7 +89,7 @@ if [[ -z "$packages" ]]; then
     exit 1
 fi
 printf '%s\n' "$packages" | sed 's/[[:space:]]*$//' > "$out/cell2.packages"
-printf 'probe %s\n' "${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:9be163f1b987f8563f9d71114d6a025d9335b9627cdafc4676da2b327da3f969}" >> "$out/cell2.packages"
+printf 'probe %s\n' "${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:e2113465c415c343572c7bd4137df041edb87c202d4728aa670efad2a6093f23}" >> "$out/cell2.packages"
 kernel=$(awk '$1 == "kernel" { print $2; exit }' "$out/cell2.packages")
 runtime_version=$(awk '$1 == "containerd" && $2 == "containerd" { print $NF; exit }' "$out/cell2.packages")
 if [[ -z "$kernel" || -z "$runtime_version" ]]; then
