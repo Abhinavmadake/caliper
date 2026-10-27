@@ -611,6 +611,30 @@
       ]
     },
     {
+      "cell": "cell5-runsc-seccomp",
+      "seccomp_enforced": true,
+      "seccomp": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "other": {
+        "findings": 1,
+        "closed": 0,
+        "closure_rate": 0
+      },
+      "findings": [
+        {
+          "probe_id": "device.open.fuse",
+          "family": "device",
+          "mechanism": "other",
+          "reason": "the device pathname is a pointer argument; seccomp-BPF cannot distinguish it from other opens",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        }
+      ]
+    },
+    {
       "cell": "cell6",
       "seccomp_enforced": false,
       "seccomp": {
@@ -1097,15 +1121,52 @@
           "closed": false
         }
       ]
+    },
+    {
+      "cell": "cell6-kata-seccomp",
+      "seccomp_enforced": true,
+      "seccomp": {
+        "findings": 3,
+        "closed": 3,
+        "closure_rate": 1
+      },
+      "other": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "findings": [
+        {
+          "probe_id": "netlink.protocol.netfilter",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.xfrm",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "socket.family.af_alg",
+          "family": "socket",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        }
+      ]
     }
   ],
   "seccomp": {
-    "findings": 72,
-    "closed": 72,
+    "findings": 75,
+    "closed": 75,
     "closure_rate": 1
   },
   "other": {
-    "findings": 62,
+    "findings": 63,
     "closed": 0,
     "closure_rate": 0
   },
