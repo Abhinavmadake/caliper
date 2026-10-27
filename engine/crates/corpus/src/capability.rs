@@ -203,7 +203,7 @@ pub const SYS_PTRACE: Probe = Probe {
     arch: Applicability::All,
     kernel: KernelDependency::NONE,
     oracle: Oracle {
-        guarantees: None,
+        guarantees: Some(Errno::EFAULT),
         isolates: UNDECIDABLE,
         reason: "a non-zero iovec forces process_vm_readv through ptrace_may_access before the remote copy; the non-dumpable probe parent therefore returns EPERM without CAP_SYS_PTRACE, including Yama and AppArmor ptrace policy denials, while a capable path reaches the deliberate EFAULT",
     },
