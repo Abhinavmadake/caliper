@@ -68,6 +68,13 @@ Issue #46 reports residual state and runtime cost from the runs in
 go run ./cmd/caliper-residual-metrics -out ../fixtures/metrics/residual-metrics.json
 ```
 
+Issue #45 reports the remediation closure rate from the per-cell pipeline runs
+in `fixtures/pipeline/` (`docs/issue-45-closure-rate.md`):
+
+```sh
+go run ./cmd/caliper-closure-metrics -out ../fixtures/metrics/closure-metrics.json
+```
+
 `GenerateRemediation` turns posture expectation violations into the smallest
 available seccomp policy. Its primary output is an SPO `SeccompProfile` custom
 resource, which the Security Profiles Operator distributes to nodes; it also

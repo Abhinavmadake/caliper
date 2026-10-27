@@ -1,0 +1,1113 @@
+{
+  "posture_revision": "v1",
+  "tier": "untrusted-multi-tenant",
+  "cells": [
+    {
+      "cell": "cell1",
+      "seccomp_enforced": true,
+      "seccomp": {
+        "findings": 5,
+        "closed": 5,
+        "closure_rate": 1
+      },
+      "other": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "findings": [
+        {
+          "probe_id": "netlink.protocol.crypto",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.netfilter",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.rdma",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.xfrm",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "socket.family.af_alg",
+          "family": "socket",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        }
+      ]
+    },
+    {
+      "cell": "cell2",
+      "seccomp_enforced": true,
+      "seccomp": {
+        "findings": 5,
+        "closed": 5,
+        "closure_rate": 1
+      },
+      "other": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "findings": [
+        {
+          "probe_id": "netlink.protocol.crypto",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.netfilter",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.rdma",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.xfrm",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "socket.family.af_alg",
+          "family": "socket",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        }
+      ]
+    },
+    {
+      "cell": "cell3",
+      "seccomp_enforced": true,
+      "seccomp": {
+        "findings": 4,
+        "closed": 4,
+        "closure_rate": 1
+      },
+      "other": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "findings": [
+        {
+          "probe_id": "netlink.protocol.crypto",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.netfilter",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.xfrm",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "socket.family.af_alg",
+          "family": "socket",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        }
+      ]
+    },
+    {
+      "cell": "cell4",
+      "seccomp_enforced": true,
+      "seccomp": {
+        "findings": 58,
+        "closed": 58,
+        "closure_rate": 1
+      },
+      "other": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "findings": [
+        {
+          "probe_id": "io_uring.opcode.accept",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.bind",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.close",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.connect",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.epoll_ctl",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.fadvise",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.fallocate",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.fgetxattr",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.fixed_fd_install",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.fsetxattr",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.fsync",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.ftruncate",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.futex_wait",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.futex_waitv",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.futex_wake",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.getxattr",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.linkat",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.listen",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.madvise",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.mkdirat",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.msg_ring",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.nop",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.openat",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.openat2",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.poll_add",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.read",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.read_fixed",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.read_multishot",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.readv",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.recv",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.recvmsg",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.renameat",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.send",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.send_zc",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.sendmsg",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.sendmsg_zc",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.setxattr",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.shutdown",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.socket",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.splice",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.statx",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.symlinkat",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.sync_file_range",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.tee",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.timeout",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.unlinkat",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.uring_cmd",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.waitid",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.write",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.write_fixed",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.opcode.writev",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.register.probe",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "io_uring.setup.zero_entries",
+          "family": "io_uring",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.crypto",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.netfilter",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.rdma",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "netlink.protocol.xfrm",
+          "family": "netlink",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        },
+        {
+          "probe_id": "socket.family.af_alg",
+          "family": "socket",
+          "mechanism": "seccomp",
+          "reprobe_verdict": "denied",
+          "closed": true
+        }
+      ]
+    },
+    {
+      "cell": "cell5",
+      "seccomp_enforced": false,
+      "seccomp": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "other": {
+        "findings": 3,
+        "closed": 0,
+        "closure_rate": 0
+      },
+      "findings": [
+        {
+          "probe_id": "clone.flags.newuser",
+          "family": "clone",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "device.open.fuse",
+          "family": "device",
+          "mechanism": "other",
+          "reason": "the device pathname is a pointer argument; seccomp-BPF cannot distinguish it from other opens",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "unshare.flags.newuser",
+          "family": "clone",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        }
+      ]
+    },
+    {
+      "cell": "cell6",
+      "seccomp_enforced": false,
+      "seccomp": {
+        "findings": 0,
+        "closed": 0,
+        "closure_rate": null
+      },
+      "other": {
+        "findings": 59,
+        "closed": 0,
+        "closure_rate": 0
+      },
+      "findings": [
+        {
+          "probe_id": "clone.flags.newuser",
+          "family": "clone",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.accept",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.bind",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.close",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.connect",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.epoll_ctl",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.fadvise",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.fallocate",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.fgetxattr",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.fixed_fd_install",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.fsetxattr",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.fsync",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.ftruncate",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.futex_wait",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.futex_waitv",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.futex_wake",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.getxattr",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.linkat",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.listen",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.madvise",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.mkdirat",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.msg_ring",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.nop",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.openat",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.openat2",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.poll_add",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.read",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.read_fixed",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.read_multishot",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.readv",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.recv",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.recvmsg",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.renameat",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.send",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.send_zc",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.sendmsg",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.sendmsg_zc",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.setxattr",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.shutdown",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.socket",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.splice",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.statx",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.symlinkat",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.sync_file_range",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.tee",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.timeout",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.unlinkat",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.uring_cmd",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.waitid",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.write",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.write_fixed",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.opcode.writev",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.register.probe",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "io_uring.setup.zero_entries",
+          "family": "io_uring",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "mount.reach",
+          "family": "mount",
+          "mechanism": "other",
+          "reason": "the mount filesystem type is a pointer argument; seccomp-BPF cannot inspect it without blocking mount(2) entirely",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "netlink.protocol.netfilter",
+          "family": "netlink",
+          "mechanism": "other",
+          "reason": "seccomp mode is 0 in the sandbox, so the profile is not applied",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "netlink.protocol.xfrm",
+          "family": "netlink",
+          "mechanism": "other",
+          "reason": "seccomp mode is 0 in the sandbox, so the profile is not applied",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "socket.family.af_alg",
+          "family": "socket",
+          "mechanism": "other",
+          "reason": "seccomp mode is 0 in the sandbox, so the profile is not applied",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        },
+        {
+          "probe_id": "unshare.flags.newuser",
+          "family": "clone",
+          "mechanism": "other",
+          "reason": "the selected RuntimeDefault profile has no compatible allow rule to narrow",
+          "reprobe_verdict": "permitted",
+          "closed": false
+        }
+      ]
+    }
+  ],
+  "seccomp": {
+    "findings": 72,
+    "closed": 72,
+    "closure_rate": 1
+  },
+  "other": {
+    "findings": 62,
+    "closed": 0,
+    "closure_rate": 0
+  },
+  "seccomp_criterion_met": true
+}
