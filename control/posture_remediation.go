@@ -199,6 +199,9 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 	}
 
 	seen := map[string]struct{}{}
+	// Probes of one family can share a rule, as every io_uring probe does:
+	// the first narrows the allowlist and the rest are closed by it.
+	applied := map[string]bool{}
 	userNamespace := false
 	for _, finding := range report.ExpectationViolations {
 		if finding.Kind != ExpectationViolation {
@@ -222,6 +225,14 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 			})
 			continue
 		}
+		key, err := json.Marshal(rule)
+		if err != nil {
+			return Remediation{}, err
+		}
+		if applied[string(key)] {
+			remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: finding.ProbeID, Rule: rule})
+			continue
+		}
 		updated, changed := applyClosure(remediation.SPO.Spec.Syscalls, rule)
 		if !changed {
 			remediation.NotClosable = append(remediation.NotClosable, NotClosable{
@@ -230,6 +241,7 @@ func GenerateRemediation(report FindingReport, runtimeDefault RuntimeDefaultProf
 			})
 			continue
 		}
+		applied[string(key)] = true
 		remediation.Closures = append(remediation.Closures, RemediationAction{ProbeID: finding.ProbeID, Rule: rule})
 		remediation.SPO.Spec.Syscalls = updated
 		if finding.ProbeID == "unshare.flags.newuser" || finding.ProbeID == "clone.flags.newuser" {

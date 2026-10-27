@@ -410,6 +410,23 @@ func TestGenerateRemediationDoesNotClaimUnchangedClosure(t *testing.T) {
 	}
 }
 
+func TestGenerateRemediationClosesProbesSharingARule(t *testing.T) {
+	runtime := runtimeDefault()
+	runtime.Syscalls = append(runtime.Syscalls, RuntimeSeccompRule{Names: []string{"io_uring_setup", "io_uring_enter", "io_uring_register"}, Action: "SCMP_ACT_ALLOW"})
+	remediation, err := GenerateRemediation(FindingReport{PostureRevision: "v1", Tier: "untrusted-multi-tenant", ExpectationViolations: []Finding{
+		expectation("io_uring.opcode.nop"), expectation("io_uring.opcode.read"), expectation("io_uring.register.probe"),
+	}}, runtime, remediationTarget())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(remediation.Closures) != 3 || len(remediation.NotClosable) != 0 {
+		t.Fatalf("closures=%#v not_closable=%#v", remediation.Closures, remediation.NotClosable)
+	}
+	if hasAllowedSyscall(remediation.Localhost.Syscalls, "io_uring_setup") {
+		t.Fatal("io_uring_setup is still allowed")
+	}
+}
+
 func TestGenerateRemediationNamesFinalPolicy(t *testing.T) {
 	runtime := runtimeDefault()
 	first, err := GenerateRemediation(FindingReport{PostureRevision: "v1", Tier: "t", ExpectationViolations: []Finding{
