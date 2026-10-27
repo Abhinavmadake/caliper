@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Cell 6: cell 2 plus Kata Containers as the kata RuntimeClass handler.
+# Cell 6: cell 2 plus Kata Containers as the kata RuntimeClass handler, and
+# kata-seccomp, which applies the OCI seccomp profile inside the guest.
 # Needs /dev/kvm: the VM is created with nested virtualisation.
 . "$(dirname "$0")/common.sh"
 . "$(dirname "$0")/ubuntu.sh"
@@ -27,7 +28,13 @@ install_cni
 install_crictl
 fetch "https://github.com/kata-containers/kata-containers/releases/download/$KATA_VERSION/kata-static-$KATA_VERSION-amd64.tar.xz" "$KATA_SHA256" | tar -xJ -C /
 ln -sf /opt/kata/bin/containerd-shim-kata-v2 /usr/local/bin/
+kata_defaults=/opt/kata/share/defaults/kata-containers
+sed 's/^disable_guest_seccomp *= *true/disable_guest_seccomp = false/' \
+    "$kata_defaults/configuration.toml" > "$kata_defaults/configuration-seccomp.toml"
+grep -qx 'disable_guest_seccomp = false' "$kata_defaults/configuration-seccomp.toml"
 add_handler_v3 kata io.containerd.kata.v2
+append_handler_v3 kata-seccomp io.containerd.kata.v2 \
+    "ConfigPath = '$kata_defaults/configuration-seccomp.toml'"
 systemctl enable containerd
 systemctl restart containerd
 check_containerd 2.2.1
@@ -35,4 +42,5 @@ check_runc 1.3.4
 /opt/kata/bin/kata-runtime --version | grep -F "$KATA_VERSION"
 /opt/kata/bin/kata-runtime check --no-network-checks
 check_handler kata
+check_handler kata-seccomp
 record_packages

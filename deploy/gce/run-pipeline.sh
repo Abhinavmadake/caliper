@@ -23,7 +23,9 @@ cells="$here/cells.sh"
 project=${CALIPER_GCP_PROJECT:-caliper-ci}
 zone=${CALIPER_GCP_ZONE:-asia-south1-a}
 cell=${1:-cell2}
-out=${CALIPER_PIPELINE_OUT:-$root/fixtures/pipeline/$cell}
+# CALIPER_HANDLER selects another of the cell's handlers (cells.sh reads it too).
+run=$cell${CALIPER_HANDLER:+-$CALIPER_HANDLER}
+out=${CALIPER_PIPELINE_OUT:-$root/fixtures/pipeline/$run}
 tier=${CALIPER_POSTURE_TIER:-restricted}
 image=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:e2113465c415c343572c7bd4137df041edb87c202d4728aa670efad2a6093f23}
 started=0
@@ -38,6 +40,11 @@ case "$cell" in
     cell6) runtime_class=kata ;;
     *) echo "unknown cell $cell: want cell1 .. cell6" >&2; exit 2 ;;
 esac
+runtime_class=${CALIPER_HANDLER:-$runtime_class}
+if [[ $cell == cell1 && -z ${CALIPER_PROBE_IMAGE:-} ]]; then
+    echo "cell1 needs an arm64 image: set CALIPER_PROBE_IMAGE" >&2
+    exit 2
+fi
 vm=caliper-$cell
 
 if ! command -v go >/dev/null 2>&1; then
@@ -100,12 +107,12 @@ if [[ -z "$packages" ]]; then
     echo "could not read package record from $vm" >&2
     exit 1
 fi
-printf '%s\n' "$packages" | sed 's/[[:space:]]*$//' > "$out/$cell.packages"
-printf 'probe %s\n' "$image" >> "$out/$cell.packages"
-kernel=$(awk '$1 == "kernel" { print $2; exit }' "$out/$cell.packages")
+printf '%s\n' "$packages" | sed 's/[[:space:]]*$//' > "$out/$run.packages"
+printf 'probe %s\n' "$image" >> "$out/$run.packages"
+kernel=$(awk '$1 == "kernel" { print $2; exit }' "$out/$run.packages")
 # The version is the first numeric field: cell3's line ends in a commit hash.
 runtime_version=$(awk '$1 == "containerd" && $2 == "containerd" {
-    for (i = 3; i <= NF; i++) if ($i ~ /^v?[0-9]+\./) { sub(/^v/, "", $i); print $i; exit } }' "$out/$cell.packages")
+    for (i = 3; i <= NF; i++) if ($i ~ /^v?[0-9]+\./) { sub(/^v/, "", $i); print $i; exit } }' "$out/$run.packages")
 if [[ -z "$kernel" || -z "$runtime_version" ]]; then
     echo "$cell package record is missing kernel or containerd version" >&2
     exit 1
@@ -120,17 +127,17 @@ complete_fingerprint() {
 
 pipeline() {
     go run ./cmd/caliper-pipeline \
-        -baseline "$out/$cell.json" \
+        -baseline "$out/$run.json" \
         -runtime-default "$out/containerd-runtime-default.json" \
         -runtime-arch "$runtime_arch" -oci-arch "$oci_arch" \
         -kernel "$kernel" -tier "$tier" -out "$out/pipeline" "$@"
 }
 
-"$cells" measure "$cell" "$image" > "$out/$cell.raw.json"
+"$cells" measure "$cell" "$image" > "$out/$run.raw.json"
 "$cells" runtime-default "$cell" "$out/containerd-runtime-default.json"
 
 cd "$root/control"
-complete_fingerprint < "$out/$cell.raw.json" > "$out/$cell.json"
+complete_fingerprint < "$out/$run.raw.json" > "$out/$run.json"
 pipeline
 
 if (( spo_available )); then
@@ -144,10 +151,10 @@ fi
 
 cd "$root"
 "$cells" measure "$cell" "$image" "$out/pipeline/remediation.localhost.json" \
-    > "$out/$cell-remediated.raw.json"
+    > "$out/$run-remediated.raw.json"
 cd "$root/control"
-complete_fingerprint < "$out/$cell-remediated.raw.json" > "$out/$cell-remediated.json"
-pipeline -verified "$out/$cell-remediated.json"
+complete_fingerprint < "$out/$run-remediated.raw.json" > "$out/$run-remediated.json"
+pipeline -verified "$out/$run-remediated.json"
 
 # These repeat the complete fingerprints already stored beside the raw
 # measurements, and the report is derivable from those inputs and outputs.
@@ -155,4 +162,4 @@ rm -f "$out/pipeline/baseline.fingerprint.json" \
     "$out/pipeline/verified.fingerprint.json" \
     "$out/pipeline/pipeline-report.json"
 
-echo "$cell pipeline completed; artifacts: $out"
+echo "$run pipeline completed; artifacts: $out"

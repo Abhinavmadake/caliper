@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Cell 5: cell 2 plus gVisor as the runsc RuntimeClass handler.
+# Cell 5: cell 2 plus gVisor as the runsc RuntimeClass handler, and
+# runsc-seccomp, which applies the OCI seccomp profile inside the sandbox.
 . "$(dirname "$0")/common.sh"
 . "$(dirname "$0")/ubuntu.sh"
 GVISOR_RELEASE=20261005.0
@@ -30,10 +31,18 @@ echo "$GVISOR_SHA512  $tarball" | sha512sum -c -
 tar -xjf "$tarball" -C /usr/local/bin
 rm -f "$tarball"
 add_handler_v3 runsc io.containerd.runsc.v1
+append_handler_v3 runsc-seccomp io.containerd.runsc.v1 \
+    "TypeUrl = 'io.containerd.runsc.v1.options'" \
+    "ConfigPath = '/etc/containerd/runsc-seccomp.toml'"
+cat > /etc/containerd/runsc-seccomp.toml <<'EOF'
+[runsc_config]
+  oci-seccomp = "true"
+EOF
 systemctl enable containerd
 systemctl restart containerd
 check_containerd 2.2.1
 check_runc 1.3.4
 runsc --version | grep -Fx "runsc version release-$GVISOR_RELEASE"
 check_handler runsc
+check_handler runsc-seccomp
 record_packages
