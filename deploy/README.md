@@ -3,6 +3,10 @@
 Owner: D. Also the integrator, responsible for the components composing
 correctly.
 
+The probe measures and reports what a container can reach; nothing here
+enforces anything. Run it only on clusters and nodes you own or have written
+authorisation to test.
+
 - Kubernetes `Job` (single-node measurement) and `DaemonSet` (every node)
   manifests. Unprivileged, no added capabilities, `RuntimeDefault`.
 - Environment-matrix bring-up for the six required cells, with runtime versions
