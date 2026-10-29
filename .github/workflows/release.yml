@@ -102,5 +102,8 @@ jobs:
 
           CALIPER measures and reports; it does not enforce. Run it only on infrastructure you own or have written authorisation to test.
           EOF
-          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md \
+          # A tag with a suffix (v1.0.0-rc1) is a pre-release, never "latest".
+          prerelease=()
+          [[ "$TAG" == *-* ]] && prerelease=(--prerelease)
+          gh release create "$TAG" --verify-tag --title "$TAG" --notes-file notes.md "${prerelease[@]}" \
             posture-v1.yaml posture-v1-rationale.md "corpus-$revision.json"
