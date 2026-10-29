@@ -139,9 +139,9 @@ privileges and a read-only root filesystem. Cells 5 and 6 pass the RuntimeClass
 handler to the sandbox. It fails if the probe fails or does not finish, and
 prints the cell's packages and what containerd applied to stderr.
 
-The amd64 cells pull the probe image published by the cluster-evaluation
-workflow, pinned by digest in `cells.sh`. That image is amd64 only, so cell 1
-takes an arm64 build:
+The cells pull the v1.0.0 release image (amd64 and arm64), pinned by digest in
+`cells.sh`. `CALIPER_PROBE_IMAGE` or the image argument selects another build,
+for example a local arm64 one on cell 1:
 
 ```bash
 docker build -t caliper-probe:arm64-<commit> engine/   # on an arm64 machine
@@ -205,8 +205,7 @@ another artifact directory. `CALIPER_HANDLER=runsc-seccomp` (cell 5) or
 `kata-seccomp` (cell 6) runs under the handler that applies seccomp inside the
 sandbox, into `fixtures/pipeline/<cell>-<handler>/`. Run it from Linux or
 macOS with gcloud authenticated for `caliper-ci` and Go available in `PATH`.
-Cell 1 takes the arm64 build above through `CALIPER_PROBE_IMAGE`.
 
-The image pinned by `cells.sh` is the published build for current main. The raw
+The image pinned by `cells.sh` is the v1.0.0 release. The raw
 measurements, completed fingerprints, runtime profile, and per-stage outputs
 are retained under `fixtures/pipeline/<cell>/`.

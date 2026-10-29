@@ -38,8 +38,8 @@ set -euo pipefail
 
 PROJECT=${CALIPER_GCP_PROJECT:-caliper-ci}
 ZONE=${CALIPER_GCP_ZONE:-asia-south1-a}
-# amd64 image published for the current main revision, by digest.
-IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:e2113465c415c343572c7bd4137df041edb87c202d4728aa670efad2a6093f23}
+# The v1.0.0 release image (amd64 and arm64), by digest.
+IMAGE=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:61b918d61aae4cec0b9df70526555c65ff42f9a33f6381ebb99eb1f83a174db7}
 here=$(cd "$(dirname "$0")" && pwd)
 
 # Cells 2, 4, 5 and 6 share one image so only the runtime axis moves.

@@ -27,7 +27,7 @@ cell=${1:-cell2}
 run=$cell${CALIPER_HANDLER:+-$CALIPER_HANDLER}
 out=${CALIPER_PIPELINE_OUT:-$root/fixtures/pipeline/$run}
 tier=${CALIPER_POSTURE_TIER:-restricted}
-image=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:e2113465c415c343572c7bd4137df041edb87c202d4728aa670efad2a6093f23}
+image=${CALIPER_PROBE_IMAGE:-ghcr.io/abhinavmadake/caliper@sha256:61b918d61aae4cec0b9df70526555c65ff42f9a33f6381ebb99eb1f83a174db7}
 started=0
 spo_created=0
 
@@ -41,10 +41,6 @@ case "$cell" in
     *) echo "unknown cell $cell: want cell1 .. cell6" >&2; exit 2 ;;
 esac
 runtime_class=${CALIPER_HANDLER:-$runtime_class}
-if [[ $cell == cell1 && -z ${CALIPER_PROBE_IMAGE:-} ]]; then
-    echo "cell1 needs an arm64 image: set CALIPER_PROBE_IMAGE" >&2
-    exit 2
-fi
 vm=caliper-$cell
 
 if ! command -v go >/dev/null 2>&1; then
