@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "caliper-engine"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "libc",
  "nix",
@@ -30,7 +30,7 @@ dependencies = [
 
 [[package]]
 name = "caliper-probe"
-version = "0.2.0"
+version = "1.0.0"
 dependencies = [
  "caliper-corpus",
  "caliper-engine",
