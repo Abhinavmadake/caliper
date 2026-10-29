@@ -6,9 +6,10 @@ covers the 185 committed probes of corpus revision 0.3.3, read from
 `engine/crates/corpus/src/`. Deferred probes have no implementation and are
 never run.
 
-Every probe runs in a forked child (spec/probe.md), so whatever a probe
-obtains ends with the child. Objects that outlive it are measured by the
-residual snapshot (#46).
+Every probe runs in a forked child (spec/probe.md), so what a probe obtains
+ends with the child, with one exception: kernel modules it causes to be
+autoloaded, below. Objects that outlive it are measured by the residual
+snapshot (#46).
 
 ## By family
 
@@ -52,9 +53,29 @@ workload: the probe shows that it is reachable and does not use it.
 privilege. If that is judged to be over the line, the alternative is to drop
 it to the deferred set, which loses the CAP_SYS_RAWIO measurement.
 
+### Module autoload outlives the run
+
+The one effect that does not end with the child is on the host. 32 probes
+(19 socket, 8 netlink, 3 device, 2 mount) can make the kernel autoload the
+module behind a socket family, netlink protocol, device or filesystem, and
+the container cannot unload it. A full RuntimeDefault run on cell 2 or cell 4
+loads 31 modules, among them `af_alg`, `af_key`, `xfrm_user`, `bluetooth`,
+`can`, `rxrpc`, `smc` and `kcm`, and they stay loaded for every tenant on the
+node until someone with host privilege removes them. That widens the node's
+reachable kernel surface for everyone, which is the opposite of what the
+instrument is for.
+
+It is declared, not hidden: each of the 32 probes declares `module_autoload`,
+the engine reports the loaded set as `module_delta.loaded_by_run` (proposal
+§6.2), and the residual criterion counts it separately (#46). The reduced
+corpus omits these probes, and a reduced run on cell 2 loads none. On a
+shared node, run the reduced corpus, or unload the reported modules after a
+full run.
+
 ## Conclusion
 
-No exploit code. No probe uses what a successful call grants, and every grant
-ends with the probe's child. The five cases above are listed so that the
-claim "no operation whose success confers privilege" is read with them in
-view rather than as an absolute.
+No exploit code. No probe uses what a successful call grants. Every grant to
+the probe ends with its child, but module autoload does not: a full run can
+leave modules loaded on the host for every tenant. The five cases and the
+autoload above are listed so that the claim "no operation whose success
+confers privilege" is read with them in view rather than as an absolute.
