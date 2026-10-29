@@ -47,6 +47,9 @@ usage: caliper-probe <mode> [--exit-0-on-defects]
 exit status: 0 measured; 3 measured with defects (a probe other than a
 deferred one unmeasured, or an undeclared object left behind), the document
 still written; 1 could not measure; 2 usage
+
+CALIPER measures and reports; it enforces nothing. Run it only on
+infrastructure you own or have written authorisation to test.
 ";
 
 /// Measured, but the run has defects worth failing on (#99): the document
