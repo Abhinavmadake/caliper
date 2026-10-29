@@ -56,6 +56,9 @@ jobs:
           image="ghcr.io/${REPOSITORY,,}:${TAG}-${ARCH}"
           docker buildx build --pull --platform "linux/$ARCH" --push -t "$image" engine/
           docker run --rm "$image" --noop
+          # The binary's version is the tag's, less any pre-release suffix.
+          version=${TAG#v}
+          [ "$(docker run --rm "$image" --version)" = "caliper-probe ${version%%-*}" ]
 
   publish:
     needs: image
