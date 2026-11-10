@@ -1,0 +1,54 @@
+\chapter{Discussion}
+\label{ch:discussion}
+
+\section{What the Compression Gave Up}
+
+The proposal compressed a two-semester plan into seventeen weeks by reducing scope, and named four reductions in advance so that what was given up would be visible rather than discovered later. Each is stated here as it turned out.
+
+\begin{description}[font=\normalfont\bfseries,leftmargin=1em]
+\item[The deferred corpus set.] Twenty-eight probes in nine families are specified in the committed format and were not implemented: ioctl request codes, bpf, keyctl, prctl, perf\_event\_open, userfaultfd, open\_by\_handle\_at, module loading and seccomp user notification. Every fingerprint lists them as unmeasured. Five posture assertions concern these families and can produce no finding until they are implemented.
+\item[The privileged helper.] Outlined and neither specified nor built. Attribution rests on errno oracles, correlation and cell elimination, none of which needs privilege. The undecidable fraction is reported rather than reduced, and on production cells it is 21.6 to 85.0 per cent.
+\item[The environment matrix.] Six cells, all measured, with a GKE cluster as the CI target and an AF\_ALG comparison point. The optional additions were not attempted: a Podman and crun cell, a Moby cell, EKS and Talos. The runtime axis of objective 8 is therefore moved by version and by RuntimeClass but not across runtime implementations.
+\item[SARIF output.] Deferred. Reports are JSON and text.
+\end{description}
+
+Nothing in the measurement, classification or evaluation path was reduced. Three further departures from the proposal were not planned:
+\begin{itemize}[leftmargin=*]
+\item The cells run on Compute Engine rather than on developer hardware. Compute Engine supplied native amd64 machines and nested virtualisation for the Kata cell, which the team's arm64 laptops could provide only under slow emulation or not at all, and it made every cell reproducible from a script, at the cost of the cloud dependency the proposal had wanted to keep off the critical path.
+\item The ancestor comparison covers one target on one cell rather than the six-cell study the schedule allowed for.
+\item The Security Profiles Operator's acceptance of a generated resource was checked for cell 2 only.
+\end{itemize}
+
+\section{Limitations}
+\label{sec:limits}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{The posture is a judgement.} It is ours, cited and versioned, and findings are reproducible against a stated revision, but an expectation violation is only as strong as the assertion behind it. The FUSE finding on cell 5 shows an assertion whose rationale does not carry over to a sandbox, and the three-cell criterion at \texttt{restricted} depends on that finding.
+\item \textbf{A verdict is the kernel's answer, not proof of effect.} On a reimplemented kernel a successful call may do nothing (\pid{unshare.flags.newtime} under gVisor), and the oracles are written against Linux's code paths.
+\item \textbf{Attribution in production is mostly undecidable} on the runc cells with AppArmor and a recent kernel. The ground-truth figure measures the attributor, not what an operator will see.
+\item \textbf{The classifier has no ground truth.} Its separation of classes was checked by unit tests and by the per-pair counts matching the axis each pair moves, not against environments with known causes.
+\item \textbf{Single measurements.} Each cell was measured once per configuration from a fresh boot. The verdicts are deterministic for a given cell, but the runtime figures are single runs.
+\item \textbf{The residual zero is narrow.} Only mounts and network namespaces are created by any probe; the other four classes are covered by the engine's tests, not by the evaluation.
+\item \textbf{Module autoload changes the host.} A full run loads up to 36 modules that remain loaded for every tenant. The reduced corpus avoids this, at the cost of the AF\_ALG probe.
+\item \textbf{Masked paths are not modelled as a claim.} The kubelet's default masks are part of what every pod is promised, but the evaluator does not treat a reachable masked path as a claim violation, which is how a real Kata defect was recorded only as an undeclared exposure.
+\item \textbf{The corpus is argument-granular only where arguments are registers.} A pathname, a filesystem type or a structure behind a pointer cannot be filtered by seccomp, so the corresponding findings can be measured but not closed by the remediator.
+\end{itemize}
+
+\section{Threats to Validity}
+
+\textbf{Internal validity.} Every verdict depends on the oracle being right about the kernel's code path. Oracles were reviewed against the kernel source and swept for consistency before the freeze, and two oracle defects were nevertheless found afterwards and corrected (the io\_uring register descriptor on 6.13 and later, and the io\_uring setup hook on 6.15 and later). Other version-dependent orderings may exist on kernels not measured. The cell recordings are at corpus 0.3.0 and the release is 0.3.3; the two give identical verdicts and errnos on all six cells, so the results hold for the released corpus.
+
+\textbf{Construct validity.} Reachability of an entry point is a proxy for attack surface, not a measure of exploitability. A permitted AF\_ALG socket is exploitable only where \texttt{algif\_aead} can be loaded and the kernel is unpatched; the instrument reports the first and the module state, not the second. The undecidable fraction is defined over all denials, killed results included, as the proposal specified.
+
+\textbf{External validity.} The cells cover two architectures, two LSMs, two containerd versions and three runtime classes on Ubuntu, Rocky Linux and Container-Optimized OS. They do not cover other runtimes (CRI-O, Moby, crun), other managed platforms, or kernels older than 5.14. The attribution ground truth is on a single cell and contains no SELinux denials.
+
+\textbf{Reliability.} Provisioning pins package versions through an archive snapshot, holds and hashes, and every metric is regenerated from committed fixtures by a test, so the reported numbers can be reproduced exactly from the repository; re-measuring a cell requires a Compute Engine project.
+
+\section{Lessons Learned}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{``The same confinement as a pod'' must be checked against what the kubelet actually does.} The first version of the cell measurement script omitted the kubelet's masked and read-only paths, leaving \file{/proc} unmasked in every recording. A review of the evaluation pull request found it before the results were used.
+\item \textbf{Low-level details decide survivability.} A raw \texttt{clone} under musl let an aborting child kill the parent; a core-dump pipe in the host's crash handler stalled every SIGSYS kill until the engine made itself non-dumpable; \texttt{libc::syscall}'s variadic seventh argument carried garbage in its upper bits on x86\_64 until full-width casts were used. Each was found by a test written for the purpose.
+\item \textbf{Freeze dates are what make parallel work possible.} Freezing the probe specification at the W2 gate and the fingerprint format at the W9 gate let four people build against recorded fingerprints; every later change had to be additive.
+\item \textbf{Reporting what is undecidable is more useful than a confident guess.} The production undecidable fractions are uncomfortable numbers, but they point exactly at the kernel change (the io\_uring LSM hook) and the missing component (the privileged helper) that explain them.
+\end{itemize}

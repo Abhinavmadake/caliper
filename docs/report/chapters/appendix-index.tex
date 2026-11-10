@@ -1,0 +1,238 @@
+\begingroup\scriptsize\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.0}
+\begin{longtable}{@{}P{4.4cm}P{1.35cm}R{0.75cm}R{0.95cm}P{7.65cm}@{}}
+\caption{The complete probe index (\file{corpus/index.json}). G: guaranteed errno; A: absence errno (encoded absence after a slash); $\dagger$: may autoload a module.}\label{tab:index}\\
+\toprule \textbf{Probe} & \textbf{Isolates} & \textbf{G} & \textbf{A} & \textbf{Operation} \\ \midrule\endfirsthead
+\multicolumn{5}{@{}l}{\itshape Table \thetable{} continued}\\ \toprule \textbf{Probe} & \textbf{Isolates} & \textbf{G} & \textbf{A} & \textbf{Operation} \\ \midrule\endhead
+\bottomrule\endfoot
+\multicolumn{5}{@{}l}{\textbf{\texttt{socket}} (24)}\\
+\pid{socket.family.af_inet} & sec./LSM & -- & -- & socket(AF\_\allowbreak{}INET, SOCK\_\allowbreak{}STREAM, 0): the family every workload uses \\
+\pid{socket.family.af_alg}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}ALG, SOCK\_\allowbreak{}SEQPACKET, 0): the crypto user API is reachable \\
+\pid{socket.family.af_packet} & undec. & -- & 97 & socket(AF\_\allowbreak{}PACKET, SOCK\_\allowbreak{}RAW, 0): raw link-layer access, CAP\_\allowbreak{}NET\_\allowbreak{}RAW \\
+\pid{socket.family.out_of_range} & seccomp & 97 & -- & socket(1000, SOCK\_\allowbreak{}STREAM, 0): a family beyond NPROTO, guaranteed EAFNOSUPPORT \\
+\pid{socket.family.af_unix} & sec./LSM & -- & -- & socket(AF\_\allowbreak{}UNIX, SOCK\_\allowbreak{}STREAM, 0): the local family every runtime needs \\
+\pid{socket.family.af_inet6}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}INET6, SOCK\_\allowbreak{}STREAM, 0): IPv6 is reachable \\
+\pid{socket.family.af_key}$^{\dagger}$ & undec. & -- & 97 & socket(AF\_\allowbreak{}KEY, SOCK\_\allowbreak{}RAW, PF\_\allowbreak{}KEY\_\allowbreak{}V2): the IPsec key management interface, CAP\_\allowbreak{}NET\_\allowbreak{}ADMIN \\
+\pid{socket.family.af_bluetooth}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}BLUETOOTH, SOCK\_\allowbreak{}STREAM, BTPROTO\_\allowbreak{}RFCOMM): the Bluetooth stack is reachable. Only from the host network namespace: in any other, bt\_\allowbreak{}sock\_\allowbreak{}create answers EAFNOSUPPORT whatever the policy \\
+\pid{socket.family.af_can}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}CAN, SOCK\_\allowbreak{}RAW, CAN\_\allowbreak{}RAW): the CAN bus stack is reachable \\
+\pid{socket.family.af_tipc}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}TIPC, SOCK\_\allowbreak{}RDM, 0): the TIPC cluster stack is reachable \\
+\pid{socket.family.af_rds}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}RDS, SOCK\_\allowbreak{}SEQPACKET, 0): Reliable Datagram Sockets are reachable \\
+\pid{socket.family.af_xdp} & undec. & -- & 97 & socket(AF\_\allowbreak{}XDP, SOCK\_\allowbreak{}RAW, 0): AF\_\allowbreak{}XDP zero-copy sockets, CAP\_\allowbreak{}NET\_\allowbreak{}RAW \\
+\pid{socket.family.af_rxrpc}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}RXRPC, SOCK\_\allowbreak{}DGRAM, PF\_\allowbreak{}INET): the RxRPC transport is reachable \\
+\pid{socket.family.af_phonet}$^{\dagger}$ & undec. & -- & 97 & socket(AF\_\allowbreak{}PHONET, SOCK\_\allowbreak{}DGRAM, 0): the Phonet stack, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{socket.family.af_ieee802154}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}IEEE802154, SOCK\_\allowbreak{}DGRAM, 0): the 802.15.4 stack is reachable \\
+\pid{socket.family.af_nfc}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}NFC, SOCK\_\allowbreak{}STREAM, NFC\_\allowbreak{}SOCKPROTO\_\allowbreak{}LLCP): the NFC stack is reachable. Only from the host network namespace: in any other, nfc\_\allowbreak{}sock\_\allowbreak{}create answers EAFNOSUPPORT whatever the policy \\
+\pid{socket.family.af_vsock}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}VSOCK, SOCK\_\allowbreak{}STREAM, 0): the host-guest vsock family is reachable \\
+\pid{socket.family.af_kcm}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}KCM, SOCK\_\allowbreak{}DGRAM, KCMPROTO\_\allowbreak{}CONNECTED): kernel connection multiplexor \\
+\pid{socket.family.af_qipcrtr}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}QIPCRTR, SOCK\_\allowbreak{}DGRAM, PF\_\allowbreak{}QIPCRTR): the Qualcomm IPC router is reachable \\
+\pid{socket.family.af_smc}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}SMC, SOCK\_\allowbreak{}STREAM, SMCPROTO\_\allowbreak{}SMC): shared memory communications \\
+\pid{socket.family.af_mctp}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}MCTP, SOCK\_\allowbreak{}DGRAM, 0): the Management Component Transport Protocol \\
+\pid{socket.family.af_ax25}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}AX25, SOCK\_\allowbreak{}DGRAM, 0): the amateur-radio AX.25 stack is reachable \\
+\pid{socket.family.af_appletalk}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}APPLETALK, SOCK\_\allowbreak{}DGRAM, 0): the AppleTalk stack is reachable \\
+\pid{socket.family.af_x25}$^{\dagger}$ & sec./LSM & -- & 97 & socket(AF\_\allowbreak{}X25, SOCK\_\allowbreak{}SEQPACKET, 0): the X.25 stack is reachable \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{netlink}} (18)}\\
+\pid{netlink.protocol.route} & sec./LSM & -- & -- & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}ROUTE): rtnetlink is reachable \\
+\pid{netlink.protocol.usersock} & sec./LSM & -- & -- & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}USERSOCK): the user-space-to-user-space protocol \\
+\pid{netlink.protocol.sock_diag} & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}SOCK\_\allowbreak{}DIAG): socket enumeration (ss, inet\_\allowbreak{}diag) \\
+\pid{netlink.protocol.nflog}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}NFLOG): the legacy netfilter log protocol \\
+\pid{netlink.protocol.xfrm}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}XFRM): IPsec transform configuration \\
+\pid{netlink.protocol.selinux} & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}SELINUX): SELinux event notifications \\
+\pid{netlink.protocol.iscsi}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}ISCSI): the open-iSCSI transport \\
+\pid{netlink.protocol.audit} & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}AUDIT): the audit subsystem \\
+\pid{netlink.protocol.fib_lookup} & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}FIB\_\allowbreak{}LOOKUP): route lookups from user space \\
+\pid{netlink.protocol.connector}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}CONNECTOR): the kernel connector (proc events) \\
+\pid{netlink.protocol.netfilter}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}NETFILTER): nfnetlink, the nf\_\allowbreak{}tables entry point \\
+\pid{netlink.protocol.kobject_uevent} & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}KOBJECT\_\allowbreak{}UEVENT): device hotplug events \\
+\pid{netlink.protocol.generic} & sec./LSM & -- & -- & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}GENERIC): generic netlink, every modern family's bus \\
+\pid{netlink.protocol.scsitransport} & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}SCSITRANSPORT): the SCSI transport netlink \\
+\pid{netlink.protocol.rdma}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}RDMA): the RDMA subsystem's netlink \\
+\pid{netlink.protocol.crypto}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}CRYPTO): the crypto user configuration API \\
+\pid{netlink.protocol.smc}$^{\dagger}$ & sec./LSM & -- & 93 & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, NETLINK\_\allowbreak{}SMC): the SMC protocol's netlink \\
+\pid{netlink.protocol.out_of_range} & sec./LSM & 93 & -- & socket(AF\_\allowbreak{}NETLINK, SOCK\_\allowbreak{}RAW, 32): a protocol at MAX\_\allowbreak{}LINKS, guaranteed EPROTONOSUPPORT \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{io\_uring}} (53)}\\
+\pid{io_uring.register.probe} & seccomp & 9 & 38 & io\_\allowbreak{}uring\_\allowbreak{}register(INT\_\allowbreak{}MAX, IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE, NULL, 0): guaranteed EBADF \\
+\pid{io_uring.setup.zero_entries} & seccomp & 22 & 38 & io\_\allowbreak{}uring\_\allowbreak{}setup(0, \&params): guaranteed EINVAL, no ring is created \\
+\pid{io_uring.opcode.nop} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}NOP (0, since 5.1): the control: a ring that can be probed at all supports it \\
+\pid{io_uring.opcode.readv} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}READV (1, since 5.1): vectored reads without read(2) \\
+\pid{io_uring.opcode.writev} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}WRITEV (2, since 5.1): vectored writes without write(2) \\
+\pid{io_uring.opcode.fsync} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FSYNC (3, since 5.1): fsync without fsync(2) \\
+\pid{io_uring.opcode.read_fixed} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}READ\_\allowbreak{}FIXED (4, since 5.1): reads into registered buffers \\
+\pid{io_uring.opcode.write_fixed} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}WRITE\_\allowbreak{}FIXED (5, since 5.1): writes from registered buffers \\
+\pid{io_uring.opcode.poll_add} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}POLL\_\allowbreak{}ADD (6, since 5.1): poll without poll(2) \\
+\pid{io_uring.opcode.sync_file_range} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SYNC\_\allowbreak{}FILE\_\allowbreak{}RANGE (8, since 5.2): sync\_\allowbreak{}file\_\allowbreak{}range without the syscall \\
+\pid{io_uring.opcode.sendmsg} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SENDMSG (9, since 5.3): sendmsg without sendmsg(2) \\
+\pid{io_uring.opcode.recvmsg} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}RECVMSG (10, since 5.3): recvmsg without recvmsg(2) \\
+\pid{io_uring.opcode.timeout} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}TIMEOUT (11, since 5.4): timers in the ring \\
+\pid{io_uring.opcode.accept} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}ACCEPT (13, since 5.5): accept without accept4(2) \\
+\pid{io_uring.opcode.connect} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}CONNECT (16, since 5.5): connect without connect(2) \\
+\pid{io_uring.opcode.fallocate} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FALLOCATE (17, since 5.6): fallocate without the syscall \\
+\pid{io_uring.opcode.openat} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}OPENAT (18, since 5.6): opening files without openat(2) \\
+\pid{io_uring.opcode.close} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}CLOSE (19, since 5.6): close without close(2) \\
+\pid{io_uring.opcode.statx} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}STATX (21, since 5.6): statx without the syscall \\
+\pid{io_uring.opcode.read} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}READ (22, since 5.6): read without read(2) \\
+\pid{io_uring.opcode.write} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}WRITE (23, since 5.6): write without write(2) \\
+\pid{io_uring.opcode.fadvise} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FADVISE (24, since 5.6): fadvise without the syscall \\
+\pid{io_uring.opcode.madvise} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}MADVISE (25, since 5.6): madvise without madvise(2) \\
+\pid{io_uring.opcode.send} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SEND (26, since 5.6): send without send(2) \\
+\pid{io_uring.opcode.recv} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}RECV (27, since 5.6): recv without recv(2) \\
+\pid{io_uring.opcode.openat2} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}OPENAT2 (28, since 5.6): openat2 without the syscall \\
+\pid{io_uring.opcode.epoll_ctl} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}EPOLL\_\allowbreak{}CTL (29, since 5.6): epoll\_\allowbreak{}ctl without the syscall \\
+\pid{io_uring.opcode.splice} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SPLICE (30, since 5.7): splice without splice(2) \\
+\pid{io_uring.opcode.tee} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}TEE (33, since 5.8): tee without tee(2) \\
+\pid{io_uring.opcode.shutdown} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SHUTDOWN (34, since 5.11): shutdown without shutdown(2) \\
+\pid{io_uring.opcode.renameat} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}RENAMEAT (35, since 5.11): renames without renameat2(2) \\
+\pid{io_uring.opcode.unlinkat} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}UNLINKAT (36, since 5.11): unlinks without unlinkat(2) \\
+\pid{io_uring.opcode.mkdirat} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}MKDIRAT (37, since 5.15): mkdir without mkdirat(2) \\
+\pid{io_uring.opcode.symlinkat} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SYMLINKAT (38, since 5.15): symlinks without symlinkat(2) \\
+\pid{io_uring.opcode.linkat} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}LINKAT (39, since 5.15): hard links without linkat(2) \\
+\pid{io_uring.opcode.msg_ring} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}MSG\_\allowbreak{}RING (40, since 5.18): messages and descriptors passed between rings \\
+\pid{io_uring.opcode.fsetxattr} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FSETXATTR (41, since 5.19): fsetxattr without the syscall \\
+\pid{io_uring.opcode.setxattr} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SETXATTR (42, since 5.19): setxattr without the syscall \\
+\pid{io_uring.opcode.fgetxattr} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FGETXATTR (43, since 5.19): fgetxattr without the syscall \\
+\pid{io_uring.opcode.getxattr} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}GETXATTR (44, since 5.19): getxattr without the syscall \\
+\pid{io_uring.opcode.socket} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SOCKET (45, since 5.19): socket creation without socket(2), any family \\
+\pid{io_uring.opcode.uring_cmd} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}URING\_\allowbreak{}CMD (46, since 5.19): driver passthrough commands (NVMe, ublk) without ioctl(2) \\
+\pid{io_uring.opcode.send_zc} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SEND\_\allowbreak{}ZC (47, since 6.0): zero-copy send \\
+\pid{io_uring.opcode.sendmsg_zc} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}SENDMSG\_\allowbreak{}ZC (48, since 6.1): zero-copy sendmsg \\
+\pid{io_uring.opcode.read_multishot} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}READ\_\allowbreak{}MULTISHOT (49, since 6.7): multishot reads \\
+\pid{io_uring.opcode.waitid} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}WAITID (50, since 6.7): waitid without the syscall \\
+\pid{io_uring.opcode.futex_wait} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FUTEX\_\allowbreak{}WAIT (51, since 6.7): futex wait without futex(2) \\
+\pid{io_uring.opcode.futex_wake} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FUTEX\_\allowbreak{}WAKE (52, since 6.7): futex wake without futex(2) \\
+\pid{io_uring.opcode.futex_waitv} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FUTEX\_\allowbreak{}WAITV (53, since 6.7): futex\_\allowbreak{}waitv without the syscall \\
+\pid{io_uring.opcode.fixed_fd_install} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FIXED\_\allowbreak{}FD\_\allowbreak{}INSTALL (54, since 6.8): a ring-registered descriptor installed into the process's table \\
+\pid{io_uring.opcode.ftruncate} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}FTRUNCATE (55, since 6.9): ftruncate without the syscall \\
+\pid{io_uring.opcode.bind} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}BIND (56, since 6.11): bind without bind(2) \\
+\pid{io_uring.opcode.listen} & seccomp & -- & 38/61 & IORING\_\allowbreak{}REGISTER\_\allowbreak{}PROBE reports IORING\_\allowbreak{}OP\_\allowbreak{}LISTEN (57, since 6.11): listen without listen(2) \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{mount}} (38)}\\
+\pid{mount.reach} & seccomp & 2 & -- & mount(NULL, "/caliper-no-such-dir", "proc", 0, NULL): guaranteed ENOENT \\
+\pid{mount.type.proc} & undec. & -- & 19 & /proc/filesystems lists proc: procfs, mountable anywhere the capability allows \\
+\pid{mount.type.sysfs} & undec. & -- & 19 & /proc/filesystems lists sysfs: sysfs \\
+\pid{mount.type.tmpfs} & undec. & -- & 19 & /proc/filesystems lists tmpfs: tmpfs \\
+\pid{mount.type.devtmpfs} & undec. & -- & 19 & /proc/filesystems lists devtmpfs: the kernel's own /dev \\
+\pid{mount.type.devpts} & undec. & -- & 19 & /proc/filesystems lists devpts: pseudoterminals \\
+\pid{mount.type.overlay} & undec. & -- & 19 & /proc/filesystems lists overlay: overlayfs, every container's root \\
+\pid{mount.type.fuse} & undec. & -- & 19 & /proc/filesystems lists fuse: user-space filesystems \\
+\pid{mount.type.fusectl} & undec. & -- & 19 & /proc/filesystems lists fusectl: the FUSE control filesystem \\
+\pid{mount.type.cgroup2} & undec. & -- & 19 & /proc/filesystems lists cgroup2: the unified cgroup hierarchy \\
+\pid{mount.type.cgroup} & undec. & -- & 19 & /proc/filesystems lists cgroup: the v1 cgroup hierarchy \\
+\pid{mount.type.bpf} & undec. & -- & 19 & /proc/filesystems lists bpf: pinned BPF objects \\
+\pid{mount.type.debugfs} & undec. & -- & 19 & /proc/filesystems lists debugfs: kernel debugging interfaces \\
+\pid{mount.type.tracefs} & undec. & -- & 19 & /proc/filesystems lists tracefs: ftrace \\
+\pid{mount.type.configfs} & undec. & -- & 19 & /proc/filesystems lists configfs: kernel object configuration \\
+\pid{mount.type.securityfs} & undec. & -- & 19 & /proc/filesystems lists securityfs: LSM interfaces \\
+\pid{mount.type.efivarfs} & undec. & -- & 19 & /proc/filesystems lists efivarfs: UEFI variables \\
+\pid{mount.type.pstore} & undec. & -- & 19 & /proc/filesystems lists pstore: persistent storage for crash logs \\
+\pid{mount.type.binfmt_misc} & undec. & -- & 19 & /proc/filesystems lists binfmt\_\allowbreak{}misc: interpreter registration \\
+\pid{mount.type.hugetlbfs} & undec. & -- & 19 & /proc/filesystems lists hugetlbfs: huge pages \\
+\pid{mount.type.mqueue} & undec. & -- & 19 & /proc/filesystems lists mqueue: POSIX message queues \\
+\pid{mount.type.autofs} & undec. & -- & 19 & /proc/filesystems lists autofs: automounter \\
+\pid{mount.type.ecryptfs} & undec. & -- & 19 & /proc/filesystems lists ecryptfs: stacked encryption \\
+\pid{mount.type.squashfs} & undec. & -- & 19 & /proc/filesystems lists squashfs: compressed read-only images \\
+\pid{mount.type.iso9660} & undec. & -- & 19 & /proc/filesystems lists iso9660: optical media images \\
+\pid{mount.type.vfat} & undec. & -- & 19 & /proc/filesystems lists vfat: FAT \\
+\pid{mount.type.ext4} & undec. & -- & 19 & /proc/filesystems lists ext4: ext4 \\
+\pid{mount.type.btrfs} & undec. & -- & 19 & /proc/filesystems lists btrfs: btrfs \\
+\pid{mount.type.xfs} & undec. & -- & 19 & /proc/filesystems lists xfs: xfs \\
+\pid{mount.type.nfs} & undec. & -- & 19 & /proc/filesystems lists nfs: NFS v3 \\
+\pid{mount.type.nfs4} & undec. & -- & 19 & /proc/filesystems lists nfs4: NFS v4 \\
+\pid{mount.type.cifs} & undec. & -- & 19 & /proc/filesystems lists cifs: SMB \\
+\pid{mount.type.9p} & undec. & -- & 19 & /proc/filesystems lists 9p: Plan 9 transport (virtio-9p) \\
+\pid{mount.type.virtiofs} & undec. & -- & 19 & /proc/filesystems lists virtiofs: virtio-fs \\
+\pid{mount.type.ntfs3} & undec. & -- & 19 & /proc/filesystems lists ntfs3: NTFS, the in-kernel driver \\
+\pid{mount.fs.proc} & undec. & -- & -- & mount(none, /tmp/caliper-\textless{}run\textgreater{}-mount, proc): a second procfs, unmounted by the child \\
+\pid{mount.fs.overlay}$^{\dagger}$ & undec. & -- & -- & mount(none, /tmp/caliper-\textless{}run\textgreater{}-mount, overlay, lowerdir=a:b): a read-only overlay, unmounted by the child \\
+\pid{mount.fs.fuse}$^{\dagger}$ & undec. & 22 & -- & mount(none, /tmp/caliper-\textless{}run\textgreater{}-mount, fuse): fuse without a descriptor, guaranteed EINVAL past the capability \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{clone}} (19)}\\
+\pid{unshare.flags.invalid} & seccomp & 22 & -- & unshare(0x1): an invalid flag set, guaranteed EINVAL \\
+\pid{unshare.flags.newuser} & sec./LSM & -- & -- & unshare(CLONE\_\allowbreak{}NEWUSER): user namespace creation without host privilege \\
+\pid{unshare.flags.newns} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWNS): mount namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newnet} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWNET): network namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newpid} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWPID): PID namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newipc} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWIPC): IPC namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newuts} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWUTS): UTS namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newcgroup} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWCGROUP): cgroup namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newtime} & undec. & -- & -- & unshare(CLONE\_\allowbreak{}NEWTIME): time namespace creation, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{unshare.flags.newuser_newnet} & sec./LSM & -- & -- & unshare(CLONE\_\allowbreak{}NEWUSER \textbar{} CLONE\_\allowbreak{}NEWNET): user+net namespace creation escalation path \\
+\pid{clone.flags.newuser} & sec./LSM & -- & -- & clone(CLONE\_\allowbreak{}NEWUSER \textbar{} SIGCHLD): process creation in a new user namespace \\
+\pid{clone.flags.newns} & undec. & -- & -- & clone(CLONE\_\allowbreak{}NEWNS \textbar{} SIGCHLD): process creation in a new mount namespace, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{clone.flags.newnet} & undec. & -- & -- & clone(CLONE\_\allowbreak{}NEWNET \textbar{} SIGCHLD): process creation in a new net namespace, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{clone.flags.newpid} & undec. & -- & -- & clone(CLONE\_\allowbreak{}NEWPID \textbar{} SIGCHLD): process creation in a new PID namespace, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{clone.flags.newipc} & undec. & -- & -- & clone(CLONE\_\allowbreak{}NEWIPC \textbar{} SIGCHLD): process creation in a new IPC namespace, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{clone.flags.newuts} & undec. & -- & -- & clone(CLONE\_\allowbreak{}NEWUTS \textbar{} SIGCHLD): process creation in a new UTS namespace, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{clone.flags.newcgroup} & undec. & -- & -- & clone(CLONE\_\allowbreak{}NEWCGROUP \textbar{} SIGCHLD): process creation in a new cgroup namespace, CAP\_\allowbreak{}SYS\_\allowbreak{}ADMIN \\
+\pid{clone.flags.newuser_newnet} & sec./LSM & -- & -- & clone(CLONE\_\allowbreak{}NEWUSER \textbar{} CLONE\_\allowbreak{}NEWNET \textbar{} SIGCHLD): user+net namespace process creation escalation path \\
+\pid{clone3.args.short} & seccomp & 22 & 38 & clone3(NULL, 0): a size below CLONE\_\allowbreak{}ARGS\_\allowbreak{}SIZE\_\allowbreak{}VER0, guaranteed EINVAL \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{path}} (17)}\\
+\pid{path.masked.proc_kcore} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_keys} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_latency_stats} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_timer_list} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_timer_stats} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_sched_debug} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_acpi} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_asound} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.proc_scsi} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.sys_firmware} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.masked.sys_powercap} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.readonly.proc_bus} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.readonly.proc_fs} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.readonly.proc_irq} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.readonly.proc_sys} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.readonly.proc_sysrq_trigger} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\pid{path.control.proc_self_status} & sec./LSM & -- & 2 & openat(O\_\allowbreak{}PATH) + fstatfs: mask (ENODATA), read-only mount (EROFS), or reachable path \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{device}} (8)}\\
+\pid{device.open.fuse}$^{\dagger}$ & undec. & -- & -- & /dev/fuse (10:229, typically 0666): read-only nonblocking open \\
+\pid{device.open.net_tun}$^{\dagger}$ & undec. & -- & -- & /dev/net/tun (10:200, typically 0666): read-only nonblocking open \\
+\pid{device.open.kvm}$^{\dagger}$ & undec. & -- & -- & /dev/kvm (10:232, typically 0660 root:kvm): DAC-gated read-only nonblocking open \\
+\pid{device.open.kmsg} & undec. & -- & -- & /dev/kmsg (1:11, typically 0644): read-only nonblocking open \\
+\pid{device.open.mem} & undec. & -- & -- & /dev/mem (1:1, typically 0640 root:kmem): DAC-gated read-only nonblocking open \\
+\pid{device.open.port} & undec. & -- & -- & /dev/port (1:4, typically 0640 root:kmem): DAC-gated read-only nonblocking open \\
+\pid{device.open.null} & undec. & -- & -- & /dev/null (1:3, typically 0666): control read-only nonblocking open \\
+\pid{device.open.sda} & undec. & -- & -- & /dev/sda (8:0, typically 0660 root:disk): DAC-gated read-only nonblocking open \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{capability}} (8)}\\
+\pid{capability.sys_time} & undec. & -- & -- & settimeofday(NULL, NULL): capability-only time check \\
+\pid{capability.sys_boot} & undec. & 22 & -- & reboot(0, 0, LINUX\_\allowbreak{}REBOOT\_\allowbreak{}CMD\_\allowbreak{}CAD\_\allowbreak{}OFF, NULL): capability check \\
+\pid{capability.sys_module} & undec. & 9 & -- & finit\_\allowbreak{}module(-1, "", 0): module capability check \\
+\pid{capability.mknod} & undec. & -- & -- & mknodat(AT\_\allowbreak{}FDCWD, /tmp/caliper-mknod, S\_\allowbreak{}IFCHR\textbar{}0600, makedev(1,3)) \\
+\pid{capability.sys_ptrace} & undec. & 14 & -- & process\_\allowbreak{}vm\_\allowbreak{}readv(getppid(), valid local iovec, invalid remote iovec): access check \\
+\pid{capability.net_bind_service} & undec. & -- & -- & socket(AF\_\allowbreak{}INET) + bind(0.0.0.0:1): privileged-port check \\
+\pid{capability.sys_nice} & undec. & -- & -- & setpriority(PRIO\_\allowbreak{}PROCESS, 0, -1): priority capability check \\
+\pid{capability.sys_rawio} & undec. & -- & -- & iopl(3): x86 I/O privilege capability check (x86\_64 only) \\
+\midrule\multicolumn{5}{@{}l}{\textbf{Deferred set: specified, never run}}\\
+\multicolumn{5}{@{}l}{\textbf{\texttt{ioctl}} (3)}\\
+\pid{ioctl.request.fioclex} & seccomp & 9 & -- & ioctl(-1, FIOCLEX, 0): the request every workload issues \\
+\pid{ioctl.request.tiocsti} & seccomp & 9 & -- & ioctl(-1, TIOCSTI, NULL): terminal input injection \\
+\pid{ioctl.request.tioclinux} & seccomp & 9 & -- & ioctl(-1, TIOCLINUX, NULL): virtual console control \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{bpf}} (5)}\\
+\pid{bpf.cmd.map_create} & undec. & 7 & 38 & bpf(BPF\_\allowbreak{}MAP\_\allowbreak{}CREATE, attr, sizeof(union bpf\_\allowbreak{}attr) + 8) with a non-zero byte past the union \\
+\pid{bpf.cmd.prog_load} & undec. & 7 & 38 & bpf(BPF\_\allowbreak{}PROG\_\allowbreak{}LOAD, attr, sizeof(union bpf\_\allowbreak{}attr) + 8) with a non-zero byte past the union \\
+\pid{bpf.cmd.btf_load} & seccomp & 7 & 38 & bpf(BPF\_\allowbreak{}BTF\_\allowbreak{}LOAD, attr, sizeof(union bpf\_\allowbreak{}attr) + 8) with a non-zero byte past the union \\
+\pid{bpf.prog_type.socket_filter} & undec. & 14 & 38 & bpf(BPF\_\allowbreak{}PROG\_\allowbreak{}LOAD, \{prog\_\allowbreak{}type: SOCKET\_\allowbreak{}FILTER, insn\_\allowbreak{}cnt: 1, insns: NULL\}, sizeof(union bpf\_\allowbreak{}attr)): the type unprivileged loaders may use \\
+\pid{bpf.prog_type.kprobe} & undec. & 14 & 38 & bpf(BPF\_\allowbreak{}PROG\_\allowbreak{}LOAD, \{prog\_\allowbreak{}type: KPROBE, insn\_\allowbreak{}cnt: 1, insns: NULL\}, sizeof(union bpf\_\allowbreak{}attr)): a tracing type \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{keyctl}} (4)}\\
+\pid{keyctl.op.read} & seccomp & 126 & 38 & keyctl(KEYCTL\_\allowbreak{}READ, 0x7fffffff, NULL, 0) \\
+\pid{keyctl.op.out_of_range} & seccomp & 95 & 38 & keyctl(0x7fffffff, 0, 0, 0, 0): an operation no kernel defines \\
+\pid{keyctl.add_key} & seccomp & 126 & 38 & add\_\allowbreak{}key("user", "caliper", NULL, 0, 0x7fffffff) \\
+\pid{keyctl.request_key} & seccomp & 126 & 38 & request\_\allowbreak{}key("user", "caliper", NULL, 0x7fffffff) \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{prctl}} (3)}\\
+\pid{prctl.option.out_of_range} & sec./LSM & 22 & -- & prctl(0x7fffffff, 0, 0, 0, 0): an option no kernel defines \\
+\pid{prctl.option.set_mm} & sec./LSM & 22 & -- & prctl(PR\_\allowbreak{}SET\_\allowbreak{}MM, PR\_\allowbreak{}SET\_\allowbreak{}MM\_\allowbreak{}START\_\allowbreak{}CODE, 0, 0, 1): a non-zero arg5 \\
+\pid{prctl.option.set_dumpable} & sec./LSM & 22 & -- & prctl(PR\_\allowbreak{}SET\_\allowbreak{}DUMPABLE, 2, 0, 0, 0): SUID\_\allowbreak{}DUMP\_\allowbreak{}ROOT, which prctl refuses \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{perf\_event\_open}} (3)}\\
+\pid{perf_event_open.flags.invalid} & seccomp & 22 & 38 & perf\_\allowbreak{}event\_\allowbreak{}open(\&attr, 0, -1, -1, \textasciitilde{}0UL) \\
+\pid{perf_event_open.attr.bad_size} & seccomp & 7 & 38 & perf\_\allowbreak{}event\_\allowbreak{}open(\{size: 1\}, 0, -1, -1, 0) \\
+\pid{perf_event_open.cpu_wide} & sec./LSM & -- & 38 & perf\_\allowbreak{}event\_\allowbreak{}open(\{type: SOFTWARE, config: CPU\_\allowbreak{}CLOCK\}, -1, 0, -1, PERF\_\allowbreak{}FLAG\_\allowbreak{}FD\_\allowbreak{}CLOEXEC): every task on CPU 0 \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{userfaultfd}} (3)}\\
+\pid{userfaultfd.flags.invalid} & seccomp & 22 & 38 & userfaultfd(UFFD\_\allowbreak{}USER\_\allowbreak{}MODE\_\allowbreak{}ONLY \textbar{} 2) \\
+\pid{userfaultfd.user_mode_only} & sec./LSM & -- & 38 & userfaultfd(UFFD\_\allowbreak{}USER\_\allowbreak{}MODE\_\allowbreak{}ONLY \textbar{} O\_\allowbreak{}CLOEXEC) \\
+\pid{userfaultfd.kernel_faults} & undec. & -- & 38 & userfaultfd(O\_\allowbreak{}CLOEXEC): kernel-mode faults \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{open\_by\_handle\_at}} (2)}\\
+\pid{open_by_handle_at.open} & undec. & 14 & 38 & open\_\allowbreak{}by\_\allowbreak{}handle\_\allowbreak{}at(AT\_\allowbreak{}FDCWD, NULL, O\_\allowbreak{}RDONLY) \\
+\pid{open_by_handle_at.name_to_handle_at} & seccomp & 22 & 38 & name\_\allowbreak{}to\_\allowbreak{}handle\_\allowbreak{}at(AT\_\allowbreak{}FDCWD, "/", NULL, NULL, \textasciitilde{}0) \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{module}} (2)}\\
+\pid{module.init_module} & undec. & 8 & 38 & init\_\allowbreak{}module(NULL, 0, "") \\
+\pid{module.delete_module} & undec. & 2 & 38 & delete\_\allowbreak{}module("caliper\_\allowbreak{}absent", O\_\allowbreak{}NONBLOCK) \\
+\multicolumn{5}{@{}l}{\textbf{\texttt{seccomp\_notify}} (3)}\\
+\pid{seccomp_notify.new_listener} & seccomp & 14 & 38 & seccomp(SECCOMP\_\allowbreak{}SET\_\allowbreak{}MODE\_\allowbreak{}FILTER, SECCOMP\_\allowbreak{}FILTER\_\allowbreak{}FLAG\_\allowbreak{}NEW\_\allowbreak{}LISTENER, NULL) \\
+\pid{seccomp_notify.get_notif_sizes} & seccomp & 14 & 38 & seccomp(SECCOMP\_\allowbreak{}GET\_\allowbreak{}NOTIF\_\allowbreak{}SIZES, 0, NULL) \\
+\pid{seccomp_notify.ioctl_recv} & seccomp & 9 & 38 & ioctl(-1, SECCOMP\_\allowbreak{}IOCTL\_\allowbreak{}NOTIF\_\allowbreak{}RECV, NULL) \\
+\end{longtable}\endgroup

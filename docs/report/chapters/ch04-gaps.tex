@@ -1,0 +1,56 @@
+\chapter{Literature Gaps}
+\label{ch:gaps}
+
+The survey in Chapter~\ref{ch:literature} leaves the following gaps. Each is stated as an observation about the existing work and the need it leaves, followed by the part of CALIPER that addresses it.
+
+\begin{itemize}[leftmargin=*,itemsep=5pt]
+\item \textbf{No measurement of enforced confinement.}\\
+\textit{Observation:} Scanners read declarations, monitors observe behaviour, and generators derive what an application needs. Surveys describe the mechanisms~\cite{pahl2019,casalicchio2020,watada2019,sultan2019,jarkas2025,devipriya2023}, and the research literature evaluates confinement with exploits against chosen configurations~\cite{lin2018,houdini}.\\
+\textit{Need:} A measurement, safe to run on a production node, of what the kernel actually permits a given container.\\
+\textit{Addressed by:} the probe engine and corpus (Chapter~\ref{ch:engine}).
+
+\item \textbf{System-call granularity hides the cases that matter.}\\
+\textit{Observation:} Policy generators~\cite{confine,sysfilter,temporal,c2c,chestnut,wan2019emse,speaker}, the ancestor tools and most published evaluations work at the granularity of system call names or numbers. The AF\_ALG case, raw netlink protocols, namespace flags and io\_uring opcodes are all distinctions within a single system call.\\
+\textit{Need:} Probes and remediation at argument granularity.\\
+\textit{Addressed by:} the argument-level corpus and argument-comparison seccomp rules (Sections~\ref{sec:corpus} and~\ref{sec:remediator}).
+
+\item \textbf{Results are not keyed to the environment.}\\
+\textit{Observation:} Existing evaluations report per configuration or per platform~\cite{lin2018,houdini,combe2016,martin2018}. Architecture, kernel build and loaded modules, runtime version, LSM and RuntimeClass all change what is reachable, and none of them appears in a manifest.\\
+\textit{Need:} A result format whose identity is the environment, with each field's source recorded.\\
+\textit{Addressed by:} the environment cell and fingerprint format (Section~\ref{sec:fingerprint}).
+
+\item \textbf{Differences between environments are not explained.}\\
+\textit{Observation:} A naive comparison of an arm64 and an amd64 node, or of a runc and a gVisor node, reports every difference as a weakness; studies of sandboxed runtimes compare cost and host-kernel use rather than the interface they expose~\cite{young2019gvisor,anjali2020blending}. No published tool separates policy differences from architecture, kernel-version or sandbox differences.\\
+\textit{Need:} A classifier that assigns each divergence exactly one explanation.\\
+\textit{Addressed by:} the four-class divergence classifier (Section~\ref{sec:classifier}).
+
+\item \textbf{Denials are not attributed to a mechanism.}\\
+\textit{Observation:} Inside a container an \errno{EPERM} could have come from seccomp, a capability check, an LSM, a user namespace limit or a masked mount, and the kernel does not say which. Reading the seccomp filter needs privilege an unprivileged container lacks, and the benchmark closest to this work reports whether a test escaped, not which mechanism refused an individual call~\cite{houdini}. Without attribution there is no remediation, because the fix differs per mechanism.\\
+\textit{Need:} Unprivileged attribution with an honest confidence, and the undecidable remainder reported as a measured quantity.\\
+\textit{Addressed by:} errno oracles, correlation and cell elimination (Section~\ref{sec:attribution}).
+
+\item \textbf{No model of what ought to be unreachable.}\\
+\textit{Observation:} Manifest analysis checks declarations~\cite{rahman2023}, Pod Security Standards~\cite{pss} stop at Restricted and say nothing about entry families such as AF\_ALG or io\_uring, and RuntimeDefault promises only whatever the runtime ships. Comparing a measurement with the manifest alone would have missed the motivating case, because the manifest and the measurement agreed.\\
+\textit{Need:} A versioned, cited reference posture, stronger than the tiers it is named after, against which expectation violations are reported separately from claim violations.\\
+\textit{Addressed by:} posture v1 and the evaluator (Sections~\ref{sec:posture} and~\ref{sec:evaluator}).
+
+\item \textbf{Generated policy is not verified.}\\
+\textit{Observation:} Profile generators assume that the profile they emit is the one enforced~\cite{confine2023,chestnut,c2c}. On sandboxed runtimes it may not be applied at all, and on managed clusters a Localhost profile may not be deliverable.\\
+\textit{Need:} Remediation minimal with respect to the runtime's actual default and the posture, emitted in a distributable form, and counted as closed only after a fresh measurement.\\
+\textit{Addressed by:} the remediator and closure verification (Section~\ref{sec:remediator}).
+
+\item \textbf{The instrument itself is a risk.}\\
+\textit{Observation:} Exploit-based evaluation~\cite{lin2018} cannot be run on a production node, and probing a kernel interface can change the host (module autoload) or leave objects behind.\\
+\textit{Need:} No exploit code, enumeration interfaces in preference to execution, fork isolation, measured residual state, declared side effects, a reduced corpus for shared nodes and a signed image that monitors can allowlist.\\
+\textit{Addressed by:} the safety design (Sections~\ref{sec:engine},~\ref{sec:residual} and~\ref{sec:safety}).
+
+\item \textbf{Sandboxed runtimes are trusted rather than measured.}\\
+\textit{Observation:} gVisor and Kata are adopted for stronger isolation~\cite{young2019gvisor,anjali2020blending,firecracker}, but their compatibility layers reimplement or reapply parts of the container specification, and how faithfully they do so is rarely checked from the workload's side.\\
+\textit{Need:} The same measurement applied inside the sandbox, with its results kept apart from policy.\\
+\textit{Addressed by:} cells 5 and 6 and the runtime-class divergence class; the evaluation found one genuine defect in each runtime (Chapter~\ref{ch:disclosure}).
+
+\item \textbf{Results are rarely reproducible.}\\
+\textit{Observation:} Published confinement evaluations depend on machines and package states that cannot be rebuilt.\\
+\textit{Need:} Provisioning pinned to exact package versions, committed measurements, and one command per reported number.\\
+\textit{Addressed by:} the Compute Engine cells, committed fixtures and metric generators (Chapter~\ref{ch:setup} and Appendix~\ref{app:repro}).
+\end{itemize}

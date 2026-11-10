@@ -1,0 +1,314 @@
+\chapter{Literature Survey}
+\label{ch:literature}
+
+This chapter reviews the published work closest to the project's question, paper by paper, followed by the tools practitioners use today. For each paper it gives the publication details, the problem the paper addresses, its proposed solution, its results, the gap or limitation relevant here, and its relevance to CALIPER. The 28 papers fall into five groups: measurement and benchmarking of container confinement (Sections~\ref{lit:houdini}--\ref{lit:escape}), system call policy generation (Sections~\ref{lit:confine}--\ref{lit:speaker}), access control and manifest analysis (Sections~\ref{lit:licsec}--\ref{lit:minna}), sandboxed runtimes and kernel attack surface (Sections~\ref{lit:gvisor}--\ref{lit:kurmus}), and surveys and guidance on container security (Sections~\ref{lit:sultan}--\ref{lit:nist}). With the three journal extensions discussed inside those sections, the chapter cites fifteen journal or transactions papers; the rest appeared at reputed conferences.
+
+\newcommand{\litpaper}[4]{%
+\noindent\textbf{Publication Details:}
+\begin{itemize}[leftmargin=*,itemsep=0pt]
+\item \textbf{Authors:} #1
+\item \textbf{Venue:} #2
+\item \textbf{#3:} #4
+\end{itemize}}
+\newcommand{\litpart}[1]{\par\textbf{#1:}\ }
+
+\section{Paper 1: Houdini, Benchmarking Container Security Confinement}
+\label{lit:houdini}
+\litpaper{Huzaifa Patel, David Barrera, Anil Somayaji}{2025 22nd Annual International Conference on Privacy, Security and Trust (PST), pp.~1--10, August 2025}{DOI}{10.1109/PST65910.2025.11268879}
+
+\litpart{Introduction} Container workloads are a standard part of cloud infrastructure, yet there is no easy way to verify whether a given container configuration provides even a basic level of confinement. Without confinement a single vulnerable application can be used to compromise a whole cluster~\cite{houdini}.
+\litpart{Proposed Solution} Houdini is a security test suite for container confinement. It runs a set of tests against a container configuration and is optimised for comparing confinement technologies with one another, while remaining usable against deployable containers.
+\litpart{Results} The paper presents the motivation, design and implementation, and initial results of running the suite on a set of Docker container configurations, positioning Houdini as a benchmark framework for evaluating confinement technologies.
+\litpart{Gap / Limitation} The evaluation covers Docker configurations; the paper does not key its results to the full environment (architecture, kernel, runtime version, LSM, RuntimeClass), does not separate policy differences from architecture or sandbox differences, does not say which mechanism produced a refusal, and does not generate or verify remediation. We found no released tool.
+\litpart{Relevance} Houdini is the closest published statement of the problem and the reason this project presents itself as an engineering contribution rather than a new idea. CALIPER differs in granularity (arguments rather than tests), in identity (the environment cell), and in carrying the result through classification, attribution, evaluation against a cited posture, and verified remediation.
+
+\section{Paper 2: A Measurement Study on Linux Container Security}
+\label{lit:lin}
+\litpaper{Xin Lin, Lingguang Lei, Yuewu Wang, Jiwu Jing, Kun Sun, Quan Zhou}{Proceedings of the 34th Annual Computer Security Applications Conference (ACSAC '18), pp.~418--429, December 2018}{DOI}{10.1145/3274694.3274720}
+
+\litpart{Introduction} It is widely agreed that containers are less secure than virtual machines because they share the kernel, but there had been no concrete, systematic evaluation using real exploits~\cite{lin2018}.
+\litpart{Proposed Solution} The authors collected 223 exploits effective on container platforms, classified them with a two-dimensional attack taxonomy, and evaluated the default Linux container configuration against 88 typical exploits.
+\litpart{Results} 50 of the 88 exploits (56.82 per cent) succeeded from inside a container with the default configuration. Kernel security mechanisms (capabilities, seccomp and mandatory access control) prevented more privilege escalations than the isolation mechanisms (namespaces and cgroups), but their interdependence produced a ``short board effect''. The 11 exploits that broke isolation followed a common four-step attack model, against which the authors proposed a defence.
+\litpart{Gap / Limitation} The study measures one default configuration with exploits, which answers ``is this exploit blocked'' rather than ``what is reachable''. It cannot be run safely against a production node, and it does not compare environments.
+\litpart{Relevance} The paper's central finding, that the reachable-surface mechanisms matter most, justifies measuring reachability. CALIPER measures the same mechanisms without exploit code and records which of them refused each probe.
+
+\section{Paper 3: ContainerLeaks, Information Leakage in Container Clouds}
+\label{lit:leaks}
+\litpaper{Xing Gao, Zhongshu Gu, Mehmet Kayaalp, Dimitrios Pendarakis, Haining Wang}{47th Annual IEEE/IFIP International Conference on Dependable Systems and Networks (DSN), pp.~237--248, June 2017}{DOI}{10.1109/DSN.2017.49}
+
+\litpart{Introduction} Because the kernel's resource isolation is incompletely implemented, containers sharing a kernel in a multi-tenant cloud can observe system-wide host information~\cite{gao2017containerleaks}.
+\litpart{Proposed Solution} The authors identified information leakage channels reachable from inside containers, showed how the leaked information eases advanced attacks such as co-residence and synergistic power attacks, analysed the root causes, and proposed a two-stage defence.
+\litpart{Results} The channels exposed a spectrum of host information without proper partitioning, and the defence was effective at trivial performance overhead. An extended journal version in \emph{IEEE Transactions on Dependable and Secure Computing} (vol.~18, no.~1, pp.~174--191, 2021) shows that the leaked information can be used to infer private data, detect and verify co-residence, and build covert channels~\cite{gao2021tdsc}.
+\litpart{Gap / Limitation} The work identifies channels on the platforms studied; it does not provide a way for an operator to check, on a given node, whether the paths that the runtime is supposed to mask actually are masked.
+\litpart{Relevance} The masked-path family of the CALIPER corpus measures exactly this. In the evaluation, Kata Containers left two directories of the kubelet's masked set reachable, a real defect (Chapter~\ref{ch:disclosure}).
+
+\section{Paper 4: Houdini's Escape, Breaking the Resource Rein of Linux Control Groups}
+\label{lit:escape}
+\litpaper{Xing Gao, Zhongshu Gu, Zhengfa Li, Hani Jamjoom, Cong Wang}{Proceedings of the 2019 ACM SIGSAC Conference on Computer and Communications Security (CCS '19), pp.~1073--1086, November 2019}{DOI}{10.1145/3319535.3354227}
+
+\litpart{Introduction} cgroups partition processes into groups and apply resource controllers, and child processes inherit their parent's group. The authors show that inherited confinement does not guarantee consistent and fair accounting~\cite{gao2019houdini}.
+\litpart{Proposed Solution} A set of strategies that generate out-of-band workloads by de-associating work from the originating process group, so that the resources it consumes are not charged to the right cgroup, demonstrated in five case studies within Docker.
+\litpart{Results} On a local testbed and an Amazon EC2 dedicated server, a container consumed up to 200 times its CPU limit and reduced the computing and I/O performance of co-resident containers by up to 95 per cent.
+\litpart{Gap / Limitation} The attacks concern resource accounting rather than kernel reachability, and they depend on kernel paths that a workload can trigger; the paper does not provide a way to check which of those paths a given environment exposes.
+\litpart{Relevance} The paper shows that confinement failures arise from kernel paths a container can reach indirectly. CALIPER's posture includes entry families (io\_uring, user namespaces, raw netlink) on the same reasoning, and its residual accounting deliberately tracks cgroup directories among the six classes of state a probe may leave behind.
+
+\section{Paper 5: Confine, Automated System Call Policy Generation for Containers}
+\label{lit:confine}
+\litpaper{Seyedhamed Ghavamnia, Tapti Palit, Azzedine Benameur, Michalis Polychronakis}{23rd International Symposium on Research in Attacks, Intrusions and Defenses (RAID 2020), USENIX Association, October 2020; extended as ``Confine: Fine-grained system call filtering for container attack surface reduction'' by M.~Rostamipoor, S.~Ghavamnia and M.~Polychronakis, \emph{Computers \& Security}, vol.~132, 103325, 2023}{DOI (extended version)}{10.1016/j.cose.2023.103325}
+
+\litpart{Introduction} Default container seccomp profiles are generic: they allow every system call any reasonable workload might need, leaving most containers with far more kernel surface than they use~\cite{confine,confine2023}.
+\litpart{Proposed Solution} Confine derives a restrictive system call policy for a container automatically, by statically analysing the binaries and libraries in the container image, including the C library, to identify the system calls the container can issue, and emits a seccomp profile that denies the rest.
+\litpart{Results} Applied to a large set of popular Docker Hub images, the generated policies disabled a substantial share of the system call interface for most images and would have neutralised a number of previously disclosed kernel vulnerabilities.
+\litpart{Gap / Limitation} Confine answers what an application \emph{needs}. It does not measure what the environment \emph{permits}, and its policies are at system-call granularity (the 2023 extension adds argument-level filtering for selected calls). It does not account for capabilities, LSM policy, masked paths or runtime differences.
+\litpart{Relevance} Confine is the strongest example of the profile-generation approach that this project explicitly places out of scope. CALIPER's remediator is minimal with respect to a reference posture and the runtime's own default profile, not with respect to an application's needs.
+
+\section{Paper 6: sysfilter, Automated System Call Filtering for Commodity Software}
+\label{lit:sysfilter}
+\litpaper{Nicholas DeMarinis, Kent Williams-King, Di Jin, Rodrigo Fonseca, Vasileios P.~Kemerlis}{23rd International Symposium on Research in Attacks, Intrusions and Defenses (RAID 2020), USENIX Association, pp.~459--474, October 2020}{URL}{\url{https://www.usenix.org/conference/raid2020/presentation/demarinis}}
+
+\litpart{Introduction} An attacker who compromises an application can abuse every operating-system service the process may call, and the kernel exposes its whole system call set to every process~\cite{sysfilter}.
+\litpart{Proposed Solution} sysfilter is a binary-analysis framework for x86-64 Linux that builds the set of system calls a program can make through static analysis and restricts the process to that set.
+\litpart{Results} Evaluated on 411 real C and C++ binaries with about 38,500 tests, sysfilter imposed minimal or negligible run-time slowdown, and a study of about 30,000 Debian applications characterised their system call profiles.
+\litpart{Gap / Limitation} As with Confine, the analysis concerns the application; it says nothing about how a given environment's policy differs from another's, and it filters by system call number.
+\litpart{Relevance} sysfilter and Confine both show that system-call-granularity policy is the norm. The AF\_ALG case is invisible at that granularity, which is why CALIPER's corpus is argument-level and its remediation uses argument comparisons.
+
+\section{Paper 7: Temporal System Call Specialization for Attack Surface Reduction}
+\label{lit:temporal}
+\litpaper{Seyedhamed Ghavamnia, Tapti Palit, Shachee Mishra, Michalis Polychronakis}{29th USENIX Security Symposium (USENIX Security '20), pp.~1749--1766, August 2020}{URL}{\url{https://www.usenix.org/conference/usenixsecurity20/presentation/ghavamnia}}
+
+\litpart{Introduction} Server applications need more system calls during initialisation than while serving requests, so a single policy for the whole lifetime is broader than necessary~\cite{temporal}.
+\litpart{Proposed Solution} Temporal specialisation limits the system calls available to a process according to its phase of execution, using new static call-graph analyses per phase, implemented on LLVM.
+\litpart{Results} On six server applications it disabled 51 per cent more security-critical system calls than library-level specialisation and neutralised 13 more Linux kernel vulnerabilities that could lead to privilege escalation.
+\litpart{Gap / Limitation} The technique requires source-level analysis of the application and again targets application needs. The same group later proposed C2C (ACM CCS 2022), which derives system call filters from an application's configuration options~\cite{c2c}; it, too, tailors policy to the application and assumes the filter is enforced as written.
+\litpart{Relevance} The paper quantifies kernel surface in terms of security-critical system calls and the kernel vulnerabilities they reach, the same unit of argument CALIPER's reference posture uses when it cites a CVE for each asserted entry family.
+
+\section{Paper 8: Automating Seccomp Filter Generation for Linux Applications}
+\label{lit:chestnut}
+\litpaper{Claudio Canella, Mario Werner, Daniel Gruss, Michael Schwarz}{Proceedings of the 2021 Cloud Computing Security Workshop (CCSW '21), pp.~139--151, November 2021}{DOI}{10.1145/3474123.3486762}
+
+\litpart{Introduction} seccomp filters reduce the impact of exploits, but writing them by hand for each application is laborious, and earlier automated approaches make unnecessary assumptions or need very long analysis~\cite{chestnut}.
+\litpart{Proposed Solution} Chestnut generates strict filters in two phases: static extraction of used system calls through a compiler pass and a binary analyser, and an optional dynamic refinement.
+\litpart{Results} On 18 applications Chestnut blocked on average 302 system calls (86.5 per cent) with the compiler and 288 (82.5 per cent) with binary analysis, was up to 73 times faster than prior compiler-based work, blocked \texttt{exec} in 50 and 77.7 per cent of applications respectively, and blocked exploitation of more than 61 per cent of 175 kernel CVEs reached through system calls.
+\litpart{Gap / Limitation} The approach is application-centric, works at system call granularity and assumes the filter is enforced as written; it does not verify enforcement in the deployed environment.
+\litpart{Relevance} Chestnut shows how much surface a default profile leaves open. CALIPER's closure verification addresses the assumption Chestnut leaves implicit: a finding counts as closed only when a fresh measurement under the generated profile shows the probe denied.
+
+\section{Paper 9: Mining Sandboxes for Linux Containers}
+\label{lit:mining}
+\litpaper{Zhiyuan Wan, David Lo, Xin Xia, Liang Cai, Shanping Li}{2017 IEEE International Conference on Software Testing, Verification and Validation (ICST), pp.~92--102, March 2017}{DOI}{10.1109/ICST.2017.16}
+
+\litpart{Introduction} Attacks against containers often use kernel exploits through the system call interface~\cite{wan2017mining}.
+\litpart{Proposed Solution} The authors explore a container's behaviour with automatic testing, record the system calls accessed, and use that set as the container's sandbox, restricting system calls not seen during testing.
+\litpart{Results} Mining took less than eleven minutes per container; the mined sandboxes did not impair regular functionality and imposed low overhead.
+\litpart{Gap / Limitation} The approach was later extended into a journal article on practical and effective sandboxing for Linux containers (\emph{Empirical Software Engineering}, vol.~24, no.~6, pp.~4034--4070, 2019)~\cite{wan2019emse}. Dynamic mining is bounded by test coverage, works at system call granularity, and describes the workload rather than the environment.
+\litpart{Relevance} The paper is an early instance of trace-based profile generation, the category to which the Security Profiles Operator's recorder and Inspektor Gadget belong (Section~\ref{lit:tools}).
+
+\section{Paper 10: SPEAKER, Split-Phase Execution of Application Containers}
+\label{lit:speaker}
+\litpaper{Lingguang Lei, Jianhua Sun, Kun Sun, Chris Shenefiel, Rui Ma, Yuewu Wang, Qi Li}{Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2017), Lecture Notes in Computer Science, Springer, pp.~230--251, 2017}{DOI}{10.1007/978-3-319-60876-1\_11}
+
+\litpart{Introduction} A container's system call needs differ between the phase in which it starts up and the phase in which it serves its workload~\cite{speaker}.
+\litpart{Proposed Solution} SPEAKER separates a container's execution into booting and running phases and applies a different, narrower system call set in the running phase.
+\litpart{Results} The paper reports that the running phase needs considerably fewer system calls than the default profile allows, so splitting the phases reduces the reachable kernel surface at small cost.
+\litpart{Gap / Limitation} Like the other generators, SPEAKER tailors policy to the workload and assumes enforcement; it does not measure what a deployed environment enforces.
+\litpart{Relevance} SPEAKER, like Paper 7, shows that the useful unit of policy is narrower than a whole system call set. CALIPER's measurements are at argument granularity for the same reason.
+
+\section{Paper 11: Lic-Sec, an Enhanced AppArmor Docker Security Profile Generator}
+\label{lit:licsec}
+\litpaper{Hui Zhu, Christian Gehrmann}{Journal of Information Security and Applications, vol.~61, 102924, September 2021}{DOI}{10.1016/j.jisa.2021.102924}
+
+\litpart{Introduction} Mandatory access control can protect containers without manual configuration if profiles are generated automatically~\cite{licsec}.
+\litpart{Proposed Solution} Lic-Sec combines Docker-sec (a 2018 profile generator) with a modified LiCShield (2015) to generate AppArmor profiles for Docker containers.
+\litpart{Results} Against an exploit database of 40 exploits effective on Docker, selected from the latest 400 on Exploit-DB, Lic-Sec protected against all privilege escalation attacks for which Docker-sec and LiCShield failed.
+\litpart{Gap / Limitation} The evaluation is exploit-based on one runtime; the generated policy's enforcement across distributions (AppArmor versus SELinux) is outside its scope.
+\litpart{Relevance} The paper shows that the LSM can be decisive. CALIPER's cell 3 replaces AppArmor with SELinux to measure the effect of that axis, and its attributor reads the process's own label to decide whether an LSM can have produced a denial.
+
+\section{Paper 12: Security Namespace, Linux Security Frameworks for Containers}
+\label{lit:secns}
+\litpaper{Yuqiong Sun, David Safford, Mimi Zohar, Dimitrios Pendarakis, Zhongshu Gu, Trent Jaeger}{27th USENIX Security Symposium (USENIX Security '18), August 2018}{URL}{\url{https://www.usenix.org/conference/usenixsecurity18/presentation/sun}}
+
+\litpart{Introduction} Because the kernel is shared, containers cannot apply local policies for integrity measurement or mandatory access control, unlike virtual machines~\cite{sun2018secns}.
+\litpart{Proposed Solution} Security namespaces, a kernel abstraction that lets a container define and apply its own security policy to its processes, with a routing mechanism that dispatches each operation to every container whose security it may affect, so that one container's decision cannot compromise the host or other containers.
+\litpart{Results} Prototypes for integrity measurement and mandatory access control mitigated in-container security problems with less than 0.7 per cent additional system call latency and almost identical application throughput.
+\litpart{Gap / Limitation} The proposal changes the kernel and was not merged upstream; the global, node-level nature of LSM policy remains.
+\litpart{Relevance} Because LSM policy is global, it is a property of the node and belongs in the fingerprint's environment cell. CALIPER records the active LSM, the label and the enforcing state for that reason.
+
+\section{Paper 13: Security Misconfigurations in Open Source Kubernetes Manifests}
+\label{lit:rahman}
+\litpaper{Akond Rahman, Shazibul Islam Shamim, Dibyendu Brinto Bose, Rahul Pandita}{ACM Transactions on Software Engineering and Methodology, vol.~32, no.~4, pp.~1--36, 2023}{DOI}{10.1145/3579639}
+
+\litpart{Introduction} Kubernetes is the de facto orchestrator, so security misconfigurations in its manifests can cause large-scale breaches~\cite{rahman2023}.
+\litpart{Proposed Solution} An empirical study of 2,039 Kubernetes manifests mined from 92 open-source repositories, and a static analysis tool, SLI-KUBE, that quantifies how often each misconfiguration occurs.
+\litpart{Results} The authors identify 11 categories of security misconfiguration, among them absent resource limits, an absent \texttt{securityContext} and activation of \texttt{hostIPC}.
+\litpart{Gap / Limitation} Linting reads the declaration. In the AF\_ALG case the manifest was correctly hardened by every rule of this kind, and the exposure came from the runtime version on the node.
+\litpart{Relevance} The two approaches are complementary: lint the manifest, then measure what the node actually enforces for it. CALIPER's evaluator uses the manifest only for claims it can check against a measurement.
+
+\section{Paper 14: Understanding the Security Implications of Kubernetes Networking}
+\label{lit:minna}
+\litpaper{Francesco Minna, Agathe Blaise, Filippo Rebecchi, Balakrishnan Chandrasekaran, Fabio Massacci}{IEEE Security \& Privacy, vol.~19, no.~5, pp.~46--56, 2021}{DOI}{10.1109/MSEC.2021.3094726}
+
+\litpart{Introduction} Orchestrators such as Kubernetes make it easy to deploy microservice applications, but their network abstractions behave differently from traditional networks~\cite{minna2021}.
+\litpart{Proposed Solution} An analysis of Kubernetes networking from a security standpoint, showing how its abstractions can enable attacks that a traditional network-security mental model does not anticipate.
+\litpart{Results} The authors argue that the abstractions pave the way for ``unexpected attacks'' and that cluster network security must be reasoned about in Kubernetes' own terms.
+\litpart{Gap / Limitation} The work concerns the network layer, not the kernel interface a workload can reach.
+\litpart{Relevance} It makes the same point at a different layer: the abstraction an operator configures is not a reliable picture of what is enforced, so it has to be examined directly.
+
+\section{Paper 15: The True Cost of Containing, a gVisor Case Study}
+\label{lit:gvisor}
+\litpaper{Ethan G.~Young, Pengfei Zhu, Tyler Caraza-Harter, Andrea C.~Arpaci-Dusseau, Remzi H.~Arpaci-Dusseau}{11th USENIX Workshop on Hot Topics in Cloud Computing (HotCloud '19), July 2019}{URL}{\url{https://www.usenix.org/conference/hotcloud19/presentation/young}}
+
+\litpart{Introduction} gVisor is a security-oriented container engine that integrates with Docker and implements the kernel interface in user space~\cite{young2019gvisor}.
+\litpart{Proposed Solution} A performance analysis of gVisor covering network throughput through its in-Sentry network stack, file opens through the Gofer, start-up, memory efficiency and system call overheads.
+\litpart{Results} The analysis identified substantial overheads in several of these areas and drew implications for the design of hypervisor-based container engines.
+\litpart{Gap / Limitation} The study is about performance; it does not characterise which kernel interfaces gVisor exposes or how its confinement differs from runc's.
+\litpart{Relevance} The slowest CALIPER run is on gVisor (8.6 seconds against 0.1 to 0.6 seconds elsewhere), consistent with the system call overheads the paper reports. CALIPER characterises the other half: which entry points gVisor implements, and where its behaviour differs from Linux.
+
+\section{Paper 16: Blending Containers and Virtual Machines, Firecracker and gVisor}
+\label{lit:blending}
+\litpaper{Anjali, Tyler Caraza-Harter, Michael M.~Swift}{Proceedings of the 16th ACM SIGPLAN/SIGOPS International Conference on Virtual Execution Environments (VEE '20), pp.~101--113, March 2020}{DOI}{10.1145/3381052.3381315}
+
+\litpart{Introduction} Serverless providers choose among native processes, containers and lightweight isolation platforms such as gVisor and Firecracker, which move functionality out of the host kernel to different degrees~\cite{anjali2020blending}.
+\litpart{Proposed Solution} A comparative study of LXC containers, gVisor and Firecracker microVMs that measures how much host kernel functionality each uses, with microbenchmarks targeting kernel subsystems.
+\litpart{Results} Despite moving functionality out of the kernel, both Firecracker and gVisor execute substantially more host kernel code than native Linux; gVisor and Linux containers execute substantially the same code, with different frequency.
+\litpart{Gap / Limitation} The study measures host kernel code exercised by benchmarks, not the interface a workload can reach inside the sandbox.
+\litpart{Relevance} The result warns that ``sandboxed'' is not a measurement. CALIPER treats the sandbox as a property of the cell, classifies differences that the sandbox explains as runtime-class divergence, and still evaluates what the workload can reach.
+
+\section{Paper 17: Firecracker, Lightweight Virtualization for Serverless Applications}
+\label{lit:firecracker}
+\litpaper{Alexandru Agache, Marc Brooker, Andreea Florescu, Alexandra Iordache, Anthony Liguori, Rolf Neugebauer, Phil Piwonka, Diana-Maria Popa}{17th USENIX Symposium on Networked Systems Design and Implementation (NSDI '20), pp.~419--434, February 2020}{URL}{\url{https://www.usenix.org/conference/nsdi20/presentation/agache}}
+
+\litpart{Introduction} Serverless platforms need isolation as strong as virtual machines with overhead close to containers~\cite{firecracker}.
+\litpart{Proposed Solution} Firecracker, an open-source virtual machine monitor specialised for serverless and container workloads, deployed in AWS Lambda and Fargate.
+\litpart{Results} The paper describes how specialising for serverless shaped the design and reports experience from migrating Lambda customers to it, where it supports millions of production workloads.
+\litpart{Gap / Limitation} A VM-based sandbox moves the boundary to a guest kernel, whose configuration (and the agent that applies container policy inside it) becomes the thing to verify.
+\litpart{Relevance} Kata Containers, measured as CALIPER's cell 6, follows the same model with a guest kernel per pod. The evaluation found that its agent did not apply part of the requested policy inside the guest (Chapter~\ref{ch:disclosure}).
+
+\section{Paper 18: Quantifiable Run-Time Kernel Attack Surface Reduction}
+\label{lit:kurmus}
+\litpaper{Anil Kurmus, Sergej Dechand, R\"udiger Kapitza}{Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA 2014), Lecture Notes in Computer Science, Springer, pp.~212--234, 2014}{DOI}{10.1007/978-3-319-08509-8\_12}
+
+\litpart{Introduction} The kernel's attack surface is the code an unprivileged process can cause to execute, and reducing it requires a way to quantify it~\cite{kurmus2014}.
+\litpart{Proposed Solution} The paper measures kernel attack surface in terms of the kernel code reachable by applications and restricts, at run time, the kernel functionality an application may use, quantifying the reduction achieved.
+\litpart{Results} The authors report a substantial, quantified reduction of the reachable kernel surface for the workloads studied.
+\litpart{Gap / Limitation} The approach instruments the kernel and targets a known workload; it is not a portable measurement an unprivileged container can make of its own environment.
+\litpart{Relevance} The paper establishes reachable kernel surface as a measurable quantity. CALIPER measures a coarse, portable proxy for it from user space: the verdict of each entry point at argument granularity.
+
+\section{Paper 19: Container Security, Issues, Challenges, and the Road Ahead}
+\label{lit:sultan}
+\litpaper{Sari Sultan, Imtiaz Ahmad, Tassos Dimitriou}{IEEE Access, vol.~7, pp.~52976--52996, 2019}{DOI}{10.1109/ACCESS.2019.2911732}
+
+\litpart{Introduction} Security is the main concern and adoption barrier for containers in industry surveys~\cite{sultan2019}.
+\litpart{Proposed Solution} A literature survey organised around four use cases: protecting a container from the applications inside it, inter-container protection, protecting the host from containers, and protecting containers from a malicious or semi-honest host.
+\litpart{Results} The first three use cases rely on software mechanisms in the kernel (namespaces, cgroups, capabilities, seccomp) and LSMs; the fourth relies on hardware such as TPMs and Intel SGX. The survey closes with open research problems.
+\litpart{Gap / Limitation} The survey catalogues mechanisms; it does not address how an operator verifies that the mechanisms are in force as configured.
+\litpart{Relevance} CALIPER addresses the third use case, protecting the host from a container, and measures the software mechanisms the survey lists as its foundation.
+
+\section{Paper 20: Cloud Container Technologies, a State-of-the-Art Review}
+\label{lit:pahl}
+\litpaper{Claus Pahl, Antonio Brogi, Jacopo Soldani, Pooyan Jamshidi}{IEEE Transactions on Cloud Computing, vol.~7, no.~3, pp.~677--692, 2019}{DOI}{10.1109/TCC.2017.2702586}
+
+\litpart{Introduction} Containers have become the common way to virtualise applications in the cloud, and orchestrating clusters of them is a central problem, but no secondary study had consolidated the research~\cite{pahl2019}.
+\litpart{Proposed Solution} A systematic mapping study of 46 selected studies on containers and their orchestration, classified and compared with a characterisation framework.
+\litpart{Results} A discussion of agreed and emerging concerns in container orchestration, positioned against cloud platforms, microservices and continuous development.
+\litpart{Gap / Limitation} Security is one concern among several, and the study maps research rather than examining deployed environments.
+\litpart{Relevance} It shows how mature orchestration research is and, by contrast, how little of it verifies what a node enforces once a workload is scheduled.
+
+\section{Paper 21: The State of the Art in Container Technologies}
+\label{lit:casalicchio}
+\litpaper{Emiliano Casalicchio, Stefano Iannucci}{Concurrency and Computation: Practice and Experience, vol.~32, no.~17, Art.~no.~e5668, 2020}{DOI}{10.1002/cpe.5668}
+
+\litpart{Introduction} Containers are used for distributed applications on cloud, edge, fog and Internet-of-Things platforms, and many research challenges remain open~\cite{casalicchio2020}.
+\litpart{Proposed Solution} An extensive literature review identifying the challenges of adopting containers in high-performance computing, big-data analytics and geo-distributed applications, and analysing the state-of-the-art solution for each.
+\litpart{Results} From 97 papers, performance, orchestration and cyber-security emerge as the main issues; cyber-security covers container isolation, the confidentiality of containerised data and network security.
+\litpart{Gap / Limitation} Isolation is reviewed as a research topic; no method is given to establish, for a particular node, how well it is isolated.
+\litpart{Relevance} The review names container isolation among the main open problems, which CALIPER approaches empirically.
+
+\section{Paper 22: Emerging Trends, Techniques and Open Issues of Containerization}
+\label{lit:watada}
+\litpaper{Junzo Watada, Arunava Roy, Ruturaj Kadikar, Hoang Pham, Bing Xu}{IEEE Access, vol.~7, pp.~152443--152472, 2019}{DOI}{10.1109/ACCESS.2019.2945930}
+
+\litpart{Introduction} Containerisation is lightweight, portable and efficient, yet its industrial adoption faces challenges in networking, persistent storage, multi-cloud support, management interfaces and security~\cite{watada2019}.
+\litpart{Proposed Solution} A review of the technicalities involved in containerisation and of its popularity dynamics, together with the potential problems and open issues.
+\litpart{Results} A consolidated overview of trends, techniques and open issues for developers and researchers.
+\litpart{Gap / Limitation} Security is listed among the open issues without a method to assess it.
+\litpart{Relevance} The review motivates practical tooling that can assess a container platform's security as deployed.
+
+\section{Paper 23: A Container Security Survey, Exploits, Attacks and Defenses}
+\label{lit:jarkas}
+\litpaper{Omar Jarkas, Ryan Ko, Naipeng Dong, Redowan Mahmud}{ACM Computing Surveys, vol.~57, no.~7, pp.~1--36, 2025}{DOI}{10.1145/3715001}
+
+\litpart{Introduction} The shared Linux kernel and the weaker isolation of containers compared with virtual machines make a single kernel vulnerability a threat to every container on the host, while much academic work on container security is theoretical~\cite{jarkas2025}.
+\litpart{Proposed Solution} A taxonomy that integrates academic knowledge with industry insight and real-world vulnerabilities into an actionable framework for container security.
+\litpart{Results} More than 200 container-related vulnerabilities are analysed and categorised into 47 exploit types across 11 attack vectors.
+\litpart{Gap / Limitation} The taxonomy catalogues what has gone wrong; it does not tell an operator which of those entry points a given node exposes now.
+\litpart{Relevance} The paper supports the premise of this project: because one reachable kernel flaw can compromise the whole host, the reachable kernel surface of each node is worth measuring.
+
+\section{Papers 24 and 25: Two Further Surveys of Containerisation and Its Security}
+\label{lit:further}
+\litpaper{Aditya Bhardwaj, C.~Rama Krishna}{Arabian Journal for Science and Engineering, vol.~46, no.~9, pp.~8585--8601, 2021}{DOI}{10.1007/s13369-021-05553-3}
+
+\litpart{Scope} A survey of virtualisation in cloud computing that follows the move from hypervisor-based virtual machines to containerisation and compares the two approaches~\cite{bhardwaj2021}.
+
+\litpaper{Devi Priya V S, Sibi Chakkaravarthy Sethuraman, Muhammad Khurram Khan}{Computers \& Security, vol.~135, Art.~no.~103490, 2023}{DOI}{10.1016/j.cose.2023.103490}
+
+\litpart{Scope} A survey of container security organised by precaution levels and mitigation strategies, with directions for further research~\cite{devipriya2023}.
+\litpart{Gap / Limitation} Both surveys describe isolation and its mitigations as design choices; neither offers a measurement of what a deployed node enforces.
+\litpart{Relevance} Together with the surveys in Sections~\ref{lit:sultan} and~\ref{lit:jarkas}, they show that the literature treats container confinement as a configuration question. This project treats it as a measurement question.
+
+\section{Paper 26: To Docker or Not to Docker, a Security Perspective}
+\label{lit:combe}
+\litpaper{Theo Combe, Antony Martin, Roberto Di Pietro}{IEEE Cloud Computing, vol.~3, no.~5, pp.~54--62, September 2016}{DOI}{10.1109/MCC.2016.100}
+
+\litpart{Introduction} Containers offer flexibility and near-native performance, and Docker leads the market~\cite{combe2016}.
+\litpart{Proposed Solution} An overview of the container ecosystem with an adversary model and a discussion of the Docker environment's security implications through realistic use cases.
+\litpart{Results} The authors identify vulnerabilities affecting Docker usage, many arising from configuration and from the surrounding ecosystem rather than from the isolation mechanisms themselves.
+\litpart{Gap / Limitation} The analysis is qualitative and predates the Kubernetes Pod Security Standards and the current runtime landscape.
+\litpart{Relevance} The paper's emphasis on configuration as a source of weakness motivates checking the configuration that is actually in force, which is what a measurement does.
+
+\section{Paper 27: Docker Ecosystem, Vulnerability Analysis}
+\label{lit:martin}
+\litpaper{Antony Martin, Simone Raponi, Th\'eo Combe, Roberto Di Pietro}{Computer Communications, vol.~122, pp.~30--43, 2018}{DOI}{10.1016/j.comcom.2018.03.011}
+
+\litpart{Introduction} A follow-up by the authors of the paper in Section~\ref{lit:combe} on the security of Docker taken as a whole ecosystem rather than as an isolated container engine~\cite{martin2018}.
+\litpart{Proposed Solution} A vulnerability analysis of the Docker ecosystem, organising where weaknesses arise across the platform and its surrounding components.
+\litpart{Results} A structured account of the ecosystem's vulnerabilities, extending the earlier qualitative analysis.
+\litpart{Gap / Limitation} The analysis concerns the ecosystem's design and known vulnerabilities; it does not provide a way to check a particular node's enforced confinement.
+\litpart{Relevance} The paper treats confinement as one part of a wider attack surface. CALIPER covers the part that changes from node to node without the workload changing.
+
+\section{Paper 28: NIST SP 800-190, Application Container Security Guide}
+\label{lit:nist}
+\litpaper{Murugiah Souppaya, John Morello, Karen Scarfone}{NIST Special Publication 800-190, National Institute of Standards and Technology, September 2017}{DOI}{10.6028/NIST.SP.800-190}
+
+\litpart{Introduction} Guidance for organisations adopting application containers on the risks of the container technology stack~\cite{nist800190}.
+\litpart{Proposed Solution} The guide identifies risks across images, registries, orchestrators, containers and host operating systems, and recommends countermeasures, among them reducing the host's attack surface, using container-specific host operating systems and enforcing runtime confinement.
+\litpart{Results} A widely cited reference framework for container security programmes.
+\litpart{Gap / Limitation} Recommendations are stated as configuration objectives; verifying their effect on a particular node is left to the operator.
+\litpart{Relevance} The reference posture plays the role of such guidance, but in a form a measurement can be checked against automatically, with a citation for every assertion.
+
+\section{Tools and Practice}
+\label{lit:tools}
+
+Practitioners rely on four kinds of tool. Table~\ref{tab:tools} summarises what each answers and why none answers the project's question.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{2.7cm}P{4.1cm}LP{2.2cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Examples} & \textbf{What it answers, and what it misses} & \textbf{Granularity} \\
+\midrule
+Configuration scanners & kube-bench, Kubescape, Trivy~\cite{kubebench,kubescape,trivy} & What the manifest and cluster configuration declare, against a benchmark. In the AF\_ALG case the declaration was correct and the scanner reports nothing. & manifest fields \\
+Runtime monitors & Falco, Tetragon~\cite{falco,tetragon} & What the workload did, as it does it. Surface that is never exercised is invisible. & events \\
+Profile generators & oci-seccomp-bpf-hook, Security Profiles Operator recorder, Inspektor Gadget~\cite{ocihook,spo,inspektor} & What the application needs, from a trace. Says nothing about what the environment permits. & system call names \\
+Introspection ancestors & amicontained v0.4.9~\cite{amicontained}; seccomp-diff~\cite{seccompdiff} & Runtime, namespaces, capabilities and a coarse list of blocked calls (amicontained); the decoded filter of a running process, with host privilege (seccomp-diff). Neither covers masked paths, mounts, modules, LSM effect or argument-level reachability. & system calls; filter rules \\
+\midrule
+CALIPER & this work & What the kernel permits this container, now, per argument; why it differs from another environment; which mechanism refused it; whether that matches a cited expectation; the minimal fix, verified. & arguments \\
+\bottomrule
+\end{tabularx}
+\caption{Existing tool categories compared with CALIPER.}
+\label{tab:tools}
+\end{table}
+
+\subsection{The two direct ancestors}
+\texttt{amicontained} established the idea of introspecting confinement from inside a container. It reports the container runtime, the namespaces in use, the capability sets, the AppArmor profile and a list of blocked system calls found by trying each one. Its last release was v0.4.9 in November 2019 and its last commit in September 2020. \texttt{seccomp-diff} extracts and disassembles the seccomp-BPF filter of a running process and diffs two filters. It needs host privilege to attach to the process, it is confined to seccomp, and it reasons about the filter rather than about reachability, so it cannot account for capabilities, LSM policy, mount masking, loaded modules or architecture. Both were run against the same target as CALIPER on cell 2; Section~\ref{sec:res-ancestors} reports the comparison.
+
+\subsection{Summary of the survey}
+The research literature measures container security with exploits, leakage channels and accounting attacks (Papers 2 to 4), generates system call policy for applications (Papers 5 to 10), extends mandatory access control and lints manifests (Papers 11 to 14), studies sandboxed runtimes for performance (Papers 15 to 17), quantifies kernel attack surface with kernel instrumentation (Paper 18), and surveys container security as a set of mechanisms and configurations (Papers 19 to 28). The one work that sets out to benchmark confinement as such (Paper 1) does so per configuration, without environment identity, attribution or remediation. Chapter~\ref{ch:gaps} lists the gaps that follow.

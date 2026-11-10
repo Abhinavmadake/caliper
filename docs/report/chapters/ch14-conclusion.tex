@@ -1,0 +1,23 @@
+\chapter{Conclusion and Future Work}
+\label{ch:conclusion}
+
+\section{Conclusion}
+
+CALIPER measures what a container can reach in the kernel, from inside the container, at argument granularity, and explains the differences it finds. It runs 185 probes, each in its own forked child, in under a second on runc and under nine seconds on gVisor, survives a hardened profile that kills 122 of its children in one run, and leaves nothing behind. Its fingerprints are keyed to the environment that produced them, and its classifier keeps architecture, kernel-version and sandbox effects out of the policy count: of 1,057 divergent probe pairs across six cells, 606 are explained by something other than policy, and the 451 that remain point at real differences in enforcement, such as io\_uring under containerd 1.7 and the absence of seccomp inside gVisor and Kata by default.
+
+The instrument reproduced the motivating case without help. With the standard Job's pod specification, which satisfies PSS Restricted, AF\_ALG was reachable under containerd 2.2.1 and 1.7.12 and refused under 2.2.7; the manifest was the same, and only the measurement showed the difference. Against the manifest alone the case produces no finding; against the cited reference posture it is an expectation violation carrying its CVE. Every denial the attributor decided on a constructed ground truth was decided correctly, and every seccomp-attributable finding it generated a profile for was closed and verified by measuring again. Along the way it observed two genuine runtime defects that no configuration review would have found, one in gVisor and one in Kata Containers.
+
+The evaluation also shows where the instrument stops. In production most denials on a hardened runc cell cannot be attributed from inside the container, because modern kernels place an LSM hook in front of the very checks the oracles rely on. A successful call on a sandbox's reimplemented kernel does not prove the operation took place. The three-cell expectation criterion at \texttt{restricted} depends on one finding of doubtful weight. And the project's own disclosure commitment was not met in the Kata case, because the evaluator did not treat the kubelet's masked paths as a claim. Each of these is stated in the report as measured, because an instrument for verifying confinement is only useful if its own claims can be verified.
+
+\section{Future Work}
+
+The first extensions follow from the limits above.
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Masked paths as claims.} Treat the kubelet's default masked and read-only paths as part of every pod's declaration, so that a reachable masked path is a claim violation. This is a change to the evaluator alone, and it would have flagged the Kata defect on the day it was recorded.
+\item \textbf{The privileged helper.} An optional DaemonSet with CAP\_SYS\_ADMIN that reads the workload's seccomp filter with \texttt{PTRACE\_SECCOMP\_GET\_FILTER} would decide most of the production undecidable fraction, in particular the 52 io\_uring denials on cell 2.
+\item \textbf{The deferred corpus.} Implement the 28 specified probes, starting with the families the posture already asserts against (bpf, perf\_event\_open, keyctl, userfaultfd, open\_by\_handle\_at), so that those assertions can produce findings.
+\item \textbf{Sandbox-aware oracles and posture.} Mark probes whose \texttt{permitted} verdict is not evidence of effect under a reimplemented kernel, and qualify posture assertions (such as the FUSE device) whose rationale does not carry over to a sandbox.
+\item \textbf{More runtimes and platforms.} Podman with crun, Moby, CRI-O, EKS and Talos, to move the runtime axis across implementations rather than versions.
+\item \textbf{Comparison across clusters on every pull request.} Measure each change on several clusters and report the classified divergence between them in the pull request, so that a node-image upgrade that weakens RuntimeDefault is caught before it ships.
+\item \textbf{Posture v2 and SARIF.} Use the 282 undeclared exposures as input to the next posture revision (mount types and raw netlink protocols first), and emit SARIF so that findings appear in code-scanning interfaces.
+\end{enumerate}

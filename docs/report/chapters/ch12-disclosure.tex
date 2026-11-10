@@ -1,0 +1,53 @@
+\chapter{Responsible Use and Disclosure}
+\label{ch:disclosure}
+
+\section{Responsible Use}
+
+The instrument probes security boundaries, and the proposal made three commitments in consequence: the corpus contains no exploit code; the instrument is intended only for infrastructure the operator owns or has written authorisation to test; and a genuine defect found in a runtime, distribution or managed platform is reported to its vendor under coordinated disclosure before publication. The first is established by the safety review (Section~\ref{sec:safety}). The second is stated in the documentation and printed in every report the instrument writes. Two further measures make a deliberate run distinguishable from an attack: the release image is signed with cosign, so admission controllers and runtime monitors can allowlist its digest, and the reduced corpus omits the probes most likely to raise alerts, including the AF\_ALG probe on which published Copy Fail detection rules key. On a monitored cluster the motivating case is demonstrated by allowlisting the signed image and running the full corpus.
+
+\section{Disclosure Review: Method}
+\label{sec:disclosure}
+
+The review covered the two sandboxed runtimes, where the measurements differ most from Linux and where a difference is most likely to be a defect rather than a configuration choice. It was carried out in four steps:
+\begin{enumerate}[leftmargin=*]
+\item Every probe permitted under gVisor (cell 5) or Kata (cell 6) was compared with the same probe on Linux with the same credentials and no seccomp, which is exactly the ground-truth \texttt{capability} run on cell 2 (UID 65534, no capabilities). A probe permitted in a sandbox and denied there is a candidate.
+\item Because that comparison has no masked paths, every path probe was compared separately with cell 2 and with the ground-truth \texttt{paths} run.
+\item Each candidate was traced to the runtime's source at the exact version measured (gVisor release-20261005.0; Kata Containers 3.14.0, agent and runtime), and checked against the current development branch and the latest release.
+\item For gVisor, the three claim violations were reproduced with the same release in a disposable virtual machine, as UID 65534 with no capabilities, against a native Linux control.
+\end{enumerate}
+Upstream issue trackers were then searched for each confirmed defect. Table~\ref{tab:disclosure} gives the outcome.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{@{}P{3.1cm}LP{3.1cm}P{2.2cm}@{}}
+\toprule
+\textbf{Observation} & \textbf{What happens} & \textbf{Status upstream} & \textbf{Assessment} \\
+\midrule
+gVisor: \pid{clone.flags.newns} permitted without CAP\_SYS\_ADMIN & \texttt{CLONE\_NEWNS} is missing from the capability check in \texttt{Clone} (\texttt{Unshare} has it); a new mount namespace is created (namespace id 7 became 8 in the live test), though the child still cannot mount or unmount & public: google/gvisor issue 16118~\cite{gvisor16118} (2026-10-21) and fix PR 13511~\cite{gvisor13511} (open since 2026-06-19); unfixed in release-20261102.0 & genuine defect; per the issue, classed by gVisor's security team as an in-sandbox emulation bug \\
+gVisor: \pid{capability.sys_nice} permitted & CAP\_SYS\_NICE deliberately not checked when a task lowers its own nice value; niceness reaches no scheduler (only procfs, \texttt{getpriority} and \texttt{sched\_getattr} read it) & documented in the source & not a defect \\
+gVisor: \pid{unshare.flags.newtime} permitted & \texttt{unshare} ignores unknown flags and gVisor has no time namespace; nothing is created & \texttt{CLONE\_NEWTIME} documented as unsupported & false positive in CALIPER \\
+gVisor: masked and read-only paths not applied & \texttt{runsc} never reads \texttt{maskedPaths} or \texttt{readonlyPaths}; the files are synthesised by the Sentry (\file{/sys/firmware} is an empty directory) & known: google/gvisor issue 9245~\cite{gvisor9245}, closed as not planned & not a defect \\
+gVisor, Kata: RuntimeDefault not applied by default & seccomp is off inside the sandbox unless \texttt{oci-seccomp} (gVisor) or \pid{disable_guest_seccomp = false} (Kata) is set & gVisor logs a warning; Kata documents the default in its configuration & documented default \\
+Kata: masked directories not masked & the agent bind-mounts \file{/dev/null} over each masked path and treats \errno{ENOTDIR} as success, so \file{/proc/acpi} and \file{/sys/firmware} stay visible & public: kata-containers issue 14188~\cite{kata14188} (2026-11-01), fixed by PR 14189~\cite{kata14189} on 2026-11-02, not yet in a release & genuine defect \\
+Kata: AppArmor profile not applied & nothing in the 3.14.0 agent or runtime reads the profile, and the guest runs no LSM (the cell records none) & no documentation found & limitation of the design \\
+Kata: other differences & SELinux netlink, \texttt{xfs}, \texttt{9p} and \texttt{virtiofs} differ because the guest kernel is configured differently & expected & not a defect \\
+containerd: AF\_ALG allowed by RuntimeDefault & the motivating case & public and fixed (containerd PR 13327~\cite{containerd13327}) & known before the project \\
+\bottomrule
+\end{tabularx}
+\caption{Disclosure review of runtime behaviour observed in the evaluation.}
+\label{tab:disclosure}
+\end{table}
+
+\section{Findings}
+
+\subsection{gVisor}
+Of the three claim violations on cell 5, one is a genuine defect, one a deliberate design choice and one a false positive of this instrument. The \texttt{CLONE\_NEWNS} defect was public before this project first recorded it on 2026-10-18: a fix had been proposed in June 2026 and the issue was filed independently on 2026-10-21. It is described here as independently observed, not discovered. The false positive (\pid{unshare.flags.newtime}) is a limitation of the method: a \texttt{permitted} verdict records that the call succeeded, and on a reimplemented kernel success does not prove that the operation took place. The masked-path behaviour is a deliberate gVisor decision, recorded upstream and harmless because the files are the sandbox's own synthesis.
+
+\subsection{Kata Containers}
+The Kata agent's masking routine bind-mounts \file{/dev/null} over each path in the specification's \texttt{maskedPaths}. A bind of a character device over a directory fails with \errno{ENOTDIR}, which the routine treats as success, so masked \emph{directories} are never masked. With the kubelet's default list the effect is that the guest virtual machine's ACPI tables and firmware information are readable from the container; a directory an operator adds to the list is left unmasked as well. The defect was reported publicly upstream on 2026-11-01 and fixed the next day by masking directories with a shared read-only tmpfs; the fix had not reached a release when this report was written. The maintainers handled it as an ordinary public bug, without an advisory.
+
+\section{Where the Commitment Was Not Met}
+
+Two genuine runtime defects were observed. Neither was reported by this project, and both were public upstream before this report. The gVisor case is unproblematic: the defect was public, with a fix proposed, before our first recording of it. The Kata case is the one where the commitment was not met as written. Our cell 6 fingerprint, public in the repository since 2026-10-18, showed \pid{path.masked.proc_acpi} and \pid{path.masked.sys_firmware} reachable two weeks before the defect was reported upstream. We did not recognise it as a defect at the time, because the evaluator records both as undeclared exposures: the posture asserts masks only for \file{/proc/kcore} and \file{/proc/keys}, and the evaluator does not treat the kubelet's default masked paths as a claim. That gap in the evaluator is listed among the limitations (Section~\ref{sec:limits}) and is the first change it suggests.
+
+No finding has an open disclosure window, and nothing in this report is withheld.

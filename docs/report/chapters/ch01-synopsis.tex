@@ -1,0 +1,74 @@
+\chapter{Synopsis}
+\label{ch:synopsis}
+
+\section{Abstract}
+
+A container's security posture is declared in a manifest and enforced by the kernel, and the two are not the same thing. The manifest names a seccomp profile, a capability set and a Pod Security Standard. What the kernel actually permits depends additionally on the container runtime and its version, the node's distribution, kernel build and loaded modules, the processor architecture, the active Linux Security Module and the RuntimeClass, none of which the manifest records. Two clusters running an identical manifest can therefore expose materially different kernel attack surface, and nothing in a deployment pipeline reports the difference. The motivating case is CVE-2026-31431 (``Copy Fail''), a kernel privilege escalation reached through the AF\_ALG socket family, which the RuntimeDefault seccomp profiles of containerd and Moby did not deny and which Pod Security Standards at the Restricted level did not address.
+
+CALIPER is an instrument that measures enforced confinement directly. It runs as an ordinary, unprivileged container and executes a corpus of 185 argument-level reachability probes in eight families (socket address families, netlink protocols, io\_uring opcodes, mount filesystem types, clone and unshare flags, masked and read-only paths, device nodes and capability effects). Each probe runs in its own forked child, so a probe killed by a seccomp filter or hung in the kernel is recorded as a measurement rather than ending the run. The result is a confinement fingerprint keyed by the \emph{environment cell} that produced it. A Go control plane diffs fingerprints and classifies every divergence as architecture-, kernel-version-, runtime-class- or policy-explained; attributes denials to the mechanism that produced them using errno oracles, capability and security-module correlation and cell elimination; evaluates a fingerprint against the declared manifest and against a versioned, cited reference posture; and generates the minimal seccomp change that closes what it finds, verifying each closure by probing again.
+
+The instrument was evaluated on six environment cells provisioned as Compute Engine virtual machines (arm64 and amd64, AppArmor and SELinux, containerd 1.7 and 2.2, runc, gVisor and Kata Containers) and on a Google Kubernetes Engine cluster that measures every pull request. Every success criterion set in the project proposal was met: policy-explained divergence in 12 of 15 cell pairs; expectation violations in at least three cells; the AF\_ALG case reproduced with an unmodified probe image and shown present on one node and absent on another under the same manifest; 220 of 220 attributed denials correct with 1.3 per cent undecidable on a constructed ground truth; 75 of 75 seccomp-attributable findings closed and verified; no residual objects after any run; and a slowest full run of 8.6 seconds against a 60-second budget. Two results are weaker than those figures suggest and are stated openly: on the six production cells between 21.6 and 85.0 per cent of denials remain undecidable, and the three-cell expectation criterion at the \texttt{restricted} tier depends on a single finding of doubtful weight. The evaluation also observed two genuine runtime defects, one in gVisor and one in Kata Containers. Both were public upstream before this report, and neither was reported by this project.
+
+\noindent\textbf{Keywords:} container security, Linux kernel, seccomp, confinement measurement, Kubernetes, attack surface, gVisor, Kata Containers, errno oracle.
+
+\section{Problem Statement}
+
+Given a container, on a particular node, at a particular moment, \emph{what can it actually reach in the kernel}, and why does that differ from what an identically configured container reaches elsewhere? Existing tools answer neighbouring questions. Configuration scanners report what a manifest declares; runtime monitors report what a workload did, which is a subset of what it could have done; profile generators report what an application needs, not what its environment permits. None measures enforced confinement, and none separates a genuine policy difference from a difference that the processor architecture, the kernel version or a sandboxed runtime explains. The project's problem is to build an instrument that does both, from inside an unprivileged container, without damaging the node it measures.
+
+\section{Motivation in Brief}
+
+The AF\_ALG case shows the failure concretely. The vulnerability is reached through a socket address family rather than a distinctive system call, so a filter at system-call-name granularity cannot express it. Published testing found that workloads which satisfied every conventional hardening check were exploitable, and establishing that fact required hand-built test images and a hand-written profile. Whether a given node is exposed depends on the runtime version installed on it: containerd added an AF\_ALG deny to its default profile in May 2026, and a node running an earlier version enforces a weaker policy than an identically configured node running a later one. The same happened with io\_uring in 2023. The declared posture is therefore an assertion, and in current practice it is unverified. Chapter~\ref{ch:background} develops the background and the motivating case in full.
+
+\section{Objectives}
+
+The proposal set eight objectives, all of which were delivered (Table~\ref{tab:objectives}, Chapter~\ref{ch:proposed}):
+\begin{enumerate}[leftmargin=*]
+\item a probe engine with fork isolation, bounded and accounted side effects and precise verdicts;
+\item an argument-granular probe corpus with a committed set of eight families and a specified deferred set;
+\item denial attribution based principally on errno oracles, with a reported confidence;
+\item a stable, environment-keyed fingerprint format and a four-class divergence classifier;
+\item a versioned, cited reference posture;
+\item an evaluator that separates claim violations, expectation violations and undeclared exposures;
+\item a remediation generator emitting minimal argument-level seccomp policy, with closure verified by re-probing;
+\item an evaluation across at least six environment cells that reproduces the AF\_ALG case unaided.
+\end{enumerate}
+
+\section{Summary of Contributions}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{A measurement engine} written in Rust as a static musl binary in a scratch image. It forks a child per probe, waits on a process descriptor with a hard deadline, survives seccomp kill actions, snapshots six classes of residual kernel state around every probe and the loaded module set around the whole run, and is checked in CI against a committed baseline of its own system calls.
+\item \textbf{A corpus of 185 probes}, each authored with an errno oracle that states what error the kernel is structurally guaranteed to return if the call reaches it, which enforcement mechanisms that oracle isolates, the kernel dependency of the entry point, its capability requirement, its applicability and its side effects. A further 28 probes in nine families are specified in the same format and deliberately not run.
+\item \textbf{A divergence classifier} that assigns each difference between two fingerprints exactly one of four classes, so that architecture, kernel-version and sandbox effects are never reported as policy.
+\item \textbf{An attributor} that combines errno oracles, capability and LSM correlation and elimination by the cell's own observable state, and reports what it cannot decide as a measured fraction rather than assuming it is zero.
+\item \textbf{A reference posture} (v1) of four tiers and fifteen assertions, each with a rationale and at least one citation, released with the instrument.
+\item \textbf{An evaluator and remediator} that produce a Localhost seccomp profile and a Security Profiles Operator resource from the runtime's actual default profile, and count a finding as closed only when a fresh measurement shows it denied.
+\item \textbf{A reproducible evaluation}: six provisioned cells with pinned package versions, a GKE cluster evaluating every pull request, a signed multi-architecture release (v1.0.0), and committed fingerprints from which every number in Chapter~\ref{ch:results} is regenerated by a single command.
+\end{itemize}
+
+\section{Summary of Results}
+
+Table~\ref{tab:synopsis-results} lists the headline measurements against the proposal's success criteria. Each is discussed, with its caveats, in Chapter~\ref{ch:results}.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{4.0cm}P{3.0cm}LP{0.9cm}@{}}
+\toprule
+\textbf{Criterion} & \textbf{Threshold} & \textbf{Measured} & \textbf{Met} \\
+\midrule
+Policy-explained divergence & $\ge$ 4 cell pairs & 12 of 15 pairs; architecture and runtime class separated in every pair & yes \\
+Expectation violations & $\ge$ 3 cells & 3 cells at \texttt{restricted} (one rests on a single doubtful finding); 6 cells at \texttt{untrusted-multi-tenant} & yes \\
+AF\_ALG reproduction & binary & reproduced with the standard Job and image & yes \\
+Attribution accuracy & $\ge$ 90\% & 220 of 220 attributed denials correct & yes \\
+Undecidable fraction & $\le$ 10\% & 1.3\% on the ground truth; 21.6--85.0\% on production cells & yes \\
+Seccomp closure & 100\% & 75 of 75 verified; other mechanisms 0 of 63 & yes \\
+Residual state & 0 objects & 0 unreclaimed, 0 leaks on every cell & yes \\
+Runtime & 60 s full, 5 s reduced & 8.6 s and 2.9 s (gVisor, slowest) & yes \\
+\bottomrule
+\end{tabularx}
+\caption{Headline results against the success criteria of the proposal (\S11.2).}
+\label{tab:synopsis-results}
+\end{table}
+
+\section{Organisation of the Report}
+
+Chapter~\ref{ch:background} gives the technical background on Linux container confinement and develops the motivating case. Chapter~\ref{ch:literature} surveys the research literature and existing tools paper by paper, and Chapter~\ref{ch:gaps} distils the gaps they leave. Chapter~\ref{ch:proposed} states the proposed solution, its objectives, design principles and success criteria. Chapter~\ref{ch:architecture} presents the architecture. Chapters~\ref{ch:engine} and~\ref{ch:analysis} describe the methodology: the measurement side (probe specification, engine, residual accounting and corpus) and the analysis side (attribution, fingerprint, classifier, posture, evaluator, remediator and reporting). Chapter~\ref{ch:techstack} lists the technology stack, and Chapter~\ref{ch:setup} the experimental setup. Chapter~\ref{ch:results} reports and analyses every result. Chapter~\ref{ch:disclosure} records the responsible-use and disclosure review, Chapter~\ref{ch:discussion} discusses what the compressed schedule gave up, the limitations and the threats to validity, and Chapter~\ref{ch:conclusion} concludes. The appendices give the reproduction commands, the project record and the complete probe index.

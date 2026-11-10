@@ -1,0 +1,79 @@
+\chapter{Technology Stack}
+\label{ch:techstack}
+
+\section{Overview}
+
+The technology choices follow from the two halves of the architecture. The measurement half must add nothing to the kernel surface it measures, so it is a single static binary with no runtime and no shared libraries. The analysis half needs the container ecosystem's libraries and is written in the language they are written in. Table~\ref{tab:stack} summarises the stack; the sections below give the reasons.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.4cm}L@{}}
+\toprule
+\textbf{Layer} & \textbf{Technology} \\
+\midrule
+Probe engine & Rust 1.93 (pinned in \file{rust-toolchain.toml}); targets \texttt{x86\_64-} and \texttt{aarch64-unknown-linux-musl}; linker \texttt{rust-lld} \\
+Engine crates & \texttt{nix} and \texttt{libc} (system calls), \texttt{serde} and \texttt{serde\_json} (fingerprint), \texttt{seccompiler} (test fixtures only) \\
+Probe image & two-stage Dockerfile: Debian bookworm to build, \texttt{scratch} to ship; the image contains the binary and nothing else \\
+Control plane & Go 1.26; \texttt{k8s.io/client-go} v0.32.4; \texttt{go-github} v68; \texttt{gopkg.in/yaml.v3} \\
+Kernel interfaces & seccomp-BPF, capabilities, namespaces, cgroups v2, procfs and sysfs, \texttt{pidfd\_open}, io\_uring registration, netlink, AppArmor and SELinux attribute interfaces \\
+Container runtimes & containerd 1.7.12, 2.2.1 and 2.2.7; runc 1.1.12 and 1.3.4; gVisor release-20261005.0; Kata Containers 3.14.0; \texttt{crictl} \\
+Orchestration & Kubernetes Job and DaemonSet; Pod Security Admission; RuntimeClass; Security Profiles Operator v1.1.1 with cert-manager v1.21.2 (acceptance test) \\
+Cloud & Google Compute Engine (six cells), Google Kubernetes Engine (CI target), region \texttt{asia-south1}, zone \texttt{asia-south1-a} \\
+CI/CD & GitHub Actions (\file{ci.yml}, \file{cluster-evaluation.yml}, \file{release.yml}); actions pinned by commit SHA \\
+Release & GitHub Container Registry; Docker Buildx \texttt{imagetools}; Sigstore cosign v3.1.3~\cite{cosign}, keyless via the workflow's OIDC identity \\
+Comparison tools & \texttt{amicontained} v0.4.9; \texttt{seccomp-diff} at commit \texttt{68d4f45} \\
+Development & Lima virtual machines on Apple silicon (arm64 with Apple's Virtualization framework; amd64 under QEMU) from \file{scripts/dev-vm.yaml}, with Docker, \texttt{strace} and a Rust toolchain \\
+Documentation & Markdown in the repository; this report in \LaTeX{} (built with Tectonic) \\
+\bottomrule
+\end{tabularx}
+\caption{Technology stack.}
+\label{tab:stack}
+\end{table}
+
+\section{Programming Languages}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Rust (probe engine and corpus).} The engine must fork before each probe, must not issue system calls of its own, and must survive a child killed by SIGSYS. Rust gives direct control of system calls through \texttt{nix} and \texttt{libc} without a runtime, and compiles against musl into a fully static binary. The release profile sets \texttt{panic = "abort"} (a probe child must never unwind), link-time optimisation and stripping. Probe definitions are Rust code, so the oracle's reasoning about kernel code paths sits beside the call it describes.
+\item \textbf{Go (control plane).} Fingerprint handling, diffing, evaluation, remediation and the Kubernetes and GitHub integrations use \texttt{client-go} and \texttt{go-github}, and the remediator emits Security Profiles Operator resources whose types are defined in Go. The JSON shared with the engine uses \texttt{encoding/json}.
+\item \textbf{Shell (delivery).} Cell provisioning, measurement and the pipeline driver are Bash scripts checked with \texttt{shellcheck} in CI.
+\end{itemize}
+
+\section{Kernel and Runtime Interfaces Used}
+
+The engine uses only interfaces available to an unprivileged process: \texttt{fork}, \texttt{pidfd\_open}, \texttt{ppoll} and \texttt{wait4} for the harness; \texttt{uname} for identity; reads of \file{/proc/self/status}, \file{/proc/self/attr/*}, \file{/proc/modules}, \file{/proc/self/uid_map} and a handful of sysctls for the cell; \file{/proc/self/mountinfo}, \file{/proc/keys} or \file{/proc/key-users}, \file{/sys/fs/cgroup}, \file{/proc/sysvipc/*}, \file{/dev/shm}, \file{/dev/mqueue} and \file{/proc/*/ns/net} for residual state; and, for probes, exactly the call under test. The cell scripts use \texttt{crictl} to create pods through containerd's CRI the way the kubelet does, so a measurement on a cell has the same confinement as a pod scheduled there.
+
+\section{Infrastructure}
+
+\subsection{Compute Engine cells}
+The six evaluation cells are virtual machines in a dedicated Google Cloud project, created and managed by \file{deploy/gce/cells.sh}. Compute Engine supplied what developer hardware could not: native amd64 machines and nested virtualisation for the Kata cell, an arm64 machine type (\texttt{c4a-standard-2}) running the same Ubuntu kernel build as the amd64 cells, and the ability to rebuild any cell from its provisioning script. Machines are stopped between measurements; the cost of the evaluation, including the GKE cluster, was covered by a free-trial credit.
+
+\subsection{GKE cluster for continuous integration}
+A zonal GKE cluster with one \texttt{e2-medium} node on Container-Optimized OS (containerd 2.2.7, kernel 6.12) measures every pull request. The measurement namespace enforces the \texttt{restricted} Pod Security level, and a service account with a namespaced role that can only create, watch, read logs from and delete Jobs and pods is the only credential the workflow holds.
+
+\section{Continuous Integration and Release}
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.0cm}P{2.6cm}L@{}}
+\toprule
+\textbf{Workflow / job} & \textbf{Runner} & \textbf{Checks} \\
+\midrule
+\file{ci.yml}: scripts & ubuntu-24.04 & \texttt{shellcheck} on every script; reference posture validation (every assertion has a rationale and a citation, every probe id exists); Kubernetes manifest validation \\
+\file{ci.yml}: engine & ubuntu-24.04 & static musl build and tests; the frozen corpus index matches \texttt{-{}-dump-corpus}; no dynamic loader in the binary; system-call baseline; the probe image builds from \texttt{scratch}; the reduced corpus omits every autoloading probe; the reduced corpus runs within its 5-second budget \\
+\file{ci.yml}: engine-arm64 & ubuntu-24.04-arm & the same build, index, loader and baseline checks natively on arm64 \\
+\file{ci.yml}: control & ubuntu-24.04 & \texttt{go build}, \texttt{go vet} and \texttt{go test}, including every metric regeneration test \\
+\file{cluster-evaluation.yml} & ubuntu-24.04 & builds the pull request's probe image, runs the reduced corpus as a Job on the GKE cluster, evaluates at \texttt{restricted}, and posts or updates the report comment; skipped for forks \\
+\file{release.yml} & native amd64 and arm64 & on a \texttt{v*} tag: native image builds, a joined multi-architecture image, the image's \texttt{-{}-version} checked against the tag, keyless cosign signature of the digest, and a GitHub release carrying the posture, its rationale and the corpus index \\
+\bottomrule
+\end{tabularx}
+\caption{Continuous integration and release workflows.}
+\label{tab:ci}
+\end{table}
+
+\section{Version Control and Collaboration}
+
+The repository~\cite{caliper} is public on GitHub under the Apache License 2.0, chosen for its express patent grant and because it is the licence of the projects CALIPER measures and integrates with. \texttt{main} is protected: changes arrive by pull request with an approving review from the code owner, the strict status checks of all CI jobs, linear history and resolved conversations. Work was tracked as GitHub issues, one milestone per freeze gate, with the workstream letter in every title and the person as assignee. Secret scanning with push protection, Dependabot alerts and private vulnerability reporting are enabled. At the time of writing \texttt{main} has 116 commits from 87 merged pull requests, and 71 of 73 issues are closed; the two open issues are this report and the demonstration.
+
+\section{Development Environment}
+
+Development happened on Apple-silicon laptops. \file{scripts/dev-vm.yaml} defines a Lima virtual machine with Docker, \texttt{strace} and a Rust toolchain that mounts the repository at its host path; the engine was cross-compiled on the host and run in the VM, and an emulated amd64 VM provided a real x86\_64 kernel and runc for the x86\_64 baseline and hardened profile. A snapshot of the VM was the rollback after any probe experiment. Go code was built and tested in a \texttt{golang:1.26} container inside the VM, so that every developer ran the same toolchain as CI.

@@ -1,0 +1,128 @@
+\chapter{Proposed Solution}
+\label{ch:proposed}
+
+\section{Objective}
+
+The project builds an instrument that answers, by measurement, what a container can reach in the kernel on a particular node, explains every difference between two such measurements, attributes each denial to the mechanism that produced it where that can be decided without privilege, evaluates the measurement against both the manifest and a cited model of what ought to be unreachable, and closes what it finds with the narrowest seccomp change, verified by measuring again. The instrument runs as an ordinary container with the same confinement as the workload it stands in for: it never needs, and never asks for, more privilege than that workload has.
+
+\section{Rationale}
+
+The claim is an engineering one. Measuring confinement from inside a container is not a new idea (\texttt{amicontained}, Houdini). What did not exist is an instrument that does it at argument granularity, keys the result to the environment, separates policy from architecture and sandbox effects, attributes denials, and carries the result through to a verified remediation. The proposal therefore treats the divergence classifier, the reference posture and the evaluator as the contribution, and the breadth of the corpus as the substrate; breadth was the first thing to cut when the schedule required it.
+
+\section{Research Questions}
+
+\begin{enumerate}[label=\textbf{RQ\arabic*},leftmargin=*]
+\item Can enforced confinement be measured at argument granularity from inside an unprivileged container, safely and quickly enough to run on every pull request?
+\item Across environment cells that differ in one axis at a time, how much of the measured divergence is policy, and how much is explained by architecture, kernel version or RuntimeClass?
+\item What fraction of denials can be attributed to their mechanism without privilege, and how accurately?
+\item Does evaluation against a cited reference posture find exposures that evaluation against the manifest misses, as the AF\_ALG case suggests?
+\item Can the exposures found be closed with minimal seccomp changes, and does a fresh measurement confirm the closure on every runtime?
+\end{enumerate}
+
+\section{Design Principles}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Measure, do not infer.} Every verdict is the kernel's answer to one call. The engine stores no interpretation; attribution and classification are computed later from the raw verdicts and the probe's declared metadata, and anything that cannot be decided is reported as undecidable.
+\item \textbf{Identity is the environment cell.} Architecture, kernel version and loaded modules, distribution, runtime and runtime version, LSM and RuntimeClass are first-class fields of every result, each with its source.
+\item \textbf{Reachability, never exploitation.} No probe contains exploit code or uses what a successful call grants. Enumeration interfaces are preferred over execution; io\_uring opcodes are enumerated with \texttt{IORING\_REGISTER\_PROBE}, and no submission entry is ever submitted.
+\item \textbf{The instrument survives its findings.} Each probe runs in a forked child, so a seccomp kill or a hang is a recorded verdict rather than a lost run.
+\item \textbf{One interface between the halves.} The Rust measurement side and the Go analysis side meet only at the fingerprint format, which lets four people work in parallel against recorded fingerprints.
+\item \textbf{Report what was given up.} The corpus is split into a committed and a deferred set, and every fingerprint lists the deferred probes as unmeasured, so the gap is visible in every result.
+\end{itemize}
+
+\section{Objectives and Outcomes}
+
+Table~\ref{tab:objectives} lists the eight objectives of the proposal and what was delivered against each.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{0.5cm}P{4.4cm}L@{}}
+\toprule
+\textbf{\#} & \textbf{Objective} & \textbf{Outcome} \\
+\midrule
+1 & Probe engine with fork isolation, accounted side effects and precise verdicts & Delivered. Every probe runs in a forked child with a 1-second deadline; six verdicts; SIGSYS survival demonstrated with 122 kills in one run; six residual classes snapshotted per probe; module autoload reported. \\
+2 & Argument-granular corpus & Committed set delivered: 185 probes in 8 families, frozen 2026-09-27. Deferred set specified (28 probes, 9 families) and not run. \\
+3 & Denial attribution by errno oracle & Delivered, with capability and LSM correlation and cell elimination; three confidence grades; the undecidable fraction is reported as measured. \\
+4 & Fingerprint format and divergence classifier & Format version 1 frozen 2026-10-19 (PR \iss{141}); four-class classifier; corpus skew reported apart. \\
+5 & Versioned, cited reference posture & Posture v1: four tiers, 15 assertions, 16 citations, released with the instrument. \\
+6 & Evaluation against manifest and posture & Delivered: claim violations, expectation violations and undeclared exposures, in JSON and text. SARIF deferred. \\
+7 & Minimal remediation with closure verification & Localhost seccomp profile and Security Profiles Operator resource, built from the runtime's actual RuntimeDefault; every closure verified by re-probing. \\
+8 & Evaluation across six cells & Six Compute Engine cells plus a GKE cluster; AF\_ALG case reproduced with the standard image. \\
+\bottomrule
+\end{tabularx}
+\caption{Objectives of the proposal (\S4) and their outcomes.}
+\label{tab:objectives}
+\end{table}
+
+\section{Success Criteria}
+
+The proposal fixed measurable criteria before any code was written (Table~\ref{tab:criteria}). They are reported, each with its measured value and caveats, in Chapter~\ref{ch:results}.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.6cm}LP{3.6cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{Definition} & \textbf{Success threshold} \\
+\midrule
+Divergence across cells & Probes whose verdict differs between two cells, per divergence class & Policy divergence in $\ge$ 4 pairs; architecture and runtime class separated in every pair \\
+Expectation and claim violations & Findings by category and cell & $\ge$ 1 expectation violation in $\ge$ 3 cells \\
+AF\_ALG reproduction & Detection without bespoke images or profiles & Binary \\
+Attribution accuracy & Against environments in which each denial has one known cause & $\ge$ 90\% of attributed denials correct; $\le$ 10\% of all denials undecidable \\
+Remediation closure & Findings closed, verified by re-probing & 100\% for seccomp-attributed; others reported \\
+Residual state & Unreclaimed objects after a full run & Zero; autoloaded modules reported apart \\
+Runtime cost & Wall time of a run & Full corpus $<$ 60 s; reduced corpus $<$ 5 s \\
+Ancestor comparison & Findings of amicontained and seccomp-diff on identical targets & Reported, no threshold \\
+\bottomrule
+\end{tabularx}
+\caption{Success criteria fixed in the proposal (\S11.2).}
+\label{tab:criteria}
+\end{table}
+
+\section{Scope}
+
+\textbf{In scope:} measurement of kernel reachability from inside a container on Linux; classification, attribution and evaluation of the measurements; seccomp remediation and its verification; delivery as a Kubernetes Job and DaemonSet, in CI, and on self-managed cells.
+
+\textbf{Out of scope:} continuous runtime monitoring and intrusion detection; generation of profiles from application traces; exploitation of any entry point measured; userspace package vulnerability scanning; non-Linux platforms. The instrument measures and reports. It does not enforce, and it is not a substitute for the mechanisms whose effect it measures.
+
+\section{Work Allocation}
+
+The work was cut along the fingerprint interface into four workstreams so that no member was blocked on another (Table~\ref{tab:workstreams}). Workstreams B and D exchanged their work on 2026-09-14, after the week-3 gate; the letters stayed with the work.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{0.6cm}P{3.6cm}L@{}}
+\toprule
+\textbf{WS} & \textbf{Member} & \textbf{Responsibility} \\
+\midrule
+A & Abhinav Ajit Madake & Probe engine, fork isolation, safety, probe specification format, the attribution engine, and half of the corpus families \\
+B & Ritesh Aresh Saindane & Corpus families, errno-oracle discipline across the corpus, capability and LSM correlation, the reference posture \\
+C & Yogesh Babaji Palve & Fingerprint serialisation, diff engine and classifier, manifest parsing, evaluator, reporting, and the capability-effect family \\
+D & Sahil Tatyabhau Waje & Delivery: Kubernetes packaging, CI integration, the environment matrix, remediation and closure verification; integrator \\
+\bottomrule
+\end{tabularx}
+\caption{Workstreams and responsibilities.}
+\label{tab:workstreams}
+\end{table}
+
+\section{Schedule}
+
+The proposal compressed a two-semester plan into seventeen weeks, starting on Monday 2026-09-07, by reducing scope rather than the critical path. Table~\ref{tab:gates} gives the freeze gates as planned and as met. The gates keep the proposal's week numbers as names; their due dates were brought forward, so the last gate, W17, falls on 2026-11-29, twelve calendar weeks after the start. Week 16 was held empty as declared slack. The system was to be independently defensible from the week-9 gate: measuring, classifying and diffing confinement across environments, even without evaluation or remediation.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{1.2cm}P{4.6cm}P{2.2cm}L@{}}
+\toprule
+\textbf{Gate} & \textbf{Content} & \textbf{Due} & \textbf{Met} \\
+\midrule
+W2 & Probe specification and fingerprint format agreed & 2026-09-11 & 2026-09-11 \\
+W3 & Engine and ten-probe reference corpus end to end & 2026-09-18 & 2026-09-14 (four days early) \\
+W8 & Corpus frozen & 2026-09-27 & 2026-09-27, 185 probes \\
+W9 & Fingerprint format frozen & 2026-10-11 & 2026-10-19 (PR \iss{141}) \\
+W12 & Attribution, evaluator and remediation & 2026-10-25 & 2026-10-22 to 2026-10-26 \\
+W15 & Evaluation complete & 2026-11-15 & 2026-10-26 to 2026-10-27 (accuracy, residual, closure) \\
+W17 & Release, report and demonstration & 2026-11-29 & v1.0.0 released 2026-10-29 \\
+\bottomrule
+\end{tabularx}
+\caption{Freeze gates. Work began on 2026-09-07; gate names are the proposal's week numbers, not calendar weeks.}
+\label{tab:gates}
+\end{table}

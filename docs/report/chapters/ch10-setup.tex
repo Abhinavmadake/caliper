@@ -1,0 +1,114 @@
+\chapter{Experimental Setup}
+\label{ch:setup}
+
+\section{The Environment Matrix}
+
+The unit of evaluation is the environment cell: the tuple of architecture, runtime and version, kernel, distribution and loaded modules, LSM and RuntimeClass. Cells are counted honestly: kind, minikube and k3s on one host are one cell, not three, because all three are containerd on the same kernel. Cell 2 is the baseline, and every other cell moves as few axes as possible relative to it, so that a divergence is attributable to one thing (Figure~\ref{fig:cells}, Table~\ref{tab:cells}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  every node/.append style={execute at begin node={\hyphenpenalty10000 }},
+  cell/.style={draw=inkm,rounded corners=3pt,fill=boxfill,text width=3.3cm,align=center,font=\footnotesize,minimum height=1.25cm},
+  base/.style={cell,fill=s1!12,draw=s1,very thick},
+  ed/.style={-{Stealth[length=2mm]},thick,draw=inkm},
+  lab/.style={font=\scriptsize,fill=white,inner sep=1.5pt,text=inkm}]
+\node[base,text width=3.6cm] (c2) at (0,0) {\textbf{Cell 2 (baseline)}\\amd64, Ubuntu 24.04\\containerd 2.2.1, runc\\AppArmor};
+\node[cell] (c1) at (-5.4,2.3) {\textbf{Cell 1}\\arm64, same kernel build};
+\node[cell] (c3) at (5.4,2.3) {\textbf{Cell 3}\\Rocky Linux 9, kernel 5.14\\SELinux};
+\node[cell] (c4) at (-5.4,-2.3) {\textbf{Cell 4}\\containerd 1.7.12\\runc 1.1.12};
+\node[cell] (c5) at (0,-3.4) {\textbf{Cell 5}\\gVisor (runsc)\\release-20261005.0};
+\node[cell] (c6) at (5.4,-2.3) {\textbf{Cell 6}\\Kata Containers 3.14.0\\guest kernel 6.12.13};
+\draw[ed] (c2) -- node[lab]{architecture} (c1);
+\draw[ed] (c2) -- node[lab]{LSM + distribution} (c3);
+\draw[ed] (c2) -- node[lab]{runtime version} (c4);
+\draw[ed] (c2) -- node[lab]{RuntimeClass} (c5);
+\draw[ed] (c2) -- node[lab]{RuntimeClass} (c6);
+\end{tikzpicture}
+\caption{The six cells and the axis each moves relative to the baseline, cell 2.}
+\label{fig:cells}
+\end{figure}
+
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{@{}lP{1.0cm}P{2.3cm}P{3.0cm}LP{1.6cm}@{}}
+\toprule
+\textbf{Cell} & \textbf{Arch} & \textbf{Distribution} & \textbf{Kernel} & \textbf{Runtime} & \textbf{LSM} \\
+\midrule
+1 & arm64 & Ubuntu 24.04 & 7.0.0-1014-gcp & containerd 2.2.1, runc 1.3.4 & AppArmor \\
+2 & amd64 & Ubuntu 24.04 & 7.0.0-1014-gcp & containerd 2.2.1, runc 1.3.4 & AppArmor \\
+3 & amd64 & Rocky Linux 9 & 5.14.0-687.56.1.el9\_8 & containerd 2.2.1, runc 1.3.4 & SELinux \\
+4 & amd64 & Ubuntu 24.04 & 7.0.0-1014-gcp & containerd 1.7.12, runc 1.1.12 & AppArmor \\
+5 & amd64 & Ubuntu 24.04 & host 7.0.0-1014-gcp; sandbox reports 4.19 & containerd 2.2.1, gVisor release-\allowbreak 20261005.0 & none in sandbox \\
+6 & amd64 & Ubuntu 24.04 & guest 6.12.13 & containerd 2.2.1, Kata 3.14.0 & none in guest \\
+GKE & amd64 & Container-Opti\-mized OS & 6.12.105+ & containerd 2.2.7, runc & AppArmor \\
+\bottomrule
+\end{tabularx}
+\caption{Environment cells. Machines: cell 1 \texttt{c4a-standard-2}; cells 2 to 5 \texttt{e2-standard-2}; cell 6 \texttt{n2-standard-2} with nested virtualisation; GKE \texttt{e2-medium}.}
+\label{tab:cells}
+\end{table}
+
+Cells 4, 5 and 6 each move exactly one axis. Cell 3 moves the LSM and the distribution together, because SELinux is not a supported Ubuntu configuration; divergence in that pair is attributed to policy only after the kernel-version class has been excluded probe by probe. Cell 1 was expected to move the kernel build with the architecture, but on Compute Engine the arm64 Ubuntu image runs the same kernel release as the amd64 one, so cell 1 moves the architecture alone, which is stronger than the proposal expected. The containerd versions are pinned rather than left to the host's patch state: Ubuntu 24.04 ships 1.7.12 in its release pocket and 2.2 in updates, and both predate the AF\_ALG deny, so cells 2 and 4 together carry the AF\_ALG reproduction while sitting on either side of the io\_uring change.
+
+\section{Provisioning}
+
+Each cell is created by \texttt{cells.sh create cellN}, which boots the VM from a pinned image and runs the cell's provisioning script in \file{deploy/gce/provision/}. Provisioning is designed so that a cell rebuilt later is the same cell:
+\begin{itemize}[leftmargin=*]
+\item Ubuntu cells read the package archive through the snapshot \texttt{20261016T120000Z}; the kernel, AppArmor, libseccomp and the runtime are held, and unattended upgrades are disabled. Cell 3 version-locks its runtime, policy and kernel.
+\item Every download (gVisor, Kata, \texttt{crictl}) is checked against a pinned hash.
+\item Provisioning fails unless the containerd on \texttt{PATH}, the running daemon and runc are the pinned versions, and unless the cell's RuntimeClass handler is registered.
+\item The packages that define the cell are recorded in \file{/etc/caliper/packages} and committed beside each fingerprint.
+\item Cells 5 and 6 register two handlers each: the default (\texttt{runsc}, \texttt{kata}) and a variant that applies seccomp inside the sandbox (\texttt{runsc-seccomp}, which sets gVisor's \texttt{oci-seccomp}; \texttt{kata-seccomp}, which sets \texttt{disable\_guest\_seccomp = false}).
+\end{itemize}
+
+\section{Measurement Procedure}
+
+\texttt{cells.sh measure cellN <image>} reboots the cell first, so that modules an earlier run autoloaded are not recorded as the node's, and then runs \file{deploy/gce/measure.sh} on it. That script builds the pod the way the kubelet builds the standard Job (\file{deploy/k8s/job.yaml}) and runs it through containerd's CRI with \texttt{crictl}:
+\begin{itemize}[leftmargin=*]
+\item its own network and PID namespaces;
+\item UID 65534, all capabilities dropped, \texttt{no\_new\_privs}, a read-only root filesystem and a writable \file{/tmp};
+\item RuntimeDefault seccomp, and the runtime's default AppArmor profile where AppArmor is enabled, or SELinux labelling and a relabelled \file{/tmp} where SELinux is enforcing;
+\item the kubelet's default masked and read-only paths, taken from the kubelet's source, because an earlier version of the request omitted them and left \file{/proc} unmasked (a defect found in review and corrected before any recorded measurement);
+\item the RuntimeClass handler for cells 5 and 6.
+\end{itemize}
+The script fails if the probe fails or does not finish, and prints the cell's packages and the configuration containerd actually applied to standard error. The raw output is then completed by \texttt{caliper-complete} with the distribution, runtime, runtime version and RuntimeClass as operator-sourced facts, and digested. The released v1.0.0 image (amd64 and arm64) is pinned by digest in \file{cells.sh}. The recordings in \file{fixtures/cells/} were made earlier with images built locally from commit \texttt{529048c}, and every run's \file{.packages} file records the exact image used.
+
+\section{Ground-Truth Environments}
+
+Attribution accuracy needs denials whose cause is known. \file{measure.sh} has ground-truth modes, each a run on cell 2 from a fresh boot with every control off (UID 0, all capabilities, seccomp and AppArmor unconfined, no masked or read-only paths) except the one the mode names (Table~\ref{tab:gtenv}). A control run with no control in force gives the kernel's own denials: seven device nodes the runtime does not create (\errno{ENOENT}) and \pid{capability.sys_ptrace}'s \errno{EFAULT} on its capable path. The same probe denied with the same errno is left out of every environment.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.0cm}LP{4.0cm}@{}}
+\toprule
+\textbf{Environment} & \textbf{Only control in force} & \textbf{Fingerprint} \\
+\midrule
+control & none & \file{gt-none.json} \\
+seccomp & containerd's RuntimeDefault seccomp profile & \file{gt-seccomp.json} \\
+seccomp-hardened & the hand-hardened profile as a Localhost profile & \file{gt-seccomp-hardened.json} \\
+apparmor & containerd's RuntimeDefault AppArmor profile, enforcing & \file{gt-apparmor.json} \\
+capability & all capabilities dropped, UID 65534; Ubuntu's AppArmor user-namespace restriction lifted & \file{gt-capability.json} \\
+paths & the kubelet's masked and read-only paths & \file{gt-paths.json} \\
+userns & \texttt{user.max\_user\_namespaces=0}, the AppArmor restriction lifted for the run & \file{gt-userns.json} \\
+\bottomrule
+\end{tabularx}
+\caption{Single-cause environments for attribution accuracy (\file{fixtures/ground-truth/}).}
+\label{tab:gtenv}
+\end{table}
+
+\section{Remediation, Residual and Runtime Runs}
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Closure.} \texttt{run-pipeline.sh cellN} with \pid{CALIPER_POSTURE_TIER=untrusted-multi-tenant} measures under RuntimeDefault, captures containerd's applied profile, evaluates, generates the remediation, and re-measures from a fresh boot under the generated Localhost profile; outputs in \file{fixtures/pipeline/<cell>[-<handler>]/}. The tier is \texttt{untrusted-multi-tenant} because at \texttt{restricted} cells 1 to 3 have nothing to close.
+\item \textbf{Residual and runtime.} The full and the reduced corpus on cells 1 to 6, each from a fresh boot, and the full corpus on cell 2 with every control off, so that every object-creating probe actually creates its object; the runs are in \file{fixtures/runtime/}.
+\item \textbf{SPO acceptance.} A temporary two-node GKE cluster with cert-manager v1.21.2 and the Security Profiles Operator v1.1.1 installed cell 2's generated \texttt{SeccompProfile}, which reached the \texttt{Installed} state on both nodes on 2026-10-24; the cluster was deleted afterwards.
+\item \textbf{Ancestors.} On cell 2, CALIPER and \texttt{amicontained} inspected the same long-lived container created through the CRI with the standard security context; after a restart, \texttt{seccomp-diff} attached from the host to a fresh BusyBox container with the same settings and extracted its filter.
+\end{itemize}
+
+\section{Continuous Evaluation on GKE}
+
+Every pull request is measured on the GKE cluster by \file{cluster-evaluation.yml}: the workflow builds the pull request's probe image, applies it as the standard Job in a namespace that enforces \texttt{restricted}, waits for completion, reads the fingerprint from the pod's log, completes it with the Node and RuntimeClass objects, evaluates at \texttt{restricted}, and posts the report. The probe's own output may be preceded by warnings; the reporter skips to the first valid JSON document. Forked pull requests are skipped so that cluster credentials never reach untrusted code.
+
+\section{Reproducibility}
+
+Every fingerprint, ground-truth run, pipeline run and runtime run is committed under \file{fixtures/}, each with a \file{.packages} file recording the probe image digest, the cell's packages and what containerd applied. Every metric in Chapter~\ref{ch:results} is regenerated from those fixtures by a command in \file{control/cmd}, and a test compares each generator's output with the committed metric file, so a change that alters a reported number fails CI (Appendix~\ref{app:repro}).
