@@ -1,0 +1,142 @@
+\chapter{Reproducing the Results}
+\label{app:repro}
+
+Every metric in Chapter~\ref{ch:results} is regenerated from committed fingerprints by a command in \file{control/cmd}, and a test compares each command's output with the committed metric file, so a change that alters a reported number fails CI. Run from \file{control/}:
+
+\begin{Verbatim}[fontsize=\footnotesize,frame=single,framesep=2mm]
+# divergence per cell pair and class (Table 11.3)
+go run ./cmd/caliper-divergence-metrics \
+    -out ../fixtures/metrics/divergence-metrics.json
+# expectation, claim and undeclared findings at the restricted tier (Table 11.4)
+go run ./cmd/caliper-ci-report -cell-fixtures ../fixtures/cells \
+    -metrics-out ../fixtures/metrics/finding-metrics.json
+# attribution against single-cause environments (Table 11.7)
+go run ./cmd/caliper-attribution-accuracy \
+    -ground-truth ../fixtures/ground-truth/attribution.json \
+    -out ../fixtures/metrics/attribution-accuracy.json
+# closure verified by re-probing (Table 11.9)
+go run ./cmd/caliper-closure-metrics \
+    -out ../fixtures/metrics/closure-metrics.json
+# residual state and runtime (Table 11.10)
+go run ./cmd/caliper-residual-metrics \
+    -out ../fixtures/metrics/residual-metrics.json
+\end{Verbatim}
+
+The measurements themselves come from the cells, with \file{deploy/gce/cells.sh}:
+
+\begin{Verbatim}[fontsize=\footnotesize,frame=single,framesep=2mm]
+# a cell: create (VM from a pinned image, then provisioning), measure, stop
+deploy/gce/cells.sh create  cellN
+deploy/gce/cells.sh measure cellN <image> > cellN.raw   # reboots first
+deploy/gce/cells.sh stop    cellN                       # a running VM is billed
+
+# ground-truth modes and the hand-hardened profile on cell 2
+deploy/gce/cells.sh measure cell2 <image> "" <mode>
+deploy/gce/cells.sh measure cell2 <image> \
+    engine/fixtures/seccomp/hardened.json
+
+# reduced corpus; closure pipeline; sandbox handlers with seccomp
+CALIPER_CORPUS_SET=reduced deploy/gce/cells.sh measure cellN <image>
+CALIPER_POSTURE_TIER=untrusted-multi-tenant \
+    deploy/gce/run-pipeline.sh cellN
+CALIPER_HANDLER=runsc-seccomp deploy/gce/run-pipeline.sh cell5
+CALIPER_HANDLER=kata-seccomp  deploy/gce/run-pipeline.sh cell6
+
+# complete a raw measurement into a fingerprint (from control/)
+go run ./cmd/caliper-complete -distribution "Ubuntu 24.04" \
+    -runtime containerd -runtime-version 2.2.1 -runtime-class runc \
+    -node-kernel 7.0.0-1014-gcp < ../cell2.raw > ../fixtures/cells/cell2.json
+\end{Verbatim}
+
+The released image is verified with cosign against the release workflow's identity (\file{RELEASE.md}):
+
+\begin{Verbatim}[fontsize=\footnotesize,frame=single,framesep=2mm]
+ghcr.io/abhinavmadake/caliper@sha256:
+    61b918d61aae4cec0b9df70526555c65ff42f9a33f6381ebb99eb1f83a174db7
+\end{Verbatim}
+
+The production undecidable fractions of Table~\ref{tab:undecidable} are not a committed metric. They were computed for this report by calling \texttt{control.Attribute} and \texttt{control.BuildReport} on the baseline fingerprints in \file{fixtures/pipeline/} and on \file{fixtures/gke-cos-containerd-2.2.7.json}; for a single fingerprint this is the value the text report prints on its ``Undecidable'' line.
+
+\chapter{Project Record}
+\label{app:record}
+
+\section{Timeline}
+
+The repository's first commit is dated 2026-09-04 and week 1 began on Monday 2026-09-07. Figure~\ref{fig:gantt} shows the main periods of work, taken from the merge dates in the repository's history, and Figure~\ref{fig:commits} the commits on \texttt{main} per calendar week (each merged pull request is one squashed commit).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=0.165cm,y=0.52cm]
+% day 0 = 2026-09-04; ticks every 7 days from 2026-09-07 (day 3)
+\foreach \d/\l in {3/{Sep 7},10/{Sep 14},17/{Sep 21},24/{Sep 28},31/{Oct 5},38/{Oct 12},45/{Oct 19},52/{Oct 26},59/{Nov 2},66/{Nov 9}} {
+  \draw[gridc] (\d,0.4) -- (\d,-11.6);
+  \node[font=\scriptsize,text=inkm,anchor=south] at (\d,0.4) {\l};
+}
+\newcommand{\gbar}[4]{\fill[#4] (#1,-#3+0.32) rectangle (#2,-#3-0.32);}
+\newcommand{\glab}[2]{\node[font=\scriptsize,anchor=east,text=inkm] at (-0.5,-#2) {#1};}
+\glab{Interfaces (spec)}{1}            \gbar{0}{7}{1}{s1}
+\glab{Engine, reference corpus}{2}     \gbar{6}{10}{2}{s1}
+\glab{Corpus families}{3}              \gbar{10}{23}{3}{s1}
+\glab{Fingerprint, diff, classifier}{4}\gbar{10}{45}{4}{s1}
+\glab{Evaluator, posture, reporting}{5}\gbar{36}{42}{5}{s1}
+\glab{Attribution and accuracy}{6}     \gbar{35}{52}{6}{s1}
+\glab{GKE CI, six cells}{7}            \gbar{42}{44}{7}{s1}
+\glab{Remediation, SPO}{8}             \gbar{44}{50}{8}{s1}
+\glab{Evaluation metrics}{9}           \gbar{48}{53}{9}{s1}
+\glab{Release v1.0.0}{10}              \node[circle,fill=s2,inner sep=0pt,minimum size=5pt] at (55,-10) {};
+\glab{Disclosure review, report}{11}   \gbar{63}{65}{11}{s1}
+\end{tikzpicture}
+\caption{Main periods of work (from merge dates). The week-17 gate, with the demonstration, is 2026-11-29.}
+\label{fig:gantt}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[cal, ybar, width=0.8\textwidth, height=5.0cm, bar width=14pt,
+  ymin=0, ymax=36, ylabel={Commits on \texttt{main}},
+  symbolic x coords={Sep 7,Sep 14,Sep 21,Sep 28,Oct 5,Oct 12,Oct 19,Oct 26},
+  xtick=data, ymajorgrids, xlabel={Week beginning},
+  nodes near coords, every node near coord/.append style={font=\scriptsize,text=inkm}]
+\addplot[fill=s1,draw=none] coordinates {(Sep 7,30) (Sep 14,18) (Sep 21,4) (Sep 28,3) (Oct 5,14) (Oct 12,23) (Oct 19,13) (Oct 26,11)};
+\end{axis}
+\end{tikzpicture}
+\caption{Commits on \texttt{main} per week, 116 in all (the first week includes the three commits of 2026-09-04).}
+\label{fig:commits}
+\end{figure}
+
+\section{Milestones}
+
+The proposal's schedule was tracked as one GitHub milestone per freeze gate (Table~\ref{tab:milestones}). Week 16 was kept empty as declared slack; Table~\ref{tab:gates} in Chapter~\ref{ch:proposed} compares each gate's due date with the date it was met.
+
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Milestone} & \textbf{Due} & \textbf{Issues} \\
+\midrule
+W2: interfaces frozen & 2026-09-11 & 2 \\
+W3: engine and reference corpus & 2026-09-18 & 10 \\
+W8: corpus frozen & 2026-09-27 & 14 \\
+W9: fingerprint frozen & 2026-10-11 & 14 \\
+W12: attribution, evaluator, remediation & 2026-10-25 & 21 \\
+W15: evaluation complete & 2026-11-15 & 9 \\
+W16: integration buffer (kept empty) & 2026-11-22 & 0 \\
+W17: release & 2026-11-29 & 3 \\
+\bottomrule
+\end{tabular}
+\caption{Milestones and their issues. The backlog was seeded from the proposal by \file{scripts/seed-backlog.sh}.}
+\label{tab:milestones}
+\end{table}
+
+\section{Statistics}
+
+At the time of writing \texttt{main} has 116 commits from 87 merged pull requests, and 71 of 73 issues are closed; the two open ones are this report and the demonstration. The code is about 9,900 lines of Rust, 8,900 lines of Go and 2,400 lines of shell, tests included. The repository holds 8 fingerprints for the cells and the GKE node, 7 ground-truth fingerprints, 8 pipeline runs, 13 runtime runs and 5 metric files. Workstreams B and D exchanged their work on 2026-09-14, after the week-3 gate; the letters stayed with the work.
+
+\chapter{The Complete Probe Index}
+\label{app:index}
+
+Table~\ref{tab:index} lists every probe in \file{corpus/index.json}: the 185 committed probes by family, then the 28 deferred probes. ``Isolates'' is the oracle's isolation (\texttt{seccomp}; \texttt{sec./LSM} for seccomp or an LSM; \texttt{undec.} for undecidable from the errno alone). ``G'' is the errno the kernel returns if the call reaches the oracle's point, and ``A'' the errno that absence of the entry point produces, with the encoded absence after a slash for io\_uring opcodes. Errnos are raw numbers, as in the fingerprint: 2 \errno{ENOENT}, 7 \errno{E2BIG}, 8 \errno{ENOEXEC}, 9 \errno{EBADF}, 14 \errno{EFAULT}, 19 \errno{ENODEV}, 22 \errno{EINVAL}, 38 \errno{ENOSYS}, 61 \errno{ENODATA}, 93 \errno{EPROTONOSUPPORT}, 95 \errno{EOPNOTSUPP}, 97 \errno{EAFNOSUPPORT}, 126 \errno{ENOKEY}. Every committed probe has a 1,000 ms timeout and runs in a forked child.
+
+\input{chapters/appendix-index}

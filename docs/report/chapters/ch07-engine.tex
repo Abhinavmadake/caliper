@@ -1,0 +1,290 @@
+\chapter{Methodology I: Measurement}
+\label{ch:engine}
+
+This chapter describes how a measurement is made: the probe specification, the engine that executes probes, the accounting of side effects, and the corpus. Chapter~\ref{ch:analysis} describes what is done with the measurement.
+
+\section{The Probe Specification}
+
+A probe attempts one kernel operation at argument granularity and records what the kernel returned. The specification (\file{spec/probe.md}) was frozen at the week-2 gate on 2026-09-11. Every probe is authored complete with the fields in Table~\ref{tab:probespec}; the proposal is explicit that attribution metadata is not added in a later phase.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.3cm}L@{}}
+\toprule
+\textbf{Field} & \textbf{Content} \\
+\midrule
+Identity & A stable identifier (\pid{socket.family.af_alg}), the entry family, and a one-line description of the exact call \\
+Operation & The system call and the arguments under test \\
+Errno oracle & \texttt{guarantees}: the errno the kernel is structurally guaranteed to return if the call reaches it, or none; \texttt{isolates}: which mechanisms an \errno{EPERM} before that point can be (\texttt{seccomp}, \texttt{seccomp-or-lsm} or \texttt{undecidable}); \texttt{reason}: the kernel code path that justifies both \\
+Capability requirement & The operation's documented capability, for correlation with the recorded capability sets \\
+Kernel dependency & \texttt{since} (first kernel release), \texttt{absent\_errno} (what absence returns), \texttt{module}, \texttt{present\_if} (a path whose existence proves the kernel builds it), \texttt{also\_absent} with a protocol module, \texttt{encoded\_absent} (an enumeration bit encoded as an errno), \texttt{lsm\_hook\_since} (the release from which an LSM hook precedes the oracle's point), and whether user-namespace limits can refuse it \\
+Architecture applicability & \texttt{all}, or the architectures on which the entry point exists \\
+Side effects & Residual classes the probe may leave (\texttt{mounts}, \texttt{net-namespaces}, \ldots) and whether it can trigger a module autoload \\
+Risk class & Whether it requires fork isolation, and its timeout (1,000 ms for every committed probe) \\
+\bottomrule
+\end{tabularx}
+\caption{Fields of a probe definition (\file{spec/probe.md}).}
+\label{tab:probespec}
+\end{table}
+
+Four decisions were taken at the freeze and constrain everything after it.
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Probes are Rust definitions compiled into the engine}, not a data file read at run time. Opening and parsing a corpus file would be system calls of the instrument's own, made before the module snapshot; a data file beside a static binary is a second artefact that can drift; and a declarative corpus would be a second interface across the Rust--Go boundary. The engine emits the corpus as JSON on request (\texttt{-{}-dump-corpus}); that output, \file{corpus/index.json}, is what the control plane and the freeze-gate checks read.
+\item \textbf{A probe that exceeds its timeout is recorded \texttt{timed-out}; hung and slow are not distinguished.} From outside the child, a probe blocked forever and one that would have returned just after the deadline are the same observation. The timeout travels in the fingerprint so that a verdict can be read against it.
+\item \textbf{The committed/deferred split lives in the corpus index}, not in the specification, so promoting a deferred probe is an index entry and an implementation, never a re-specification.
+\item \textbf{Rollback is the child's, not a hook.} The child removes what it created before it exits; the engine measures whether it did. A rollback hook run by the parent would run under the same filters (failing the same way, or killing the parent), or under different ones (succeeding where the probe could not and hiding the asymmetry the corpus exists to measure).
+\end{enumerate}
+
+\section{Fork Isolation}
+\label{sec:engine}
+
+Every probe runs in a child created with musl's \texttt{fork()}, whether or not its risk class says it needs isolation: a probe that declares it does not need rollback still must not be able to end the run. Figure~\ref{fig:harness} shows one probe's lifecycle.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  lane/.style={draw=inkm,fill=boxfill,rounded corners=2pt,minimum width=3.0cm,minimum height=0.7cm,font=\footnotesize\bfseries},
+  pstep/.style={font=\scriptsize,align=left,text width=5.4cm,anchor=north west},
+  cstep/.style={font=\scriptsize,align=left,text width=4.0cm,anchor=north east},
+  msg/.style={-{Stealth[length=2mm]},thick,draw=inkm},
+  ml/.style={font=\scriptsize,fill=white,inner sep=1pt}]
+\node[lane] (p) at (0,0) {Parent (engine)};
+\node[lane] (c) at (10,0) {Child (probe)};
+\draw[inkm!45,thick] (p.south) -- (0,-7.3);
+\draw[inkm!45,thick] (c.south) -- (10,-7.3);
+\node[pstep] at (0.15,-0.7) {1. snapshot the six residual classes (before)};
+\draw[msg] (0,-1.55) -- node[ml,above]{\texttt{fork()} (\texttt{clone} on aarch64)} (10,-1.55);
+\node[pstep] at (0.15,-1.85) {2. \texttt{pidfd\_open(child)}};
+\node[cstep] at (9.85,-1.85) {3. the one probed call, with the probe's arguments; no allocation and no other system call};
+\node[pstep] at (0.15,-2.65) {4. \texttt{ppoll(pidfd, deadline)}; on \errno{EINTR} the remaining time is kept};
+\draw[msg] (10,-3.75) -- node[ml,above]{\texttt{\_exit(errno)}, or terminated by SIGSYS} (0,-3.75);
+\node[pstep] at (0.15,-4.05) {5. \texttt{wait4}: the exit status or the terminating signal; at the deadline \texttt{kill(SIGKILL)}, reap, record \texttt{timed-out}};
+\node[pstep] at (0.15,-5.25) {6. \texttt{close(pidfd)}; snapshot the residual classes (after)};
+\node[pstep] at (0.15,-6.05) {7. classify the outcome into a verdict (Section~\ref{sec:verdicts})};
+\end{tikzpicture}
+\caption{The lifecycle of one probe. The parent issues only \texttt{fork}, \texttt{pidfd\_open}, \texttt{ppoll}, \texttt{wait4}, \texttt{close} and, on a timeout, \texttt{kill}.}
+\label{fig:harness}
+\end{figure}
+
+\subsection{Why fork and not clone}
+An early version created children with a raw \texttt{clone} system call. musl caches the thread identifier and delivers \texttt{abort()} and \texttt{raise()} to it with \texttt{tkill}, so a raw-cloned child that aborted killed the \emph{parent}. \texttt{fork()} fixes the identifier up in the child, at the cost of \texttt{set\_tid\_address} and \texttt{rt\_sigprocmask} there before the probe, both already in the engine's start-up set.
+
+\subsection{The exit status is the measurement}
+The child reports through its exit status (Table~\ref{tab:exitcodes}). Linux errno values on x86\_64 and aarch64 stop at 133, so an 8-bit exit status carries every errno, with two values reserved.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{4.2cm}L@{}}
+\toprule
+\textbf{How the child ended} & \textbf{Meaning} \\
+\midrule
+\texttt{\_exit(0)} & The operation succeeded \\
+\texttt{\_exit(n)}, $1 \le n \le 133$ & The operation failed with errno $n$ \\
+\texttt{\_exit(253)} & The probe panicked (a panic hook exits with 253 rather than unwinding) \\
+\texttt{\_exit(254)} & An errno that does not fit \\
+Terminated by SIGSYS & A seccomp \texttt{KILL\_PROCESS} or \texttt{KILL\_THREAD} action (or \texttt{TRAP} with no handler) \\
+Terminated by another signal & The probe crashed: a fault of the instrument, never a verdict \\
+Still running at the deadline & Killed with SIGKILL and recorded \texttt{timed-out} \\
+\bottomrule
+\end{tabularx}
+\caption{How the child's end is read by the parent.}
+\label{tab:exitcodes}
+\end{table}
+
+\subsection{Deadlines}
+The parent opens a process descriptor on the child and waits on it with the raw \texttt{ppoll} system call, bounded by the probe's timeout. Using the raw system call means that on \errno{EINTR} the kernel hands back the remaining time and the same deadline continues. A test shows the same 200 ms sleep recorded \texttt{timed-out} under a 50 ms deadline and \texttt{permitted} under a 2 s one.
+
+\subsection{Surviving SIGSYS}
+A probe that trips a filter whose action is \texttt{KILL\_PROCESS} terminates the process that issued it. Because that process is the child, the parent sees SIGSYS in the wait status, records \texttt{killed} and continues. The engine's test installs a real \texttt{KILL\_PROCESS} filter in the test thread, so that the parent runs under the same filter as the probe, as in deployment; trips it; checks the verdict; and runs two more probes under the same filter, one of which trips it again. In the evaluation, cell 2 measured under a hand-hardened profile recorded 122 \texttt{killed} verdicts in a single run that completed normally (Section~\ref{sec:res-verdicts}).
+
+\subsection{No core dumps on the node}
+At start-up the engine marks itself non-dumpable (\texttt{PR\_SET\_DUMPABLE = 0}), which every child inherits. A child killed by SIGSYS would otherwise dump core, and inside a container \file{core_pattern} (which is not namespaced) commonly pipes the core to the host's crash handler: a side effect on the node and a stall of a second or more per kill. \texttt{RLIMIT\_CORE = 0} does not prevent piped cores; the dumpable flag does.
+
+\subsection{Faults of the instrument}
+A harness stage marker distinguishes a probe that failed from a harness that failed: a failure while setting up a child is recorded as \texttt{setup-failed} or \texttt{setup-killed}, and the probe goes to the fingerprint's \texttt{unmeasured} list with that reason rather than receiving a verdict. A run measured with such defects exits with status 3 (\texttt{-{}-exit-0-on-defects} keeps a Kubernetes Job from retrying, since the defects are in the document).
+
+\section{Verdict Classification}
+\label{sec:verdicts}
+
+\file{verdict.rs} turns how the child ended into one of six verdicts and the raw errno. The rules, applied in order, are:
+
+\begin{center}
+\fbox{\parbox{0.93\textwidth}{\small
+\begin{enumerate}[leftmargin=*,label=\arabic*.]
+\item If the probe's architecture applicability excludes this machine: \textbf{not-applicable}, decided before anything runs.
+\item If the child returned 0: \textbf{permitted}, errno 0.
+\item If the child returned the errno its oracle guarantees: \textbf{permitted}, with that errno. The call reached the point the oracle was built to reach.
+\item If the child returned the errno that absence of the entry point produces, and the kernel dependency says this kernel may lack it (version below \texttt{since}, \texttt{present\_if} path missing, module absent, or the release unparsable): \textbf{unimplemented}.
+\item Any other errno: \textbf{denied}. In particular \errno{ENOSYS} from a system call the kernel implements is a filter answering in the kernel's voice, and is \textbf{denied}.
+\item If the child was terminated by SIGSYS: \textbf{killed}.
+\item If the deadline expired: \textbf{timed-out}.
+\item Any other signal, or a harness fault: not a verdict; the probe is recorded as unmeasured with the reason.
+\end{enumerate}}}
+\end{center}
+
+Two rules are deliberate. A child that died of SIGABRT or SIGSEGV is the probe crashing, which must not read as a hardened node: a buggy probe on a permissive node would otherwise look like confinement. And the engine interprets nothing beyond these rules; which mechanism produced a denial is computed by the control plane.
+
+\section{The Engine's Own System Calls}
+\label{sec:baseline}
+
+A probe measures what the kernel permits; the engine must not add system calls of its own, and the parent runs under the same filter as the probe, so its start-up set must survive RuntimeDefault and a hand-hardened profile. \file{engine/baseline/<arch>.txt} records that set, produced by tracing \texttt{caliper-probe -{}-noop}: twelve system calls on aarch64 and thirteen on x86\_64, all from Rust's standard library, musl start-up and the engine's initialisation. CI traces the binary and diffs the observed set against the file, so a dependency that starts issuing system calls fails the build rather than the measurement. \texttt{nix}, \texttt{libc} and \texttt{serde} are the only dependencies that touch the system.
+
+\file{engine/fixtures/seccomp/hardened.json} is a hand-hardened profile: an exact allowlist with \texttt{KILL\_PROCESS} as the default action, in four groups: the start-up set; the harness set (fork, wait, kill, write, exit); runc's own pre-exec set, found empirically; and the run path's set (\texttt{uname} and the procfs and sysfs reads of the cell and residual snapshots). The probed system calls are deliberately absent (except \texttt{clone3}, which the harness keeps), so under this profile every probe outside the list has its child killed by SIGSYS. A test applies the engine's groups in a forked child immediately before \texttt{execve}, for \texttt{-{}-noop} and \texttt{-{}-run}, with a negative control that drops one start-up system call and checks the child dies.
+
+\section{Side Effects and Residual State}
+\label{sec:residual}
+
+Fork isolation is the rollback for every descriptor-shaped effect: sockets, io\_uring rings and device descriptors are released by the kernel when the child exits. The classes of state that outlive a process are measured directly, around every probe, rather than by comparing the whole host, which normal system activity would swamp. Table~\ref{tab:residual-classes} lists the six classes and how each is counted. A class the environment does not expose is recorded as null, never as zero.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.0cm}L@{}}
+\toprule
+\textbf{Class} & \textbf{How it is counted} \\
+\midrule
+Mounts & Lines of \file{/proc/self/mountinfo} \\
+Keyrings & Lines of \file{/proc/keys}; where that file is masked (as under RuntimeDefault), the \texttt{nkeys} of the process's fsuid in \file{/proc/key-users} \\
+Cgroups & Directories below \file{/sys/fs/cgroup} \\
+System V IPC & Entries in \file{/proc/sysvipc/shm}, \file{sem} and \file{msg} \\
+POSIX IPC & Entries in \file{/dev/shm} and \file{/dev/mqueue} \\
+Network namespaces & Distinct \file{ns/net} links among visible processes \\
+\bottomrule
+\end{tabularx}
+\caption{The six residual classes (\file{engine/crates/engine/src/residual.rs}).}
+\label{tab:residual-classes}
+\end{table}
+
+Snapshots are taken after the child is reaped and before anything is removed, so a probe that could not remove what it created (killed first, or creation permitted and removal blocked) leaves an object that is counted, attributed to that probe and checked against its declaration. Two quantities are reported: \emph{unreclaimed objects}, the growth of each class over the whole run, and \emph{leaks}, per-probe changes, so that an object one probe leaves and a later one removes still fails. Every probe declares its residual classes; a probe with no declaration is refused by a corpus test that gates every merge.
+
+The structural fallback is an end-of-run \emph{janitor}. After the final snapshot it removes what is recognisably the instrument's (POSIX objects under a reserved name prefix, System V objects in a reserved key range, the run's mount directory \file{/tmp/caliper-<run>-mount}), each removal in its own forked child under the same filters, and records every attempt in the fingerprint. Its output is a finding about the corpus, never a silent fix. Per-probe namespaces would have been cleaner and are not available: a fresh namespace needs CAP\_SYS\_ADMIN or a user namespace, RuntimeDefault denies both, and a user namespace would change what the kernel permits.
+
+\section{Module Autoload and the Reduced Corpus}
+
+One side effect is neither descriptor-shaped nor reclaimable. A \texttt{socket(2)} call on an address family the kernel has not registered makes the kernel request the module for it, as does an unregistered netlink protocol, a device node whose driver is a module, or a filesystem type; the kernel does this with no capability check on the caller, and the container cannot unload the module afterwards. The engine records the loaded module set before any probe runs, so that the environment cell describes the node and not the instrument's footprint, records it again after the run, and reports the difference as \texttt{module\_delta.loaded\_by\_run}. Thirty-two committed probes declare a possible autoload (19 socket, 8 netlink, 3 device and 2 mount). The \emph{reduced} corpus is the same revision without them; it is the set CI runs on every pull request, and the one to run on a shared node.
+
+\section{The Corpus}
+\label{sec:corpus}
+
+The committed corpus has 185 probes in eight families (Table~\ref{tab:corpus}). It was frozen at 185 probes on 2026-09-27. Later revisions corrected oracles, kernel dependencies and side-effect handling without adding or removing a probe; between the revision used for the cell recordings (0.3.0) and the released one (0.3.3), every verdict and errno on all six cells is unchanged. Where an enumeration interface can answer the question it is used instead of executing the operation.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}lrP{2.6cm}L@{}}
+\toprule
+\textbf{Family} & \textbf{Probes} & \textbf{Oracle isolates} & \textbf{What a probe does} \\
+\midrule
+socket & 24 & 1 seccomp, 19 seccomp-or-lsm, 4 undecidable & \texttt{socket(family, type, 0)} only; AF\_ALG is opened and never bound \\
+netlink & 18 & 18 seccomp-or-lsm & \texttt{socket(AF\_NETLINK, SOCK\_RAW, protocol)} only \\
+io\_uring & 53 & 53 seccomp & setup with zero entries, register on an invalid descriptor, opcode enumeration on a one-entry ring \\
+mount & 38 & 1 seccomp, 37 undecidable & 34 read \file{/proc/filesystems}; one mounts onto a missing path; three mount on the run's own directory and unmount at once \\
+clone & 19 & 2 seccomp, 4 seccomp-or-lsm, 13 undecidable & \texttt{clone} or \texttt{unshare} with one namespace flag; invalid flags; \texttt{clone3} with a short size \\
+path & 17 & 17 seccomp-or-lsm & \texttt{openat(O\_PATH)} and \texttt{fstatfs}: masked, read-only or reachable \\
+device & 8 & 8 undecidable & read-only non-blocking open, then close \\
+capability & 8 & 8 undecidable & one capability-gated call each, built to fail after the check \\
+\midrule
+total & 185 & 57 / 58 / 70 & corpus revision 0.3.3 \\
+\bottomrule
+\end{tabularx}
+\caption{The committed corpus by family, with the isolation of each family's oracles.}
+\label{tab:corpus}
+\end{table}
+
+\subsection{Socket address families (24)}
+{\raggedright
+Each probe calls \texttt{socket(AF\_x, type, 0)} and exits. The families are \texttt{AF\_INET}, \texttt{AF\_INET6}, \texttt{AF\_UNIX}, \texttt{AF\_ALG}, \texttt{AF\_PACKET}, \texttt{AF\_KEY}, \texttt{AF\_BLUETOOTH}, \texttt{AF\_CAN}, \texttt{AF\_TIPC}, \texttt{AF\_RDS}, \texttt{AF\_XDP}, \texttt{AF\_RXRPC}, \texttt{AF\_PHONET}, \texttt{AF\_IEEE802154}, \texttt{AF\_NFC}, \texttt{AF\_VSOCK}, \texttt{AF\_KCM}, \texttt{AF\_QIPCRTR}, \texttt{AF\_SMC}, \texttt{AF\_MCTP}, \texttt{AF\_AX25}, \texttt{AF\_APPLETALK} and \texttt{AF\_X25}, plus the oracle probe \pid{socket.family.out_of_range}, which calls \texttt{socket(1000, SOCK\_STREAM, 0)}. The kernel rejects a family at or beyond \texttt{NPROTO} with \errno{EAFNOSUPPORT} before \texttt{security\_socket\_create} runs, so only a filter at system call entry can answer \errno{EPERM} first: that oracle isolates seccomp. For a real family the LSM hook runs before the family's create function, so \errno{EPERM} is seccomp or an LSM; four families (\texttt{AF\_PACKET}, \texttt{AF\_KEY}, \texttt{AF\_XDP}, \texttt{AF\_PHONET}) check a capability themselves and are undecidable. \errno{EAFNOSUPPORT} from a real family is its absence, recorded as the kernel dependency.\par}
+
+\subsection{Netlink protocols (18)}
+{\raggedright
+Each probe calls \texttt{socket(AF\_NETLINK, SOCK\_RAW, protocol)} for one of \texttt{route}, \texttt{usersock}, \texttt{sock\_diag}, \texttt{nflog}, \texttt{xfrm}, \texttt{selinux}, \texttt{iscsi}, \texttt{audit}, \texttt{fib\_lookup}, \texttt{connector}, \texttt{netfilter}, \texttt{kobject\_uevent}, \texttt{generic}, \texttt{scsitransport}, \texttt{rdma}, \texttt{crypto} and \texttt{smc}, and the oracle probe with protocol 32, for which \texttt{netlink\_create} guarantees \errno{EPROTONOSUPPORT}. That check runs after the LSM hook and the family lookup, so an \errno{EPERM} there is seccomp or an LSM. Creating a netlink socket checks no capability (CAP\_NET\_ADMIN and the audit capabilities are checked per message), so every protocol probe is \texttt{seccomp-or-lsm}. No message is ever sent.\par}
+
+\subsection{io\_uring opcode reach (53)}
+{\raggedright
+Two probes test the system calls and 51 enumerate opcodes. \pid{io_uring.setup.zero_entries} calls \texttt{io\_uring\_setup(0, \&params)}, which is guaranteed \errno{EINVAL} without creating a ring. \pid{io_uring.register.probe} calls \texttt{io\_uring\_register(INT\_MAX, IORING\_REGISTER\_PROBE, NULL, 0)}: a descriptor above the \texttt{nr\_open} ceiling guarantees \errno{EBADF}, and descriptor resolution precedes every hook, so this oracle isolates seccomp. (\texttt{-1} was used first; from 6.13 it selects the ``blind'' register path, which answers \errno{EINVAL}, a defect found and fixed during development.) The opcode probes create a one-entry ring and read \texttt{IORING\_REGISTER\_PROBE}'s table; an opcode whose \texttt{IO\_URING\_OP\_SUPPORTED} bit is clear is encoded as \errno{ENODATA}, an errno \texttt{io\_uring\_register} never produces for a ring it has just accepted. No submission queue entry is ever submitted. From Linux 6.15 \texttt{io\_uring\_setup} calls \texttt{security\_uring\_allowed()} before checking its parameters, recorded as \texttt{lsm\_hook\_since: [6, 15]}, so on newer kernels a setup or opcode \errno{EPERM} is seccomp or an LSM. The 51 opcodes run from \texttt{NOP}, \texttt{READV} and \texttt{WRITEV} to \texttt{FUTEX\_WAITV}, \texttt{FIXED\_FD\_INSTALL}, \texttt{FTRUNCATE}, \texttt{BIND} and \texttt{LISTEN}.\par}
+
+\subsection{Mount filesystem types (38)}
+{\raggedright
+Thirty-four probes read \file{/proc/filesystems} and report \errno{ENODEV}, the errno \texttt{get\_fs\_type} answers for an unregistered type, when a type is not listed: \texttt{proc}, \texttt{sysfs}, \texttt{tmpfs}, \texttt{devtmpfs}, \texttt{devpts}, \texttt{overlay}, \texttt{fuse}, \texttt{fusectl}, \texttt{cgroup}, \texttt{cgroup2}, \texttt{bpf}, \texttt{debugfs}, \texttt{tracefs}, \texttt{configfs}, \texttt{securityfs}, \texttt{efivarfs}, \texttt{pstore}, \texttt{binfmt\_misc}, \texttt{hugetlbfs}, \texttt{mqueue}, \texttt{autofs}, \texttt{ecryptfs}, \texttt{squashfs}, \texttt{iso9660}, \texttt{vfat}, \texttt{ext4}, \texttt{btrfs}, \texttt{xfs}, \texttt{nfs}, \texttt{nfs4}, \texttt{cifs}, \texttt{9p}, \texttt{virtiofs} and \texttt{ntfs3}. They measure what the kernel would mount if a mount were allowed. \pid{mount.reach} calls \texttt{mount(NULL, "/caliper-no-such-dir", "proc", 0, NULL)}, guaranteed \errno{ENOENT} once the call reaches path lookup. Three probes (\pid{mount.fs.proc}, \pid{mount.fs.overlay}, \pid{mount.fs.fuse}) attempt a real mount of the type on the run's own directory under \file{/tmp} and unmount at once; the FUSE probe passes no descriptor, so it is guaranteed \errno{EINVAL} after the capability check.\par}
+
+\subsection{Clone and unshare flags (19)}
+{\raggedright
+\texttt{unshare} with each of \texttt{CLONE\_NEWUSER}, \texttt{NEWNS}, \texttt{NEWNET}, \texttt{NEWPID}, \texttt{NEWIPC}, \texttt{NEWUTS}, \texttt{NEWCGROUP}, \texttt{NEWTIME} and \texttt{NEWUSER|NEWNET} (9); \texttt{clone} with the same flags except \texttt{NEWTIME} (8); \pid{unshare.flags.invalid}, which passes \texttt{0x1} and is guaranteed \errno{EINVAL} before any namespace is created; and \pid{clone3.args.short}, which passes a size below \texttt{CLONE\_ARGS\_SIZE\_VER0} and is guaranteed \errno{EINVAL}. The cloned child calls \texttt{exit\_group} at once. Namespace creation checks capabilities inside the operation, so those probes are undecidable without the capability correlate; the user-namespace probes are \texttt{seccomp-or-lsm} because no capability is required.\par}
+
+\subsection{Masked and read-only paths (17)}
+A mask's answer to \texttt{open} is success and to \texttt{read} is zero bytes, while the real object often answers \errno{EACCES} to an unprivileged caller, so recording those answers untouched would report the mask as permitted and the real file as denied, the inverse of the confinement. The kernel's honest answer to ``is this the object or the mask'' is \texttt{fstatfs} reporting tmpfs where procfs belongs. Each path probe therefore opens the path with \texttt{O\_PATH} (no permission check, no read), calls \texttt{fstatfs}, and returns \errno{ENODATA} if the filesystem is not the object's, \errno{EROFS} if the mount is read-only (\texttt{ST\_RDONLY}), and success otherwise. Neither errno can be produced by the kernel for these calls, which is the one bounded exception to recording the kernel's answer untouched. The paths are the kubelet's eleven masked paths and five read-only paths (Chapter~\ref{ch:background}), plus \pid{path.control.proc_self_status} as a control.
+
+\subsection{Device nodes (8)}
+A read-only, non-blocking \texttt{openat} and \texttt{close} of \file{/dev/fuse}, \file{/dev/net/tun}, \file{/dev/kvm}, \file{/dev/kmsg}, \file{/dev/mem}, \file{/dev/port}, \file{/dev/null} (control) and \file{/dev/sda}. Nothing is read or written. \errno{ENOENT} means the runtime did not create the node; \errno{EACCES} and \errno{EPERM} are undecidable because DAC, the device cgroup, an LSM and a driver's capability check can all answer.
+
+\subsection{Capability effects (8)}
+Each probe makes one capability-gated call, chosen so that the privileged path is harmless and the unprivileged path distinctive (Table~\ref{tab:capprobes}). These probes are deliberately \texttt{undecidable}: the missing-capability result is the observation, and it is correlated with the recorded capability sets rather than read as a filter.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{@{}P{3.7cm}P{4.2cm}L@{}}
+\toprule
+\textbf{Probe} & \textbf{Capability} & \textbf{Call and why it is harmless} \\
+\midrule
+\pid{capability.sys_time} & \pid{CAP_SYS_TIME} & \texttt{settimeofday(NULL, NULL)}: the check precedes a no-op update \\
+\pid{capability.sys_boot} & \pid{CAP_SYS_BOOT} & \texttt{reboot(0, 0, CAD\_OFF, NULL)} with bad magic: \errno{EINVAL} after the check \\
+\pid{capability.sys_module} & \pid{CAP_SYS_MODULE} & \texttt{finit\_module(-1, "", 0)}: \errno{EBADF} after the check \\
+\pid{capability.mknod} & \pid{CAP_MKNOD} & \texttt{mknodat} of a \file{/dev/null}-equivalent node in \file{/tmp}, removed by the child \\
+\pid{capability.sys_ptrace} & \pid{CAP_SYS_PTRACE} & \texttt{process\_vm\_readv} of the non-dumpable parent with an invalid remote address: \errno{EFAULT} after the access check \\
+\pid{capability.net_bind_service} & \pid{CAP_NET_BIND_SERVICE} & bind an IPv4 socket to port 1: \errno{EACCES} without the capability; no \texttt{listen} \\
+\pid{capability.sys_nice} & \pid{CAP_SYS_NICE} & \texttt{setpriority(PRIO\_PROCESS, 0, -1)} on the child itself \\
+\pid{capability.sys_rawio} & \pid{CAP_SYS_RAWIO} & \texttt{iopl(3)}, x86\_64 only; no port I/O follows \\
+\bottomrule
+\end{tabularx}
+\caption{The capability-effect probes.}
+\label{tab:capprobes}
+\end{table}
+
+\subsection{The deferred set (28)}
+Twenty-eight probes in nine families are specified in the same format, each with its oracle and kernel ordering, and are never run (Table~\ref{tab:deferred}). Every fingerprint lists them as unmeasured, so the gap is visible in every result. Promoting one is an implementation and an index entry, not a redesign.
+
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabularx}{\textwidth}{@{}P{2.7cm}rL@{}}
+\toprule
+\textbf{Family} & \textbf{Probes} & \textbf{Strategy} \\
+\midrule
+ioctl & 3 & \texttt{ioctl(-1, CMD, ...)}: \errno{EBADF} before \texttt{security\_file\_ioctl} isolates filtering on the request code (\texttt{FIOCLEX}, \texttt{TIOCSTI}, \texttt{TIOCLINUX}) \\
+bpf & 5 & a non-zero byte past \texttt{union bpf\_attr} answers \errno{E2BIG} before \texttt{security\_bpf}; program types are undecidable against their capability \\
+keyctl & 4 & a serial that cannot exist answers \errno{ENOKEY} before any key permission hook; nothing is created \\
+prctl & 3 & \texttt{security\_task\_prctl} precedes the option switch, so every \errno{EINVAL} oracle is seccomp-or-LSM \\
+\pid{perf_event_open} & 3 & bad flags (\errno{EINVAL}) and bad size (\errno{E2BIG}) precede the hook; a CPU-wide event is gated by \texttt{perf\_event\_paranoid} \\
+userfaultfd & 3 & an unknown flag beside \texttt{UFFD\_USER\_MODE\_ONLY} answers \errno{EINVAL} before any hook \\
+\pid{open_by_handle_at} & 2 & \texttt{name\_to\_handle\_at} rejects unknown flags before path lookup \\
+module & 2 & \texttt{init\_module} and \texttt{delete\_module} check CAP\_SYS\_MODULE first; undecidable \\
+\pid{seccomp_notify} & 3 & \texttt{seccomp(2)} has no LSM hook, so \errno{EFAULT} from a NULL program isolates seccomp \\
+\bottomrule
+\end{tabularx}
+\caption{The deferred set (\file{engine/crates/corpus/src/deferred.rs}).}
+\label{tab:deferred}
+\end{table}
+
+\subsection{Oracle review and the freeze}
+Before the freeze every oracle was reviewed against the kernel function named in its \texttt{reason} and the man-page errno contract, family by family, and a sweep of the generated index (\file{docs/oracle-sweep.md}) checked three properties across all 185 probes: no probe has an empty oracle, no oracle guarantees \errno{EPERM}, and no oracle that claims to isolate seccomp has its guaranteed answer ordered after an LSM or capability hook. Eleven probes carry a guaranteed errno; 57 isolate seccomp, 58 isolate seccomp or an LSM, and 70 are undecidable from the errno alone.
+
+\section{Safety Review}
+\label{sec:safety}
+
+The corpus was reviewed before release for exploit code and for operations whose success confers privilege (issue \iss{50}). It contains no payload, no shellcode, no crafted structure for a known vulnerability and no sequence beyond the single call under test. Most probes are built so that success yields nothing usable: the call fails after the check under test with the error the oracle guarantees, or changes nothing. Five can hand the child something when the cell permits them, and none uses it (Table~\ref{tab:grants}). Each grant is one the cell already gave the workload, and each ends with the child.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{4.0cm}LP{3.4cm}@{}}
+\toprule
+\textbf{Probe} & \textbf{On success the child holds} & \textbf{Then} \\
+\midrule
+\pid{capability.sys_rawio} & I/O privilege level 3 (\texttt{iopl(3)}), x86 only & exits without port I/O \\
+\pid{capability.sys_nice} & a nice value one lower, on itself & exits \\
+\pid{capability.net_bind_service} & a socket bound to TCP port 1 in its network namespace & exits without \texttt{listen} \\
+\texttt{device.open.*} & a read-only descriptor, for example on \file{/dev/mem} & closes it unread \\
+\texttt{clone.*}, \texttt{unshare.*} (user namespace) & capabilities inside a new, empty user namespace & exits \\
+\bottomrule
+\end{tabularx}
+\caption{Probes whose success grants the child something, and what the child does with it.}
+\label{tab:grants}
+\end{table}
+
+The exception is module autoload. A full run under RuntimeDefault on cell 2 or cell 4 loads 31 modules, among them \texttt{af\_alg}, \texttt{af\_key}, \texttt{xfrm\_user}, \texttt{bluetooth}, \texttt{can}, \texttt{rxrpc}, \texttt{smc} and \texttt{kcm}, which stay loaded on the host for every tenant until someone with host privilege removes them. That widens the node's reachable surface for everyone, the opposite of the instrument's purpose. It is declared on each of the 32 probes, reported in every fingerprint and counted apart from residual state, and the reduced corpus, which loads none, is the one to run on a shared node. The proposal's statement that no probe performs an operation whose success confers privilege should be read with these cases in view.

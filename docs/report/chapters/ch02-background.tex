@@ -1,0 +1,101 @@
+\chapter{Background and Motivation}
+\label{ch:background}
+
+This chapter describes the Linux mechanisms that together confine a container, how Kubernetes and the container runtimes configure them, and why the configuration a workload author writes does not determine what the kernel enforces. It closes with the motivating case and the problem that follows from it.
+
+\section{Containers Share a Kernel}
+
+A container is not a virtual machine. It is an ordinary group of processes on the host kernel, given a restricted view of the system by namespaces, restricted resources by control groups, and restricted kernel access by a stack of independent enforcement mechanisms. Every system call the workload makes is served by the same kernel that serves every other tenant on the node. A vulnerability in any kernel code path that the workload can reach is therefore a potential escape to the host, and the security of a container is, to a first approximation, the size and content of the kernel surface it can reach. Lin et al.\ showed with 88 working exploits that the kernel mechanisms which restrict reachable surface (capabilities, seccomp and mandatory access control) prevent more privilege escalations than the isolation mechanisms (namespaces and cgroups) do~\cite{lin2018}. Measuring that reachable surface is the subject of this project.
+
+\section{The Enforcement Mechanisms}
+
+\subsection{Namespaces and control groups}
+Linux provides eight namespace types: mount, PID, network, IPC, UTS, user, cgroup and time. Each gives the process its own instance of a global resource. A container runtime creates a fresh set for each pod (Kubernetes shares the network and IPC namespaces among a pod's containers). Creating a namespace from inside a container is itself a privileged operation: \texttt{clone(2)} and \texttt{unshare(2)} with a \texttt{CLONE\_NEW*} flag require CAP\_SYS\_ADMIN, except for a new user namespace, which an unprivileged process may create where the kernel and the distribution allow it, and inside which it holds a full capability set. Control groups (cgroups v2 on every cell measured here) limit and account resources; they confine resource use, not kernel reachability, and Gao et al.\ showed that their accounting can be escaped by work the kernel performs on a process's behalf outside its group~\cite{gao2019houdini}.
+
+\subsection{Capabilities}
+Root's privileges are split into roughly forty capabilities, each gating a family of operations: CAP\_SYS\_ADMIN for mounts and most namespace creation, CAP\_NET\_ADMIN for network configuration, CAP\_SYS\_MODULE for module loading, CAP\_NET\_BIND\_SERVICE for ports below 1024, and so on~\cite{man-capabilities}. A process carries four sets that matter here: \emph{effective} (checked by the kernel), \emph{permitted}, \emph{bounding} (the ceiling across \texttt{execve}) and \emph{ambient}. All four are readable without privilege from \file{/proc/self/status}. A hardened workload drops every capability. A capability check usually sits deep inside the system call, after argument validation and after the security-module hook, which matters for attribution (Section~\ref{sec:bg-ordering}).
+
+\subsection{seccomp-BPF}
+seccomp in filter mode attaches one or more classic BPF programs to a process. At every system call entry, before the kernel does any work, each program inspects the architecture, the system call number and the six argument registers, and returns an action: \texttt{ALLOW}; \texttt{ERRNO} with a chosen error, which makes the call fail immediately; \texttt{KILL\_PROCESS} or \texttt{KILL\_THREAD}, which terminate the caller with SIGSYS; \texttt{TRAP}; \texttt{LOG}; or \texttt{USER\_NOTIF}, which defers the decision to a supervisor~\cite{man-seccomp}. Filters are inherited across \texttt{fork} and \texttt{execve} and cannot be removed. Two properties shape this project. First, a filter sees register values only: it can compare a socket family or a flag word, but it cannot dereference a pointer, so it cannot inspect a pathname, a filesystem type string or a structure passed by address. Second, the filter's contents are not readable by the confined process; \file{/proc/self/status} exposes only the \texttt{Seccomp} mode (0 none, 1 strict, 2 filter) and the \texttt{Seccomp\_filters} count. Reading a filter needs \texttt{PTRACE\_SECCOMP\_GET\_FILTER} and CAP\_SYS\_ADMIN.
+
+\subsection{Linux Security Modules}
+AppArmor and SELinux are mandatory access control modules that place hooks at security-relevant points inside the kernel: socket creation, file open, mount, ptrace and many more. The container runtime loads a profile (AppArmor, by path) or assigns a context (SELinux, by type and category) to the container. A process can read its own label from \file{/proc/self/attr/current} (and the AppArmor-specific \file{/proc/self/attr/apparmor/current}) and can tell whether the profile is enforcing. Yama and kernel lockdown are further, label-less modules that can refuse ptrace and raw hardware access respectively. Sun et al.\ observed that because these frameworks are global to the kernel, containers cannot apply policies of their own~\cite{sun2018secns}; for this project the consequence is that the LSM in force is a property of the node, not of the workload.
+
+\subsection{Masked and read-only paths}
+The OCI runtime specification lets a runtime mask paths (\texttt{maskedPaths}) and mount others read-only (\texttt{readonlyPaths})~\cite{oci-runtime}. runc implements a mask of a file as a bind mount of \file{/dev/null} over it and a mask of a directory as an empty read-only tmpfs. The kubelet requests a fixed default set for every container: masked \file{/proc/acpi}, \file{/proc/asound}, \file{/proc/kcore}, \file{/proc/keys}, \file{/proc/latency_stats}, \file{/proc/timer_list}, \file{/proc/timer_stats}, \file{/proc/sched_debug}, \file{/proc/scsi}, \file{/sys/firmware} and \file{/sys/devices/virtual/powercap}; read-only \file{/proc/bus}, \file{/proc/fs}, \file{/proc/irq}, \file{/proc/sys} and \file{/proc/sysrq-trigger}. Gao et al.\ demonstrated that unmasked procfs and sysfs files leak host-wide information to containers~\cite{gao2017containerleaks}; the masked set is the runtime's partial answer.
+
+\subsection{Other controls}
+\texttt{no\_new\_privs} prevents a process from gaining privilege through set-user-ID binaries or file capabilities. A read-only root filesystem and a non-root UID reduce what a compromised process can modify. Device access is controlled by the device cgroup (or its eBPF equivalent in cgroups v2) and by the device nodes the runtime creates. Each of these is configured independently and enforced at a different point in the kernel.
+
+\section{Where Each Mechanism Acts}
+\label{sec:bg-ordering}
+
+The mechanisms act at different points along a system call's path, and the order is fixed by the kernel's code. Figure~\ref{fig:bg-ordering} shows the order for a typical call. seccomp acts first, at system call entry. The kernel then validates arguments and resolves descriptors; only then do the LSM hook and, usually later still, the capability check run. A call that is refused returns an errno, and \texttt{EPERM} is the conventional answer of all four mechanisms. The kernel does not say which one produced it.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  st/.style={draw=inkm,rounded corners=2pt,fill=boxfill,minimum height=1.0cm,text width=2.55cm,align=center,font=\footnotesize},
+  ar/.style={-{Stealth[length=2mm]},thick,draw=inkm},
+  dn/.style={font=\scriptsize,text=inkm,align=center,text width=2.6cm}]
+\node[st] (a) {System call entry};
+\node[st,right=0.35cm of a] (b) {seccomp filter\\(number, registers)};
+\node[st,right=0.35cm of b] (c) {Argument checks,\\descriptor lookup};
+\node[st,right=0.35cm of c] (d) {LSM hook\\(AppArmor, SELinux)};
+\node[st,right=0.35cm of d] (e) {Capability check,\\the operation};
+\foreach \x/\y in {a/b,b/c,c/d,d/e} \draw[ar] (\x) -- (\y);
+\node[dn,below=0.25cm of b] {ERRNO (EPERM),\\ENOSYS, or SIGSYS};
+\node[dn,below=0.25cm of c] {EBADF, EINVAL,\\EAFNOSUPPORT};
+\node[dn,below=0.25cm of d] {EACCES or EPERM};
+\node[dn,below=0.25cm of e] {EPERM, then the\\call's own result};
+\end{tikzpicture}
+\caption{The order in which confinement mechanisms act on a typical system call, and the errors each can produce. The exact order is per system call and is recorded with every probe.}
+\label{fig:bg-ordering}
+\end{figure}
+
+This ordering is what makes attribution possible without privilege. If a call is built so that, once it reaches the kernel, the argument checks are guaranteed to fail with a specific error (an invalid descriptor gives \errno{EBADF}), then receiving \errno{EPERM} instead proves the call was stopped \emph{before} the argument checks, which only a seccomp filter can do. Chapter~\ref{ch:analysis} develops this into the errno-oracle technique. The ordering is not uniform: the hook for \texttt{socket(2)} runs before the family is looked up, and from Linux 6.15 \texttt{io\_uring\_setup(2)} calls an LSM hook before checking its parameters, so the same reasoning separates seccomp from a capability but not from an LSM for those calls, and does so on some kernels and not on others.
+
+\section{How Kubernetes and the Runtimes Configure Confinement}
+
+\subsection{Pod security context and Pod Security Standards}
+A Kubernetes pod declares its confinement in its security context: the UID, \texttt{allowPrivilegeEscalation}, added and dropped capabilities, a \texttt{seccompProfile} of type \texttt{RuntimeDefault}, \texttt{Localhost} or \texttt{Unconfined}, an AppArmor profile, a read-only root filesystem and, optionally, \texttt{hostUsers: false} for a user namespace. Pod Security Standards define three levels that admission enforces per namespace~\cite{pss}. \emph{Privileged} is unrestricted. \emph{Baseline} forbids known privilege escalations: privileged containers, host namespaces, host paths and added capabilities beyond a small set. \emph{Restricted} additionally requires a non-root user, dropping \texttt{ALL} capabilities, no privilege escalation and a seccomp profile of \texttt{RuntimeDefault} or \texttt{Localhost}. Restricted is the strongest level Kubernetes defines.
+
+\subsection{RuntimeDefault is defined by the runtime}
+\texttt{RuntimeDefault} does not name a profile; it names whatever the runtime on the node ships as its default. For containerd~\cite{containerd} that is the profile compiled into the containerd binary; for Moby it is Moby's \file{default.json}. Both are allowlists with a default action of \texttt{ERRNO(EPERM)}, conditional rules for \texttt{clone}, \texttt{personality} and \texttt{socket}, and an explicit \errno{ENOSYS} for \texttt{clone3} so that C libraries fall back to \texttt{clone}, whose flags a filter can inspect. The AppArmor default (\texttt{cri-containerd.apparmor.d} for containerd) is likewise compiled into the runtime. The contents change between releases, and a node's runtime version is chosen by its operating system image, not by the workload author.
+
+\subsection{RuntimeClass: runc, gVisor and Kata}
+A RuntimeClass selects the low-level runtime handler for a pod. \emph{runc} configures the mechanisms above on the host kernel. \emph{gVisor} (\texttt{runsc}) interposes a user-space kernel, the Sentry, which implements the Linux system call interface itself; the Sentry runs under its own tight seccomp filter, reaches the host through a small set of system calls, and has file access mediated by a separate Gofer process. The workload's system calls never reach the host kernel directly, many interfaces are not implemented, and the version the workload sees is synthetic~\cite{young2019gvisor,gvisor}. \emph{Kata Containers} runs each pod in a lightweight virtual machine with its own guest kernel; an agent inside the guest applies the OCI specification there~\cite{kata}. Anjali et al.\ found that, despite moving functionality out of the host kernel, gVisor and Firecracker-style microVMs exercise substantially more host kernel code than native containers~\cite{anjali2020blending}. A measurement under either sandbox is a measurement of the sandbox's interface, and comparing it with a runc measurement without saying so would report the sandbox as policy.
+
+\section{The Motivating Case: AF\_ALG and Copy Fail}
+
+CVE-2026-31431, tracked as Copy Fail, is a logic flaw in the \texttt{algif\_aead} module, which implements authenticated encryption for the kernel crypto user API reached through the AF\_ALG socket family. Combined with \texttt{splice(2)}, it writes four bytes into the page cache of any readable file, enough to modify a set-user-ID binary in memory without changing it on disk. CISA added it to the Known Exploited Vulnerabilities catalogue on 1 May 2026~\cite{cve-2026-31431,kev}, and vendors described it as a root privilege escalation across cloud environments~\cite{msblog,sysdig}. Three properties of the case motivate this project.
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{It is reached through an argument, not a system call.} Any container that may call \texttt{socket(2)} can attempt it; what matters is the value of the first argument. Policy generated or reviewed at system-call-name granularity cannot express the difference between a workload that may create TCP sockets and one that may reach the kernel crypto API.
+\item \textbf{Conventional hardening did not prevent it.} Published testing found that the RuntimeDefault seccomp profiles of both containerd and Moby allowed AF\_ALG and that Pod Security Standards at Restricted did not address it, so workloads that satisfied every conventional check were exploitable. Establishing that required hand-built test images and a hand-written profile~\cite{juliet}.
+\item \textbf{Exploitability depends on the node.} The flaw is in a module. Whether \texttt{algif\_aead} is loaded, or can be autoloaded by an unprivileged socket call, is a property of the distribution's kernel configuration and module policy, which the workload author neither controls nor observes. The kernel loads the module for an unregistered socket family on request, without a capability check on the caller.
+\end{enumerate}
+
+\section{RuntimeDefault Drift}
+
+The AF\_ALG case is one instance of a general problem: the protection RuntimeDefault provides is a property of the runtime binary on the node and changes over time. Table~\ref{tab:drift} records the two changes that matter for this project. io\_uring, which performs file and network operations from a submission queue without issuing the corresponding system calls and so sidesteps system-call filtering, was removed from both default profiles in November 2023; the change reached containerd only in 2.0 and was not backported to 1.7. AF\_ALG followed in May 2026. Ubuntu 24.04 ships containerd 1.7.12 in its release pocket and 2.2 in its updates pocket, so an unpatched and a patched host of the same release sit on either side of the io\_uring change. Two nodes running an identical, admitted manifest can therefore enforce different policies, and nothing in the deployment pipeline reports the difference.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{2.2cm}P{3.6cm}P{3.3cm}L@{}}
+\toprule
+\textbf{Interface} & \textbf{Change} & \textbf{Merged} & \textbf{First release carrying it} \\
+\midrule
+io\_uring & Moby PR 46762: block \texttt{io\_uring\_*} in the default profile~\cite{moby46762} & November 2023 & Moby 25.0, January 2024 \\
+io\_uring & containerd PR 9320: disallow io\_uring in RuntimeDefault~\cite{containerd9320} & November 2023 & containerd 2.0, November 2024; not backported to 1.7 \\
+AF\_ALG & Moby PR 52501: block AF\_ALG sockets (CVE-2026-31431)~\cite{moby52501} & May 2026 & Moby 29.4.2 \\
+AF\_ALG & containerd PR 13327: deny AF\_ALG in RuntimeDefault~\cite{containerd13327} & May 2026 & containerd 2.2.4; backported to 1.7.32 \\
+\bottomrule
+\end{tabularx}
+\caption{Changes to the RuntimeDefault seccomp profiles relevant to this project.}
+\label{tab:drift}
+\end{table}
+
+\section{Why Existing Practice Does Not Detect It}
+
+Configuration review compares a manifest with a benchmark. In the AF\_ALG case the manifest was correct by every benchmark, and the enforcement was weaker than practitioners believed; a configuration scanner reports no finding. Runtime monitoring observes the workload's system calls as it makes them, and an attack surface that a benign workload never exercises is invisible to it. Profile generation traces an application and emits the system calls it used, which answers what the application needs and not what the environment permits, and does so at system-call-name granularity. A measurement from inside the container, at argument granularity, is the missing piece, and it needs four further things to be useful: an identity for the environment it was taken in, a way to separate policy from architecture and sandbox effects, a way to say which mechanism produced each denial, and a model of what ought not to be reachable. Those are the components of CALIPER.

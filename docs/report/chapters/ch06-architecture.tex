@@ -1,0 +1,162 @@
+\chapter{System Architecture}
+\label{ch:architecture}
+
+\section{Overview}
+
+CALIPER has two halves that meet at one interface. The \emph{measurement} half is a single static Rust binary, \texttt{caliper-probe}, that runs inside the container being measured and emits a raw measurement. The \emph{analysis} half is a Go control plane that completes the measurement into a fingerprint and then diffs, classifies, attributes, evaluates, reports and remediates. The fingerprint format (Section~\ref{sec:fingerprint}) is the only thing the two halves share. Figure~\ref{fig:arch} shows the components and the flow of data between them, including the re-probe that verifies a remediation.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  every node/.append style={execute at begin node={\hyphenpenalty10000 }},
+  comp/.style={draw=inkm,rounded corners=2pt,minimum height=0.95cm,text width=3.1cm,align=center,font=\footnotesize},
+  rust/.style={comp,fill=boxrust},
+  go/.style={comp,fill=boxgo},
+  data/.style={draw=inkm,dashed,rounded corners=2pt,fill=white,minimum height=0.75cm,text width=3.0cm,align=center,font=\scriptsize},
+  ar/.style={-{Stealth[length=2mm]},thick,draw=inkm},
+  lab/.style={font=\scriptsize\itshape,text=inkm}]
+% measurement half
+\node[rust] (corpus) {\textbf{Probe corpus}\\185 probes + oracles};
+\node[rust,below=0.55cm of corpus] (engine) {\textbf{Probe engine}\\fork, wait, verdict};
+\node[rust,below=0.55cm of engine] (snap) {\textbf{Cell and residual snapshots}\\modules, caps, LSM, seccomp};
+\node[data,below=0.55cm of snap] (raw) {Raw measurement (JSON on stdout)};
+\draw[ar] (corpus) -- (engine);
+\draw[ar] (engine) -- (snap);
+\draw[ar] (snap) -- (raw);
+% analysis half
+\node[go,right=1.3cm of raw] (complete) {\textbf{Completion}\\runtime, RuntimeClass, distribution; digest};
+\node[data,above=0.55cm of complete] (fp) {\textbf{Fingerprint} (format v1)};
+\node[go,above=0.55cm of fp] (diff) {\textbf{Diff and classifier}\\four divergence classes};
+\node[go,above=0.55cm of diff] (attr) {\textbf{Attributor}\\oracles, correlation, elimination};
+\draw[ar] (raw) -- (complete);
+\draw[ar] (complete) -- (fp);
+\draw[ar] (fp) -- (diff);
+\draw[ar] (diff) -- (attr);
+\node[go,right=0.8cm of attr] (eval) {\textbf{Evaluator}\\manifest + posture v1};
+\node[go,below=0.55cm of eval] (report) {\textbf{Reporter}\\JSON, text, PR comment};
+\node[go,below=0.55cm of report] (rem) {\textbf{Remediator}\\SPO resource + Localhost profile};
+\node[go,below=0.55cm of rem] (verify) {\textbf{Closure verification}\\re-probe under the profile};
+\draw[ar] (attr) -- (eval);
+\draw[ar] (eval) -- (report);
+\draw[ar] (report) -- (rem);
+\draw[ar] (rem) -- (verify);
+\draw[ar] (verify.south) -- ++(0,-0.55) -| node[pos=0.25,below,lab]{fresh measurement under the generated profile} (raw.south);
+% inputs
+\node[data,right=0.35cm of eval,text width=1.9cm] (post) {posture v1, manifest};
+\draw[ar] (post) -- (eval);
+\node[data,right=0.35cm of rem,text width=2.25cm] (rd) {runtime's actual RuntimeDefault};
+\draw[ar] (rd) -- (rem);
+% backgrounds
+\begin{scope}[on background layer]
+\node[draw=s2!60,fill=s2!4,rounded corners=4pt,inner sep=7pt,fit=(corpus)(raw),label={[font=\scriptsize\bfseries,text=inkm]above:Inside the container (Rust)}] {};
+\node[draw=s1!60,fill=s1!4,rounded corners=4pt,inner sep=7pt,fit=(complete)(attr)(eval)(verify)(post)(rd),label={[font=\scriptsize\bfseries,text=inkm]above:Control plane (Go)}] {};
+\end{scope}
+\end{tikzpicture}
+\caption{Architecture of CALIPER. The measurement half runs inside the measured container; the control plane consumes fingerprints. A remediation is verified by measuring again under the generated profile.}
+\label{fig:arch}
+\end{figure}
+
+\section{Components}
+
+Table~\ref{tab:components} lists each component with its language, its location in the repository and its responsibility. The measurement half is about 9,900 lines of Rust and the analysis half about 8,900 lines of Go, tests included.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{2.9cm}P{4.6cm}L@{}}
+\toprule
+\textbf{Component} & \textbf{Location} & \textbf{Responsibility} \\
+\midrule
+Probe engine & \file{engine/crates/engine} (\file{harness.rs}, \file{verdict.rs}, \file{cell.rs}, \file{residual.rs}, \file{effects.rs}) & Fork isolation, deadlines, verdict classification, environment-cell snapshot, residual accounting, janitor \\
+Probe corpus & \file{engine/crates/corpus} (one module per family, \file{deferred.rs}) & Probe definitions with oracle, kernel dependency, capability, applicability and side effects \\
+Probe binary & \file{engine/crates/probe} & Command line: \texttt{-{}-run}, \texttt{-{}-reduced}, \texttt{-{}-dump-corpus}, \texttt{-{}-noop} \\
+Fingerprint and diff & \file{control/diff.go} & Decoding, completion, digest, diff over the shared probe set, corpus skew \\
+Classifier & \file{control/classifier.go} & Assigns each divergence one of four classes \\
+Attributor & \file{control/attribution.go} & Mechanism and confidence for each result \\
+Manifest parser & \file{control/manifest.go}, \file{kubernetes.go} & Workload declarations; cell metadata from Node, Pod and RuntimeClass objects \\
+Evaluator & \file{control/evaluator.go}, \file{posture.go} & Expectation, claim and undeclared findings against posture v1 \\
+Reporter & \file{control/report.go}, \file{cmd/caliper-ci-report} & JSON and text reports; the pull-request comment \\
+Remediator & \file{control/posture\_remediation.go}, \file{cmd/caliper-remediate} & SPO \texttt{SeccompProfile} and OCI Localhost profile \\
+Pipeline & \file{control/cmd/caliper-pipeline}, \file{deploy/gce/run-pipeline.sh} & Measure, evaluate, remediate, re-probe, verify \\
+Metric generators & \file{control/cmd/caliper-*-metrics}, \file{caliper-attribution-accuracy} & Regenerate every reported metric from committed fingerprints \\
+Delivery & \file{deploy/k8s}, \file{deploy/gce}, \file{.github/workflows} & Job and DaemonSet; cell provisioning and measurement; CI and release \\
+\bottomrule
+\end{tabularx}
+\caption{Components and their responsibilities.}
+\label{tab:components}
+\end{table}
+
+\section{The Measurement Half}
+
+The probe binary is the only code that runs inside the measured container. It is a statically linked musl executable in a \texttt{scratch} image: no shell, no C library on disk, nothing that could issue system calls of its own. On \texttt{-{}-run} it snapshots the environment cell and the loaded module set, runs every probe of the selected corpus set in its own forked child, snapshots residual state around each probe, runs the end-of-run janitor, snapshots the module set again and writes one JSON document to standard output. It interprets nothing: a verdict is computed from the child's exit status and the probe's declared metadata, and every further reading is the control plane's. Chapter~\ref{ch:engine} describes it in full.
+
+\section{The Analysis Half}
+
+The control plane is a Go module with one library package and a command per task. It never measures; it consumes fingerprints. The stages are:
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Completion.} The probe cannot observe the runtime, runtime version, distribution or RuntimeClass. The control plane adds them, from the Kubernetes Node, Pod and RuntimeClass objects when it runs in a cluster, or from the operator outside one, records the source of each value, and computes the SHA-256 digest of the completed document.
+\item \textbf{Diff and classification.} Two fingerprints are compared over the probes present in both; each difference is assigned exactly one of four classes.
+\item \textbf{Attribution.} Each denial is assigned a mechanism and a confidence, or reported as undecidable with its candidate mechanisms.
+\item \textbf{Evaluation.} Each permitted probe is categorised against the workload's manifest and a posture tier.
+\item \textbf{Reporting.} JSON and text reports carry the findings, divergences, attribution confidence, the undecidable fraction and the authorisation notice.
+\item \textbf{Remediation and verification.} Expectation violations become a narrowed seccomp profile; a fresh measurement under that profile decides which findings are closed.
+\end{enumerate}
+Chapter~\ref{ch:analysis} describes each stage.
+
+\section{The Environment Cell}
+
+The fingerprint's identity is the environment cell, not the workload. Table~\ref{tab:cellfields} lists the cell's fields and who records each. Only what an unprivileged process can observe is recorded by the probe; the rest is supplied by the control plane with its source, because ``containerd 2.2 from the Node object'' and ``containerd 2.2 because the operator said so'' are different evidence.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.6cm}P{2.2cm}L@{}}
+\toprule
+\textbf{Field} & \textbf{Recorded by} & \textbf{Source} \\
+\midrule
+Architecture & probe & \texttt{uname(2)} machine field \\
+Kernel release & probe & \texttt{uname(2)}; a sandbox's synthetic version is kept as its claim \\
+Loaded modules & probe & \file{/proc/modules}, read before the first probe and after the last \\
+Capability sets & probe & effective, permitted, bounding and ambient masks from \file{/proc/self/status} \\
+LSM, label, enforcing & probe & \file{/proc/self/attr/<lsm>/current} for each module tried (the generic \file{/proc/self/attr/current} for SELinux); \file{/sys/fs/selinux/enforce} \\
+seccomp mode, filters & probe & \texttt{Seccomp} and \texttt{Seccomp\_filters} lines of \file{/proc/self/status} \\
+User-namespace limits & probe & \texttt{user.max\_user\_namespaces}, \texttt{kernel.unprivileged\_userns\_clone}, AppArmor's restriction sysctl, and whether the process is in the initial user namespace (\file{/proc/self/uid_map}) \\
+Distribution & control plane & Node object (\texttt{osImage}) or operator \\
+Runtime and version & control plane & Node object (\texttt{containerRuntimeVersion}) or operator \\
+RuntimeClass & control plane & pod spec and RuntimeClass handler, or operator \\
+\bottomrule
+\end{tabularx}
+\caption{Fields of the environment cell and their sources.}
+\label{tab:cellfields}
+\end{table}
+
+A RuntimeClass is handled in the same spirit as architecture. gVisor implements a subset of the system call interface and reports a synthetic kernel version, and Kata boots a guest kernel of its own, so a verdict that differs between a runc cell and a sandboxed cell is explained by the sandbox before any policy is consulted. A difference in LSM or in runtime version, by contrast, is a difference in the policy the kernel enforces and is classified as policy.
+
+\section{Why Rust for the Engine and Go for the Control Plane}
+
+The engine has three requirements that a managed runtime cannot meet. It must fork before every probe, and a runtime that has started threads cannot fork safely. It must not issue system calls of its own that pollute the measurement, while a garbage collector and a scheduler issue them in the background. And it must survive a child killed by a seccomp \texttt{KILL} action, which requires precise control of what the parent and child each execute. Rust compiled against musl into a static binary meets all three; CI checks the engine's own system calls against a committed baseline (Section~\ref{sec:baseline}). The control plane has none of these constraints and needs the container ecosystem's libraries (Kubernetes client, GitHub API, Security Profiles Operator types), which are written in Go.
+
+\section{The Interface and Parallel Development}
+
+Because the fingerprint format is the only interface, the four workstreams could work in parallel from week 2. The first format was agreed on 2026-09-11; recorded fingerprints from Lima virtual machines were committed as fixtures in week 5, and the diff engine, classifier, evaluator and reporter were developed and tested against them long before the corpus was complete. Format version 1 was frozen on 2026-10-19. A consumer refuses a format version it does not know rather than reading it on a best-effort basis, and optional fields added within version 1 are ignored by older consumers, so a fixture recorded in week 3 still parses in week 12.
+
+\section{Repository Organisation}
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.0cm}L@{}}
+\toprule
+\textbf{Path} & \textbf{Contents} \\
+\midrule
+\file{spec/} & Frozen interfaces: \file{probe.md} (probe specification) and \file{fingerprint.md} (format version 1), with a worked example \\
+\file{engine/} & Rust workspace (crates \texttt{engine}, \texttt{corpus}, \texttt{probe}), Dockerfile, system-call baselines, seccomp fixtures \\
+\file{corpus/} & \file{index.json} (213 probes: 185 committed, 28 deferred), regenerated by CI from \texttt{-{}-dump-corpus}; revision table \\
+\file{posture/} & \file{v1/posture.yaml} and \file{v1/RATIONALE.md}; changelog \\
+\file{control/} & Go control plane, its commands and test data \\
+\file{deploy/} & Kubernetes Job and DaemonSet; Compute Engine cell scripts; the end-to-end pipeline \\
+\file{fixtures/} & Committed fingerprints (cells, ground truth, pipeline runs, runtime runs, ancestors) and metric files \\
+\file{docs/} & Proposal, oracle design and sweep, per-issue evaluation records, safety review \\
+\file{.github/workflows/} & \file{ci.yml}, \file{cluster-evaluation.yml}, \file{release.yml} \\
+\bottomrule
+\end{tabularx}
+\caption{Repository layout.}
+\label{tab:repo}
+\end{table}

@@ -1,0 +1,154 @@
+\begin{thebibliography}{99}
+\addcontentsline{toc}{chapter}{References}
+\small
+\setlength{\itemsep}{2pt}
+
+\bibitem{lin2018} X.~Lin, L.~Lei, Y.~Wang, J.~Jing, K.~Sun, and Q.~Zhou, ``A measurement study on Linux container security: Attacks and countermeasures,'' in \emph{Proc. 34th Annual Computer Security Applications Conference (ACSAC)}, 2018, pp.~418--429, doi: 10.1145/3274694.3274720.
+
+\bibitem{gao2019houdini} X.~Gao, Z.~Gu, Z.~Li, H.~Jamjoom, and C.~Wang, ``Houdini's escape: Breaking the resource rein of Linux control groups,'' in \emph{Proc. ACM SIGSAC Conference on Computer and Communications Security (CCS)}, 2019, pp.~1073--1086, doi: 10.1145/3319535.3354227.
+
+\bibitem{man-capabilities} Linux man-pages project, \texttt{capabilities(7)}, \texttt{namespaces(7)}, \texttt{user\_namespaces(7)}, \texttt{socket(2)}, \texttt{netlink(7)}, \texttt{mount(2)}, \texttt{io\_uring\_register(2)}. [Online]. Available: \url{https://man7.org/linux/man-pages/}
+
+\bibitem{man-seccomp} Linux man-pages project, \texttt{seccomp(2)}, \texttt{seccomp\_unotify(2)}, \texttt{ptrace(2)}. [Online]. Available: \url{https://man7.org/linux/man-pages/}
+
+\bibitem{sun2018secns} Y.~Sun, D.~Safford, M.~Zohar, D.~Pendarakis, Z.~Gu, and T.~Jaeger, ``Security namespace: Making Linux security frameworks available to containers,'' in \emph{Proc. 27th USENIX Security Symposium}, 2018.
+
+\bibitem{oci-runtime} Open Container Initiative, ``Runtime Specification, version 1.1: Linux container configuration (\texttt{maskedPaths}, \texttt{readonlyPaths}, devices).'' [Online]. Available: \url{https://github.com/opencontainers/runtime-spec}
+
+\bibitem{gao2017containerleaks} X.~Gao, Z.~Gu, M.~Kayaalp, D.~Pendarakis, and H.~Wang, ``ContainerLeaks: Emerging security threats of information leakages in container clouds,'' in \emph{Proc. 47th Annual IEEE/IFIP International Conference on Dependable Systems and Networks (DSN)}, 2017, pp.~237--248, doi: 10.1109/DSN.2017.49.
+
+\bibitem{pss} Kubernetes, ``Pod Security Standards.'' [Online]. Available: \url{https://kubernetes.io/docs/concepts/security/pod-security-standards/}
+
+\bibitem{containerd} containerd project, ``containerd: an industry-standard container runtime,'' versions 1.7.12, 2.2.1 and 2.2.7. [Online]. Available: \url{https://containerd.io}
+
+\bibitem{young2019gvisor} E.~G.~Young, P.~Zhu, T.~Caraza-Harter, A.~C.~Arpaci-Dusseau, and R.~H.~Arpaci-Dusseau, ``The true cost of containing: A gVisor case study,'' in \emph{Proc. 11th USENIX Workshop on Hot Topics in Cloud Computing (HotCloud)}, 2019.
+
+\bibitem{gvisor} The gVisor Authors, ``gVisor: An application kernel for containers,'' release-20261005.0. [Online]. Available: \url{https://gvisor.dev}
+
+\bibitem{kata} Kata Containers project, ``Kata Containers,'' version 3.14.0. [Online]. Available: \url{https://katacontainers.io}
+
+\bibitem{anjali2020blending} Anjali, T.~Caraza-Harter, and M.~M.~Swift, ``Blending containers and virtual machines: A study of Firecracker and gVisor,'' in \emph{Proc. 16th ACM SIGPLAN/SIGOPS International Conference on Virtual Execution Environments (VEE)}, 2020, pp.~101--113, doi: 10.1145/3381052.3381315.
+
+\bibitem{cve-2026-31431} MITRE, ``CVE-2026-31431: Linux kernel \texttt{algif\_aead} improper handling of in-place operations (Copy Fail),'' 2026. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2026-31431}
+
+\bibitem{kev} Cybersecurity and Infrastructure Security Agency, ``Known Exploited Vulnerabilities Catalog: CVE-2026-31431,'' added 1 May 2026. [Online]. Available: \url{https://www.cisa.gov/known-exploited-vulnerabilities-catalog}
+
+\bibitem{msblog} Microsoft Security Blog, ``CVE-2026-31431: Copy Fail vulnerability enables Linux root privilege escalation across cloud environments,'' 1 May 2026.
+
+\bibitem{sysdig} Sysdig, ``CVE-2026-31431: Copy Fail Linux kernel flaw lets local users gain root in seconds,'' 2026.
+
+\bibitem{juliet} Juliet Security, ``Copy Fail in Kubernetes: RuntimeDefault did not block AF\_ALG,'' 2026.
+
+\bibitem{moby46762} moby/moby pull request 46762, ``seccomp: block io\_uring\_* syscalls in default profile,'' merged November 2023; released in Moby 25.0, January 2024.
+
+\bibitem{containerd9320} containerd/containerd pull request 9320, ``Update RuntimeDefault seccomp profile to disallow io\_uring related syscalls,'' merged November 2023; released in containerd 2.0, November 2024.
+
+\bibitem{moby52501} moby/moby pull request 52501, ``seccomp: block AF\_ALG sockets in default profile (CVE-2026-31431),'' merged May 2026; released in Moby 29.4.2.
+
+\bibitem{containerd13327} containerd/containerd pull request 13327: deny AF\_ALG in the RuntimeDefault seccomp profile, May 2026; released in containerd 2.2.4 and backported to 1.7.32.
+
+\bibitem{houdini} H.~Patel, D.~Barrera, and A.~Somayaji, ``Houdini: Benchmarking container security confinement,'' in \emph{Proc. 22nd Annual International Conference on Privacy, Security and Trust (PST)}, 2025, pp.~1--10, doi: 10.1109/PST65910.2025.11268879.
+
+\bibitem{gao2021tdsc} X.~Gao, B.~Steenkamer, Z.~Gu, M.~Kayaalp, D.~Pendarakis, and H.~Wang, ``A study on the security implications of information leakages in container clouds,'' \emph{IEEE Transactions on Dependable and Secure Computing}, vol.~18, no.~1, pp.~174--191, 2021, doi: 10.1109/TDSC.2018.2879605.
+
+\bibitem{confine} S.~Ghavamnia, T.~Palit, A.~Benameur, and M.~Polychronakis, ``Confine: Automated system call policy generation for container attack surface reduction,'' in \emph{Proc. 23rd International Symposium on Research in Attacks, Intrusions and Defenses (RAID)}, USENIX Association, 2020.
+
+\bibitem{confine2023} M.~Rostamipoor, S.~Ghavamnia, and M.~Polychronakis, ``Confine: Fine-grained system call filtering for container attack surface reduction,'' \emph{Computers \& Security}, vol.~132, Art.~no.~103325, 2023, doi: 10.1016/j.cose.2023.103325.
+
+\bibitem{sysfilter} N.~DeMarinis, K.~Williams-King, D.~Jin, R.~Fonseca, and V.~P.~Kemerlis, ``sysfilter: Automated system call filtering for commodity software,'' in \emph{Proc. 23rd International Symposium on Research in Attacks, Intrusions and Defenses (RAID)}, USENIX Association, 2020, pp.~459--474.
+
+\bibitem{temporal} S.~Ghavamnia, T.~Palit, S.~Mishra, and M.~Polychronakis, ``Temporal system call specialization for attack surface reduction,'' in \emph{Proc. 29th USENIX Security Symposium}, 2020, pp.~1749--1766.
+
+\bibitem{c2c} S.~Ghavamnia, T.~Palit, and M.~Polychronakis, ``C2C: Fine-grained configuration-driven system call filtering,'' in \emph{Proc. ACM SIGSAC Conference on Computer and Communications Security (CCS)}, 2022, pp.~1243--1257, doi: 10.1145/3548606.3559366.
+
+\bibitem{chestnut} C.~Canella, M.~Werner, D.~Gruss, and M.~Schwarz, ``Automating seccomp filter generation for Linux applications,'' in \emph{Proc. Cloud Computing Security Workshop (CCSW)}, 2021, pp.~139--151, doi: 10.1145/3474123.3486762.
+
+\bibitem{wan2017mining} Z.~Wan, D.~Lo, X.~Xia, L.~Cai, and S.~Li, ``Mining sandboxes for Linux containers,'' in \emph{Proc. IEEE International Conference on Software Testing, Verification and Validation (ICST)}, 2017, pp.~92--102, doi: 10.1109/ICST.2017.16.
+
+\bibitem{wan2019emse} Z.~Wan, D.~Lo, X.~Xia, and L.~Cai, ``Practical and effective sandboxing for Linux containers,'' \emph{Empirical Software Engineering}, vol.~24, no.~6, pp.~4034--4070, 2019, doi: 10.1007/s10664-019-09737-2.
+
+\bibitem{speaker} L.~Lei, J.~Sun, K.~Sun, C.~Shenefiel, R.~Ma, Y.~Wang, and Q.~Li, ``SPEAKER: Split-phase execution of application containers,'' in \emph{Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA)}, LNCS, Springer, 2017, pp.~230--251, doi: 10.1007/978-3-319-60876-1\_11.
+
+\bibitem{licsec} H.~Zhu and C.~Gehrmann, ``Lic-Sec: An enhanced AppArmor Docker security profile generator,'' \emph{Journal of Information Security and Applications}, vol.~61, Art.~no.~102924, 2021, doi: 10.1016/j.jisa.2021.102924.
+
+\bibitem{rahman2023} A.~Rahman, S.~I.~Shamim, D.~B.~Bose, and R.~Pandita, ``Security misconfigurations in open source Kubernetes manifests: An empirical study,'' \emph{ACM Transactions on Software Engineering and Methodology}, vol.~32, no.~4, pp.~1--36, 2023, doi: 10.1145/3579639.
+
+\bibitem{minna2021} F.~Minna, A.~Blaise, F.~Rebecchi, B.~Chandrasekaran, and F.~Massacci, ``Understanding the security implications of Kubernetes networking,'' \emph{IEEE Security \& Privacy}, vol.~19, no.~5, pp.~46--56, 2021, doi: 10.1109/MSEC.2021.3094726.
+
+\bibitem{firecracker} A.~Agache, M.~Brooker, A.~Florescu, A.~Iordache, A.~Liguori, R.~Neugebauer, P.~Piwonka, and D.-M.~Popa, ``Firecracker: Lightweight virtualization for serverless applications,'' in \emph{Proc. 17th USENIX Symposium on Networked Systems Design and Implementation (NSDI)}, 2020, pp.~419--434.
+
+\bibitem{kurmus2014} A.~Kurmus, S.~Dechand, and R.~Kapitza, ``Quantifiable run-time kernel attack surface reduction,'' in \emph{Detection of Intrusions and Malware, and Vulnerability Assessment (DIMVA)}, LNCS, Springer, 2014, pp.~212--234, doi: 10.1007/978-3-319-08509-8\_12.
+
+\bibitem{sultan2019} S.~Sultan, I.~Ahmad, and T.~Dimitriou, ``Container security: Issues, challenges, and the road ahead,'' \emph{IEEE Access}, vol.~7, pp.~52976--52996, 2019, doi: 10.1109/ACCESS.2019.2911732.
+
+\bibitem{pahl2019} C.~Pahl, A.~Brogi, J.~Soldani, and P.~Jamshidi, ``Cloud container technologies: A state-of-the-art review,'' \emph{IEEE Transactions on Cloud Computing}, vol.~7, no.~3, pp.~677--692, 2019, doi: 10.1109/TCC.2017.2702586.
+
+\bibitem{casalicchio2020} E.~Casalicchio and S.~Iannucci, ``The state-of-the-art in container technologies: Application, orchestration and security,'' \emph{Concurrency and Computation: Practice and Experience}, vol.~32, no.~17, Art.~no.~e5668, 2020, doi: 10.1002/cpe.5668.
+
+\bibitem{watada2019} J.~Watada, A.~Roy, R.~Kadikar, H.~Pham, and B.~Xu, ``Emerging trends, techniques and open issues of containerization: A review,'' \emph{IEEE Access}, vol.~7, pp.~152443--152472, 2019, doi: 10.1109/ACCESS.2019.2945930.
+
+\bibitem{jarkas2025} O.~Jarkas, R.~Ko, N.~Dong, and R.~Mahmud, ``A container security survey: Exploits, attacks, and defenses,'' \emph{ACM Computing Surveys}, vol.~57, no.~7, pp.~1--36, 2025, doi: 10.1145/3715001.
+
+\bibitem{bhardwaj2021} A.~Bhardwaj and C.~R.~Krishna, ``Virtualization in cloud computing: Moving from hypervisor to containerization, a survey,'' \emph{Arabian Journal for Science and Engineering}, vol.~46, no.~9, pp.~8585--8601, 2021, doi: 10.1007/s13369-021-05553-3.
+
+\bibitem{devipriya2023} V.~S.~Devi~Priya, S.~C.~Sethuraman, and M.~K.~Khan, ``Container security: Precaution levels, mitigation strategies, and research perspectives,'' \emph{Computers \& Security}, vol.~135, Art.~no.~103490, 2023, doi: 10.1016/j.cose.2023.103490.
+
+\bibitem{combe2016} T.~Combe, A.~Martin, and R.~Di~Pietro, ``To Docker or not to Docker: A security perspective,'' \emph{IEEE Cloud Computing}, vol.~3, no.~5, pp.~54--62, 2016, doi: 10.1109/MCC.2016.100.
+
+\bibitem{martin2018} A.~Martin, S.~Raponi, T.~Combe, and R.~Di~Pietro, ``Docker ecosystem -- Vulnerability analysis,'' \emph{Computer Communications}, vol.~122, pp.~30--43, 2018, doi: 10.1016/j.comcom.2018.03.011.
+
+\bibitem{nist800190} M.~Souppaya, J.~Morello, and K.~Scarfone, ``Application container security guide,'' NIST Special Publication 800-190, National Institute of Standards and Technology, 2017, doi: 10.6028/NIST.SP.800-190.
+
+\bibitem{kubebench} Aqua Security, ``kube-bench: CIS Kubernetes Benchmark checks.'' [Online]. Available: \url{https://github.com/aquasecurity/kube-bench}
+
+\bibitem{kubescape} Kubescape project, ``Kubescape.'' [Online]. Available: \url{https://kubescape.io}
+
+\bibitem{trivy} Aqua Security, ``Trivy.'' [Online]. Available: \url{https://trivy.dev}
+
+\bibitem{falco} The Falco Project, ``Falco: cloud-native runtime security.'' [Online]. Available: \url{https://falco.org}
+
+\bibitem{tetragon} Cilium project, ``Tetragon: eBPF-based security observability and runtime enforcement.'' [Online]. Available: \url{https://tetragon.io}
+
+\bibitem{ocihook} containers/oci-seccomp-bpf-hook, ``OCI hook to trace syscalls and generate a seccomp profile.'' [Online]. Available: \url{https://github.com/containers/oci-seccomp-bpf-hook}
+
+\bibitem{spo} Kubernetes SIGs, ``Security Profiles Operator,'' v1.1.1. [Online]. Available: \url{https://github.com/kubernetes-sigs/security-profiles-operator}
+
+\bibitem{inspektor} Inspektor Gadget, ``advise seccomp-profile.'' [Online]. Available: \url{https://inspektor-gadget.io}
+
+\bibitem{amicontained} genuinetools/amicontained, ``Container introspection tool,'' release v0.4.9, November 2019. [Online]. Available: \url{https://github.com/genuinetools/amicontained}
+
+\bibitem{seccompdiff} antitree/seccomp-diff, ``Extract and compare seccomp-BPF filters from running containers.'' [Online]. Available: \url{https://github.com/antitree/seccomp-diff}
+
+\bibitem{iouringdoc} Linux kernel documentation, ``io\_uring.'' [Online]. Available: \url{https://docs.kernel.org/io_uring/index.html}
+
+\bibitem{cve-2017-2636} MITRE, ``CVE-2017-2636: race condition in the Linux kernel n\_hdlc line discipline,'' 2017. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2017-2636}
+
+\bibitem{cve-2024-1086} MITRE, ``CVE-2024-1086: use-after-free in the Linux kernel netfilter nf\_tables component,'' 2024. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2024-1086}
+
+\bibitem{cve-2022-0185} MITRE, ``CVE-2022-0185: heap overflow in the Linux kernel filesystem context, reachable through user namespaces,'' 2022. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2022-0185}
+
+\bibitem{cve-2013-2094} MITRE, ``CVE-2013-2094: Linux kernel perf\_swevent\_init privilege escalation,'' 2013. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2013-2094}
+
+\bibitem{cve-2017-16995} MITRE, ``CVE-2017-16995: Linux kernel BPF verifier sign-extension flaw,'' 2017. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2017-16995}
+
+\bibitem{cve-2016-0728} MITRE, ``CVE-2016-0728: Linux kernel keyring reference-count overflow,'' 2016. [Online]. Available: \url{https://nvd.nist.gov/vuln/detail/CVE-2016-0728}
+
+\bibitem{userfaultfddoc} Linux kernel documentation, ``Userfaultfd: unprivileged userfaultfd.'' [Online]. Available: \url{https://docs.kernel.org/admin-guide/mm/userfaultfd.html}
+
+\bibitem{shocker} S.~Krahmer, ``Shocker: Docker container breakout using \texttt{open\_by\_handle\_at},'' 2014. [Online]. Available: \url{https://github.com/earthquake/shocker}
+
+\bibitem{cosign} Sigstore project, ``cosign: container signing, verification and storage in an OCI registry,'' v3.1.3. [Online]. Available: \url{https://github.com/sigstore/cosign}
+
+\bibitem{caliper} A.~A.~Madake, Y.~B.~Palve, R.~A.~Saindane, and S.~T.~Waje, ``CALIPER: Empirical measurement of container confinement,'' release v1.0.0, 2026. [Online]. Available: \url{https://github.com/Abhinavmadake/caliper}
+
+\bibitem{gvisor16118} google/gvisor issue 16118: \texttt{CLONE\_NEWNS} permitted without CAP\_SYS\_ADMIN, opened 21 October 2026.
+
+\bibitem{gvisor13511} google/gvisor pull request 13511: add \texttt{CLONE\_NEWNS} to the namespace capability check in \texttt{Clone}, opened 19 June 2026.
+
+\bibitem{gvisor9245} google/gvisor issue 9245: \texttt{maskedPaths} and \texttt{readonlyPaths} from the OCI specification, closed as not planned.
+
+\bibitem{kata14188} kata-containers/kata-containers issue 14188: directories in \texttt{maskedPaths} are not masked, opened 1 November 2026.
+
+\bibitem{kata14189} kata-containers/kata-containers pull request 14189: mask directories in \texttt{maskedPaths} with a shared read-only tmpfs, merged 2 November 2026.
+
+\end{thebibliography}

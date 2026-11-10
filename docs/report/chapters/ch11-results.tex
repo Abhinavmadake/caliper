@@ -1,0 +1,461 @@
+\chapter{Results and Analysis}
+\label{ch:results}
+
+This chapter reports every success criterion of the proposal with its measured value, and states where a result is weaker than its headline figure. Every number is generated from fingerprints committed to the repository (Appendix~\ref{app:repro}). Charts are paired with the tables that carry their exact values.
+
+\section{Verdicts per Cell}
+\label{sec:res-verdicts}
+
+Table~\ref{tab:verdicts} and Figure~\ref{fig:verdicts} give the verdicts of the full corpus under RuntimeDefault on each cell, on the GKE node, and on cell 2 under the hand-hardened profile. No probe timed out on any run, and no probe was killed except under the hardened profile.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Run} & \textbf{Permitted} & \textbf{Denied} & \textbf{Unimpl.} & \textbf{Killed} & \textbf{N/A} & \textbf{Total} \\
+\midrule
+Cell 1 (arm64) & 53 & 106 & 25 & 0 & 1 & 185 \\
+Cell 2 (baseline) & 53 & 107 & 25 & 0 & 0 & 185 \\
+Cell 3 (SELinux, 5.14) & 44 & 105 & 36 & 0 & 0 & 185 \\
+Cell 4 (containerd 1.7) & 105 & 55 & 25 & 0 & 0 & 185 \\
+Cell 5 (gVisor) & 37 & 29 & 119 & 0 & 0 & 185 \\
+Cell 6 (Kata) & 101 & 37 & 47 & 0 & 0 & 185 \\
+GKE (COS, containerd 2.2.7) & 44 & 106 & 35 & 0 & 0 & 185 \\
+Cell 2, hardened profile & 27 & 20 & 13 & 122 & 0 & 182 \\
+\bottomrule
+\end{tabular}
+\caption{Verdicts of the full corpus. Under the hardened profile the three \texttt{mount.fs.*} probes were recorded as unmeasured: the filter killed their set-up (creating the run's mount directory), which the harness reports as a \texttt{setup-killed} fault rather than a verdict.}
+\label{tab:verdicts}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[cal,
+  xbar stacked, scale only axis, width=0.66\textwidth, height=6.2cm,
+  bar width=10pt, xmin=0, xmax=185,
+  symbolic y coords={Cell 2 hardened,GKE,Cell 6 Kata,Cell 5 gVisor,Cell 4 containerd 1.7,Cell 3 SELinux,Cell 2,Cell 1 arm64},
+  ytick=data, y dir=normal,
+  xmajorgrids, xlabel={Probes},
+  legend style={at={(0.5,1.02)},anchor=south}, calbars,
+  every axis plot/.append style={draw=white,line width=0.7pt}]
+\addplot[fill=s1] coordinates {(53,Cell 1 arm64) (53,Cell 2) (44,Cell 3 SELinux) (105,Cell 4 containerd 1.7) (37,Cell 5 gVisor) (101,Cell 6 Kata) (44,GKE) (27,Cell 2 hardened)};
+\addplot[fill=s2] coordinates {(106,Cell 1 arm64) (107,Cell 2) (105,Cell 3 SELinux) (55,Cell 4 containerd 1.7) (29,Cell 5 gVisor) (37,Cell 6 Kata) (106,GKE) (20,Cell 2 hardened)};
+\addplot[fill=s3] coordinates {(25,Cell 1 arm64) (25,Cell 2) (36,Cell 3 SELinux) (25,Cell 4 containerd 1.7) (119,Cell 5 gVisor) (47,Cell 6 Kata) (35,GKE) (13,Cell 2 hardened)};
+\addplot[fill=s4] coordinates {(0,Cell 1 arm64) (0,Cell 2) (0,Cell 3 SELinux) (0,Cell 4 containerd 1.7) (0,Cell 5 gVisor) (0,Cell 6 Kata) (0,GKE) (122,Cell 2 hardened)};
+\legend{Permitted,Denied,Unimplemented,Killed}
+\end{axis}
+\end{tikzpicture}
+\caption{Verdict distribution per run (values in Table~\ref{tab:verdicts}). Cell 1's single not-applicable probe is omitted.}
+\label{fig:verdicts}
+\end{figure}
+
+Three observations follow directly. Cells 1 and 2 are nearly identical: same kernel build, same runtime, different architecture. Cell 4 permits 52 more probes than cell 2 because containerd 1.7.12's RuntimeDefault still allows io\_uring. Cell 5 reports 119 entry points unimplemented, because gVisor implements a subset of Linux, and cell 6 permits 101 probes because Kata applies no seccomp inside its guest by default. The hardened run on cell 2 is the survivability test at scale: 122 children were killed by SIGSYS and the run completed normally, with every kill recorded as a verdict.
+
+\subsection{Verdicts by family}
+Table~\ref{tab:family-verdicts} breaks the six cells down by family, as permitted/denied/unimplemented.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lrcccccc@{}}
+\toprule
+\textbf{Family} & \textbf{n} & \textbf{Cell 1} & \textbf{Cell 2} & \textbf{Cell 3} & \textbf{Cell 4} & \textbf{Cell 5} & \textbf{Cell 6} \\
+\midrule
+socket & 24 & 10/5/9 & 10/5/9 & 5/4/15 & 10/5/9 & 4/1/19 & 6/1/17 \\
+netlink & 18 & 15/0/3 & 15/0/3 & 14/0/4 & 15/0/3 & 3/2/13 & 11/0/7 \\
+io\_uring & 53 & 0/53/0 & 0/53/0 & 0/53/0 & 53/0/0 & 0/0/53 & 53/0/0 \\
+mount & 38 & 25/4/9 & 25/4/9 & 22/4/12 & 25/4/9 & 10/4/24 & 20/3/15 \\
+clone & 19 & 0/19/0 & 0/19/0 & 0/19/0 & 0/19/0 & 8/11/0 & 6/13/0 \\
+path & 17 & 1/12/4 & 1/12/4 & 1/11/5 & 1/12/4 & 7/0/10 & 3/6/8 \\
+device & 8 & 1/7/0 & 1/7/0 & 1/7/0 & 1/7/0 & 3/5/0 & 1/7/0 \\
+capability & 8 & 1/6/0$^{*}$ & 1/7/0 & 1/7/0 & 0/8/0 & 2/6/0 & 1/7/0 \\
+\bottomrule
+\end{tabular}
+\caption{Verdicts by family and cell (permitted/denied/unimplemented). $^{*}$\pid{capability.sys_rawio} is not applicable on arm64.}
+\label{tab:family-verdicts}
+\end{table}
+
+The table shows where each cell's confinement lives. On the runc cells every clone and unshare probe is denied (RuntimeDefault and the dropped capabilities), every path probe but the control is masked, read-only or absent, and the socket and netlink families are mostly permitted, because RuntimeDefault filters \texttt{socket} only by a few families. Under gVisor the path family is permitted (7) or absent (10) and none is masked; under Kata three path probes are permitted. Both are explained in Chapter~\ref{ch:disclosure}.
+
+\section{Divergence across Cells}
+\label{sec:res-divergence}
+
+\emph{Criterion: policy-explained divergence in at least four cell pairs, with architecture- and runtime-class-explained divergence separated from it in every pair.}
+
+Table~\ref{tab:divergence} gives the number of divergent probes in each of the 15 pairs, by class, and Figure~\ref{fig:divergence} plots them. Policy-explained divergence is present in 12 pairs, so the first half of the criterion is met.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lrrrrr@{}}
+\toprule
+\textbf{Pair} & \textbf{Architecture} & \textbf{Kernel version} & \textbf{Runtime class} & \textbf{Policy} & \textbf{Total} \\
+\midrule
+1, 2 & 1 & 0 & 0 & 0 & 1 \\
+1, 3 & 1 & 15 & 0 & 0 & 16 \\
+1, 4 & 1 & 0 & 0 & 54 & 55 \\
+1, 5 & 1 & 0 & 96 & 19 & 116 \\
+1, 6 & 1 & 0 & 30 & 63 & 94 \\
+2, 3 & 0 & 15 & 0 & 0 & 15 \\
+2, 4 & 0 & 0 & 0 & 54 & 54 \\
+2, 5 & 0 & 0 & 96 & 19 & 115 \\
+2, 6 & 0 & 0 & 30 & 63 & 93 \\
+3, 4 & 0 & 15 & 0 & 54 & 69 \\
+3, 5 & 0 & 0 & 85 & 19 & 104 \\
+3, 6 & 0 & 0 & 19 & 63 & 82 \\
+4, 5 & 0 & 0 & 96 & 20 & 116 \\
+4, 6 & 0 & 0 & 30 & 11 & 41 \\
+5, 6 & 0 & 0 & 74 & 12 & 86 \\
+\midrule
+total & 5 & 45 & 556 & 451 & 1057 \\
+\bottomrule
+\end{tabular}
+\caption{Divergent probes per cell pair and class (\file{fixtures/metrics/divergence-metrics.json}).}
+\label{tab:divergence}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[cal,
+  xbar stacked, scale only axis, width=0.78\textwidth, height=8.6cm,
+  bar width=8pt, xmin=0, xmax=120,
+  symbolic y coords={5--6,4--6,4--5,3--6,3--5,3--4,2--6,2--5,2--4,2--3,1--6,1--5,1--4,1--3,1--2},
+  ytick=data, xmajorgrids, xlabel={Divergent probes}, ylabel={Cell pair},
+  legend style={at={(0.5,1.02)},anchor=south}, calbars,
+  every axis plot/.append style={draw=white,line width=0.7pt}]
+\addplot[fill=s1] coordinates {(0,1--2) (0,1--3) (54,1--4) (19,1--5) (63,1--6) (0,2--3) (54,2--4) (19,2--5) (63,2--6) (54,3--4) (19,3--5) (63,3--6) (20,4--5) (11,4--6) (12,5--6)};
+\addplot[fill=s2] coordinates {(0,1--2) (0,1--3) (0,1--4) (96,1--5) (30,1--6) (0,2--3) (0,2--4) (96,2--5) (30,2--6) (0,3--4) (85,3--5) (19,3--6) (96,4--5) (30,4--6) (74,5--6)};
+\addplot[fill=s3] coordinates {(0,1--2) (15,1--3) (0,1--4) (0,1--5) (0,1--6) (15,2--3) (0,2--4) (0,2--5) (0,2--6) (15,3--4) (0,3--5) (0,3--6) (0,4--5) (0,4--6) (0,5--6)};
+\addplot[fill=s4] coordinates {(1,1--2) (1,1--3) (1,1--4) (1,1--5) (1,1--6) (0,2--3) (0,2--4) (0,2--5) (0,2--6) (0,3--4) (0,3--5) (0,3--6) (0,4--5) (0,4--6) (0,5--6)};
+\legend{Policy,Runtime class,Kernel version,Architecture}
+\end{axis}
+\end{tikzpicture}
+\caption{Divergence per cell pair by class (values in Table~\ref{tab:divergence}). Without the classifier, all 1,057 divergent probes would read as policy differences; 606 of them are explained by architecture, kernel version or RuntimeClass.}
+\label{fig:divergence}
+\end{figure}
+
+The pairs behave as the matrix was designed to make them behave:
+\begin{itemize}[leftmargin=*]
+\item \textbf{Cells 1 and 2} differ in one probe, \pid{capability.sys_rawio}, which exists only on x86; it is classified architecture-explained, as it is in every pair with cell 1.
+\item \textbf{Cells 2 and 4} differ in 54 probes: the 53 io\_uring probes that containerd 1.7's RuntimeDefault allows, and \pid{capability.net_bind_service}, which containerd 2.x permits by enabling unprivileged low ports by default. Both are runtime-version differences, and therefore policy.
+\item \textbf{Cell 3 against the other runc cells} (pairs 1--3, 2--3 and 3--4) shows 15 kernel-version-explained differences (socket families, netlink protocols, mount types and masked paths that the 5.14 kernel lacks) and \emph{no} policy-explained difference against cells 1 and 2. Its pairs with cells 5 and 6 show none in that class; the runtime-class test is applied before the kernel-version test. Replacing AppArmor with SELinux changed no verdict in this corpus that the kernel version did not already explain.
+\item \textbf{Pairs with cells 5 and 6} are dominated by runtime-class divergence (74 to 96 probes), which the classifier keeps out of the policy count. What remains as policy is real. Against cell 2, gVisor's 19 are eight clone and unshare probes it permits (among them new user, mount and time namespaces), six masked or read-only paths it does not apply, the FUSE and TUN devices, \pid{capability.sys_nice}, and two netlink protocols it refuses; Kata's 63 are the 53 io\_uring probes, six clone and unshare probes and \texttt{AF\_VSOCK}, all permitted because no seccomp filter is applied in the guest, plus \pid{mount.reach} and the two masked directories.
+\end{itemize}
+
+Without the classifier, the headline divergence metric would be dominated by gVisor's unimplemented interfaces and by kernel differences: 606 of the 1,057 divergent probe pairs are explained by something other than policy. The classifier's correctness in every pair rests on its unit tests and on these per-pair counts matching the axis each pair moves. Unlike attribution, it was not measured against a constructed ground truth.
+
+\section{Expectation and Claim Violations}
+\label{sec:res-findings}
+
+\emph{Criterion: at least one expectation violation in at least three distinct cells.}
+
+At the \texttt{restricted} tier, which CI evaluates, the six cells give 108 expectation violations, 3 claim violations and 282 undeclared exposures (Table~\ref{tab:findings}). Three cells have expectation violations, so the criterion is met, but one of the three rests on a single finding of doubtful weight. Cell 5's only violation at this tier is \pid{device.open.fuse}. Under gVisor that device node is the sandbox's own FUSE implementation, not the host driver that the posture assertion's rationale is about. Without it two cells qualify, and the criterion is not met at this tier.
+
+At the \texttt{untrusted-multi-tenant} tier every cell has expectation violations: 5, 5, 4, 58, 3 and 59 on cells 1 to 6. Cell 5 still has two there without the FUSE device (\pid{clone.flags.newuser} and \pid{unshare.flags.newuser}). The criterion is therefore met without qualification at that tier, and with the qualification above at \texttt{restricted}. Both figures are reported because the project decided to state the dependence openly rather than lean on the \texttt{restricted} number.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+& \multicolumn{3}{c}{\textbf{\texttt{restricted}}} & \textbf{\texttt{untrusted-multi-tenant}} \\
+\cmidrule(lr){2-4}\cmidrule(l){5-5}
+\textbf{Cell} & \textbf{Expectation} & \textbf{Claim} & \textbf{Undeclared} & \textbf{Expectation} \\
+\midrule
+1 (arm64) & 0 & 0 & 53 & 5 \\
+2 & 0 & 0 & 53 & 5 \\
+3 (SELinux) & 0 & 0 & 44 & 4 \\
+4 (containerd 1.7) & 53 & 0 & 52 & 58 \\
+5 (gVisor) & 1 & 3 & 33 & 3 \\
+6 (Kata) & 54 & 0 & 47 & 59 \\
+\midrule
+total & 108 & 3 & 282 & 134 \\
+\bottomrule
+\end{tabular}
+\caption{Findings at the \texttt{restricted} tier, and expectation violations at \texttt{untrusted-multi-tenant} (\file{fixtures/metrics/finding-metrics.json}).}
+\label{tab:findings}
+\end{table}
+
+The expectation violations at \texttt{restricted} are the 53 io\_uring probes on cell 4 (containerd 1.7) and on cell 6 (Kata, no seccomp in the guest), \pid{mount.reach} on cell 6, and \pid{device.open.fuse} on cell 5. At \texttt{untrusted-multi-tenant} the runc cells add AF\_ALG and the crypto, netfilter, rdma and xfrm netlink protocols (cell 3 has no rdma finding, because its kernel lacks the protocol).
+
+\subsection{Undeclared exposures by family}
+Table~\ref{tab:undeclared} breaks the 282 undeclared exposures down by family. They are the input the proposal intended them to be: reachable surface that neither the manifest nor the posture addresses. The mount types (up to 25) and netlink protocols (up to 14, beside the oracle probe) reachable on the runc cells are the largest groups; they would be the first candidates for a posture v2.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lrrrrrrrrr@{}}
+\toprule
+\textbf{Cell} & \textbf{socket} & \textbf{netlink} & \textbf{mount} & \textbf{clone} & \textbf{path} & \textbf{device} & \textbf{capab.} & \textbf{io\_uring} & \textbf{Total} \\
+\midrule
+1 & 10 & 15 & 25 & 0 & 1 & 1 & 1 & 0 & 53 \\
+2 & 10 & 15 & 25 & 0 & 1 & 1 & 1 & 0 & 53 \\
+3 & 5 & 14 & 22 & 0 & 1 & 1 & 1 & 0 & 44 \\
+4 & 10 & 15 & 25 & 0 & 1 & 1 & 0 & 0 & 52 \\
+5 & 4 & 3 & 10 & 6 & 7 & 2 & 1 & 0 & 33 \\
+6 & 6 & 11 & 19 & 6 & 3 & 1 & 1 & 0 & 47 \\
+\bottomrule
+\end{tabular}
+\caption{Undeclared exposures at \texttt{restricted} by family. Path includes the control probe on every cell; device includes the \file{/dev/null} control; socket and netlink include their out-of-range oracle probes where permitted.}
+\label{tab:undeclared}
+\end{table}
+
+\subsection{The three claim violations}
+All three claim violations are on cell 5, and they differ in kind (Section~\ref{sec:disclosure}). \pid{clone.flags.newns} is a real missing capability check in gVisor: a new mount namespace is created without CAP\_SYS\_ADMIN. \pid{capability.sys_nice} is a check gVisor skips deliberately, without effect, because niceness reaches no scheduler. \pid{unshare.flags.newtime} is a false positive: gVisor accepts the flag, does nothing with it, and has no time namespace. A \texttt{permitted} verdict records that the call succeeded; on a reimplemented kernel such as gVisor's, success does not show that the operation took place, and the corpus's oracles are written against Linux.
+
+\section{The AF\_ALG Case}
+\label{sec:res-afalg}
+
+\emph{Criterion: reproduce the AF\_ALG case unaided. Binary.}
+
+Met. The workload is the standard probe Job (\file{deploy/k8s/af-alg-demonstration.yaml}, identical to \file{deploy/k8s/job.yaml}): a non-root user, all capabilities dropped, RuntimeDefault, the ordinary probe image and no bespoke profile (Table~\ref{tab:afalg}). On the GKE cluster the Job was admitted by a namespace enforcing PSS Restricted; on the cells the same pod specification was run through the CRI, where there is no admission step.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{2.6cm}P{3.0cm}P{3.3cm}L@{}}
+\toprule
+\textbf{Recording} & \textbf{Runtime} & \textbf{AF\_ALG} & \textbf{Finding at \texttt{untrusted-multi-tenant}} \\
+\midrule
+Cells 1, 2, 3 & containerd 2.2.1 & permitted & expectation violation (CVE-2026-31431) \\
+Cell 4 & containerd 1.7.12 & permitted & expectation violation \\
+Cell 5 & gVisor & unimplemented (\errno{EAFNOSUPPORT}) & none \\
+Cell 6 & Kata & permitted & expectation violation \\
+GKE & containerd 2.2.7 & denied (\errno{EPERM}) & none \\
+\bottomrule
+\end{tabularx}
+\caption{\pid{socket.family.af_alg} across recordings.}
+\label{tab:afalg}
+\end{table}
+
+containerd added an AF\_ALG deny to its RuntimeDefault profile in May 2026 (containerd PR 13327), released in 2.2.4 and backported to 1.7.32. The cells' 2.2.1 and 1.7.12 predate it, so they permit AF\_ALG, matching the published result that containerd's RuntimeDefault did not block it; the GKE node's 2.2.7 carries the deny. The same manifest is exposed on one node and not on another, and the manifest does not record the difference. The two sides also differ in distribution and kernel, and \pid{socket.family.af_alg} is a seccomp-or-LSM probe, so the instrument does not itself attribute the GKE denial: that it comes from RuntimeDefault rests on containerd's change history. At the \texttt{untrusted-multi-tenant} tier the finding is an expectation violation carrying CVE-2026-31431 from the posture; at \texttt{restricted}, which asserts nothing about AF\_ALG, it is an undeclared exposure. This is the case the proposal said a manifest-only checker would miss: measured against the manifest alone, it produces no finding.
+
+\texttt{algif\_aead} was absent from the module snapshot on every recording. The probe only opens an AF\_ALG socket and never binds an \texttt{aead} algorithm, so the recordings do not measure whether that module can be autoloaded. They do show that the family's own module was autoloaded by the run (\texttt{af\_alg: not loaded before run, loaded by run}) on cells 1, 2 and 4, which is the precondition for reaching it.
+
+\section{Attribution Accuracy}
+\label{sec:res-attribution}
+
+\emph{Criterion: at least 90 per cent of attributed denials correct, and at most 10 per cent of all denials undecidable, against a constructed ground truth.}
+
+Table~\ref{tab:gt} gives the result over the single-cause environments of Table~\ref{tab:gtenv}. The two cases the proposal names as ambiguous are included: \pid{clone3.args.short} denied with \errno{ENOSYS} by a filter, and AppArmor answering \texttt{mount} with \errno{EACCES}.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}llrrrr@{}}
+\toprule
+\textbf{Environment} & \textbf{Only control} & \textbf{Denials} & \textbf{Correct} & \textbf{Incorrect} & \textbf{Undecidable} \\
+\midrule
+seccomp & RuntimeDefault & 54 & 54 & 0 & 0 \\
+seccomp-hardened & hardened profile & 123 & 123 & 0 & 0 \\
+apparmor & AppArmor profile & 3 & 3 & 0 & 0 \\
+capability & all dropped, UID 65534 & 27 & 24 & 0 & 3 \\
+paths & masked, read-only paths & 12 & 12 & 0 & 0 \\
+userns & no user namespaces & 4 & 4 & 0 & 0 \\
+\midrule
+total & & 223 & 220 & 0 & 3 \\
+\bottomrule
+\end{tabular}
+\caption{Attribution against single-cause environments (\file{fixtures/metrics/attribution-accuracy.json}).}
+\label{tab:gt}
+\end{table}
+
+Both parts of the criterion are met: all 220 attributed denials are correct (100 per cent), and 3 of 223 denials (1.3 per cent) are undecidable. The three are \pid{capability.sys_nice}'s \errno{EACCES} without CAP\_DAC\_OVERRIDE, which a file-permission check could also have produced, and the \errno{EPERM} of \pid{capability.sys_ptrace} and \pid{capability.sys_rawio}, which Yama and lockdown can also return whatever the major LSM's label says. Cell elimination is what makes the difference: with the oracles and correlations alone, 140 of the 223 are attributed correctly and 83 (37.2 per cent) are undecidable; the cell decides 80 of the 83.
+
+\subsection{The undecidable fraction in production}
+The ground truth has limits that the headline figure hides. 177 of its 223 denials come from seccomp, three from AppArmor and none from SELinux, and all of it is on one cell. More importantly, the environments are built so that the cell rules out every mechanism but one. A production cell has several controls in force at once, and there the fraction is much higher (Table~\ref{tab:undecidable}, Figure~\ref{fig:undecidable}). These production fractions were computed for this report by running the attributor on the committed baseline fingerprints; unlike the other figures, they are not a committed metric file.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+\textbf{Cell} & \textbf{Denials} & \textbf{Undecidable} & \textbf{Fraction} \\
+\midrule
+1 (arm64) & 106 & 90 & 84.9\% \\
+2 & 107 & 91 & 85.0\% \\
+3 (SELinux) & 105 & 38 & 36.2\% \\
+4 (containerd 1.7) & 55 & 40 & 72.7\% \\
+5 (gVisor) & 29 & 11 & 37.9\% \\
+6 (Kata) & 37 & 8 & 21.6\% \\
+\midrule
+six cells & 439 & 278 & 63.3\% \\
+\midrule
+5 (gVisor, seccomp applied in sandbox) & 91 & 30 & 33.0\% \\
+6 (Kata, seccomp applied in guest) & 98 & 30 & 30.6\% \\
+GKE (no cell-elimination fields) & 106 & 39 & 36.8\% \\
+\bottomrule
+\end{tabular}
+\caption{Undecidable fraction on production cells, full corpus under RuntimeDefault, corpus 0.3.3 (GKE: 0.3.2).}
+\label{tab:undecidable}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[cal,
+  xbar, scale only axis, width=0.62\textwidth, height=6.6cm, bar width=8pt,
+  xmin=0, xmax=100, xlabel={Undecidable denials (\%)},
+  symbolic y coords={Ground truth,GKE,Cell 6 kata-seccomp,Cell 5 runsc-seccomp,Cell 6 Kata,Cell 5 gVisor,Cell 4 containerd 1.7,Cell 3 SELinux,Cell 2,Cell 1 arm64},
+  ytick=data, xmajorgrids,
+  nodes near coords, nodes near coords align={horizontal},
+  every node near coord/.append style={font=\scriptsize,text=inkm},
+  point meta=explicit symbolic]
+\addplot[fill=s1,draw=none] coordinates {
+ (84.9,Cell 1 arm64) [84.9] (85.0,Cell 2) [85.0] (36.2,Cell 3 SELinux) [36.2] (72.7,Cell 4 containerd 1.7) [72.7]
+ (37.9,Cell 5 gVisor) [37.9] (21.6,Cell 6 Kata) [21.6] (33.0,Cell 5 runsc-seccomp) [33.0]
+ (30.6,Cell 6 kata-seccomp) [30.6] (36.8,GKE) [36.8] (1.3,Ground truth) [1.3]};
+\draw[inkm,dashed] ([yshift=-8pt]axis cs:10,Ground truth) -- ([yshift=8pt]axis cs:10,Cell 1 arm64) node[above,font=\scriptsize,text=inkm]{10\% threshold};
+\end{axis}
+\end{tikzpicture}
+\caption{Undecidable fraction by cell, with the ground truth and the proposal's 10 per cent threshold for comparison (values in Table~\ref{tab:undecidable}).}
+\label{fig:undecidable}
+\end{figure}
+
+On cell 2 the 91 undecidable denials have three causes:
+\begin{itemize}[leftmargin=*]
+\item \textbf{52 are io\_uring \errno{EPERM}s that could be seccomp or AppArmor.} The 7.0 kernel has the io\_uring LSM hook and the AppArmor profile is enforcing, so neither can be ruled out. Cell 3's 5.14 kernel predates the hook, which is why the same probes are decided there and cell 3's fraction is less than half of cell 2's.
+\item \textbf{32 are clone, unshare, socket, mount and capability calls} with every capability dropped and seccomp in force: 24 could be the filter or the missing capability, 7 the filter or the LSM (two of them the capability as well), and one is an \errno{EACCES} that a file-permission check could also have produced.
+\item \textbf{7 are absent device nodes} (\errno{ENOENT}), which none of the mechanisms the attributor names produced.
+\end{itemize}
+
+The undecidable fraction is therefore a property of the cell rather than of the attributor. On a production cell it is large, and reducing it needs the privileged helper that was not built (Chapter~\ref{ch:discussion}). The instrument's primary measurement, reachability, does not depend on attribution.
+
+\section{Remediation Closure}
+\label{sec:res-closure}
+
+\emph{Criterion: 100 per cent closure of seccomp-attributed divergences, verified by re-probing; other mechanisms reported without a threshold.}
+
+Each cell was measured under RuntimeDefault, evaluated at \texttt{untrusted-multi-tenant}, given a generated Localhost profile, and measured again from a fresh boot under it (Table~\ref{tab:closure}). A finding is seccomp-attributed when the generator writes a seccomp rule for it and the cell enforces seccomp (mode 2 at the baseline); it is closed when the re-probe shows it denied or killed.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+\textbf{Cell} & \textbf{Seccomp} & \textbf{Findings} & \textbf{Seccomp closed} & \textbf{Other closed} \\
+\midrule
+1 (arm64) & yes & 5 & 5 of 5 & \\
+2 & yes & 5 & 5 of 5 & \\
+3 (SELinux) & yes & 4 & 4 of 4 & \\
+4 (containerd 1.7) & yes & 58 & 58 of 58 & \\
+5 (gVisor, \texttt{runsc}) & no & 3 & & 0 of 3 \\
+5 (gVisor, \texttt{runsc-seccomp}) & yes & 1 & & 0 of 1 \\
+6 (Kata, \texttt{kata}) & no & 59 & & 0 of 59 \\
+6 (Kata, \texttt{kata-seccomp}) & yes & 3 & 3 of 3 & \\
+\midrule
+all & & 138 & 75 of 75 & 0 of 63 \\
+\bottomrule
+\end{tabular}
+\caption{Closure verified by re-probing (\file{fixtures/metrics/closure-metrics.json}).}
+\label{tab:closure}
+\end{table}
+
+The criterion is met: all 75 seccomp-attributed findings are closed, using six distinct rules. On cells 1 to 3 the findings are AF\_ALG and the crypto, netfilter, rdma and xfrm netlink protocols (cell 3 has no rdma finding); cell 4 adds 53 io\_uring probes, which one rule denying \texttt{io\_uring\_setup}, \texttt{io\_uring\_enter} and \texttt{io\_uring\_register} closes. Under \texttt{kata-seccomp} the findings are AF\_ALG, netfilter and xfrm.
+
+Under their default handlers gVisor and Kata run the workload with seccomp mode 0, so neither RuntimeDefault nor a generated profile reaches it, and none of their 62 findings closes:
+\begin{itemize}[leftmargin=*]
+\item 57 are already denied by RuntimeDefault on the runc cells (io\_uring on Kata, and the two user-namespace probes on both), so the generator has no allow rule to narrow and reports them as not closable;
+\item AF\_ALG, netfilter and xfrm on Kata receive rules, and the re-probe shows them still permitted (\texttt{unenforced});
+\item \pid{device.open.fuse} on gVisor and \pid{mount.reach} on Kata take a pathname or a filesystem type, which seccomp-BPF cannot inspect.
+\end{itemize}
+Under the variants that apply seccomp inside the sandbox, RuntimeDefault takes effect: on gVisor what remains is the FUSE device, which no seccomp rule can close, and on Kata the generated profile closes the remaining three. The generator's user-namespace and capability rules were not exercised, because no cell that applies seccomp permits those probes. The Security Profiles Operator accepted cell 2's generated resource on a test cluster; the other cells' resources were not installed. Closure was verified on self-managed nodes only, as the proposal anticipated.
+
+\section{Residual State and Runtime Cost}
+\label{sec:res-residual}
+
+\emph{Criteria: zero unreclaimed objects after a full run, autoloaded modules reported apart; full corpus under 60 seconds, reduced corpus under 5 seconds.}
+
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+\textbf{Run} & \textbf{Full (ms)} & \textbf{Reduced (ms)} & \textbf{Classes} & \textbf{Unreclaimed} & \textbf{Leaks} & \textbf{Modules} \\
+\midrule
+Cell 1 (arm64) & 241 & 56 & 6 & 0 & 0 & 28 \\
+Cell 2 & 585 & 158 & 6 & 0 & 0 & 31 \\
+Cell 3 (SELinux) & 247 & 175 & 6 & 0 & 0 & 0 \\
+Cell 4 (containerd 1.7) & 629 & 175 & 6 & 0 & 0 & 31 \\
+Cell 5 (gVisor) & 8632 & 2851 & 3 & 0 & 0 & 0 \\
+Cell 6 (Kata) & 109 & 92 & 6 & 0 & 0 & n/a \\
+Cell 2, controls off & 899 & & 6 & 0 & 0 & 36 \\
+\bottomrule
+\end{tabular}
+\caption{Residual state and runtime (\file{fixtures/metrics/residual-metrics.json}). Classes: residual classes the cell exposes. Modules: loaded by the full run.}
+\label{tab:residual}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[cal,
+  xbar, xmode=log, log basis x=10, scale only axis, width=0.56\textwidth, height=7.0cm,
+  bar width=9pt, xmin=30, xmax=100000,
+  xtick={100,1000,10000,60000}, xticklabels={0.1 s,1 s,10 s,60 s},
+  xlabel={Wall time (log scale)},
+  symbolic y coords={Cell 6 Kata,Cell 5 gVisor,Cell 4 containerd 1.7,Cell 3 SELinux,Cell 2,Cell 1 arm64},
+  ytick=data, xmajorgrids, enlarge y limits=0.1,
+  legend style={at={(0.5,1.04)},anchor=south}, calbars, clip=false,
+  log origin=infty]
+\addplot[fill=s1,draw=none] coordinates {(241,Cell 1 arm64) (585,Cell 2) (247,Cell 3 SELinux) (629,Cell 4 containerd 1.7) (8632,Cell 5 gVisor) (109,Cell 6 Kata)};
+\addplot[fill=s2,draw=none] coordinates {(56,Cell 1 arm64) (158,Cell 2) (175,Cell 3 SELinux) (175,Cell 4 containerd 1.7) (2851,Cell 5 gVisor) (92,Cell 6 Kata)};
+\legend{Full corpus,Reduced corpus}
+\draw[inkm,dashed] ([yshift=-12pt]axis cs:60000,Cell 6 Kata) -- ([yshift=12pt]axis cs:60000,Cell 1 arm64) node[above,font=\scriptsize,text=inkm]{60 s};
+\draw[s2!80!black,dashed] ([yshift=-12pt]axis cs:5000,Cell 6 Kata) -- ([yshift=12pt]axis cs:5000,Cell 1 arm64) node[above,font=\scriptsize,text=inkm]{5 s};
+\end{axis}
+\end{tikzpicture}
+\caption{Runtime of the full and reduced corpus per cell, against the 60-second and 5-second budgets (dashed). Values in Table~\ref{tab:residual}.}
+\label{fig:runtime}
+\end{figure}
+
+All three criteria are met. The slowest full run is gVisor at 8.6 seconds, about seven times under budget, and the slowest reduced run gVisor at 2.9 seconds; on runc the full corpus takes a quarter to two-thirds of a second. gVisor's cost is consistent with the system call overheads reported by Young et al.~\cite{young2019gvisor}. Only two classes have probes that create objects: mounts (4 probes) and network namespaces (4). Under RuntimeDefault none of them is permitted on cells 1 to 4, so the zero there means nothing was created; gVisor permits two network-namespace probes and Kata one mount and two network-namespace probes. The run on cell 2 with every control off is the one in which all eight create their objects, and it ends with nothing left. No probe creates keyrings, cgroups or IPC objects; the engine's leak tests are the evidence that those classes would be caught. gVisor exposes neither keyrings nor either IPC class, so its zero covers three classes, and Kata exposes no module list. Reduced runs load no modules.
+
+\section{Comparison with Ancestor Tools}
+\label{sec:res-ancestors}
+
+\emph{Reported as findings produced by each, without a threshold.}
+
+CALIPER, \texttt{amicontained} v0.4.9 and \texttt{seccomp-diff} were run against the same target on cell 2 (Table~\ref{tab:ancestors}).
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{2.4cm}LP{4.3cm}@{}}
+\toprule
+\textbf{Tool} & \textbf{Findings on the shared target} & \textbf{What the output describes} \\
+\midrule
+CALIPER & 107 denied, 53 permitted and 25 unimplemented probe results & Per-probe outcomes at argument level, including paths, mounts and kernel-dependent behaviour \\
+\texttt{amicontained} v0.4.9 & seccomp filtering; 65 blocked system call names; PID namespace present, user namespace absent; enforced AppArmor profile; empty capability list; runtime \texttt{not-found} (no runtime socket in the target) & A container summary and a coarse blocked-call list \\
+\texttt{seccomp-diff} & native x86\_64 branch, system call numbers 0 to 456: 297 \texttt{ALLOW}, 156 default \texttt{ERRNO(1)}, 3 \texttt{CONDITION} (\texttt{clone}, \texttt{personality}, \texttt{socket}), 1 explicit \texttt{ERRNO(38)} (\texttt{clone3}), 0 \texttt{KILL} & The active seccomp filter, decoded with host privilege \\
+\bottomrule
+\end{tabularx}
+\caption{Same-target comparison on cell 2 (\file{fixtures/ancestors/cell2/}).}
+\label{tab:ancestors}
+\end{table}
+
+The counts are in different units and are not scores. Neither ancestor reports path masking (\pid{path.masked.proc_kcore} \errno{ENODATA}, \pid{path.readonly.proc_sys} \errno{EROFS}), per-filesystem mount reachability, per-family socket reachability (CALIPER: 10 permitted, 5 denied, 9 unimplemented) or per-protocol netlink reachability (15 permitted, 3 unimplemented; both counts include the family's out-of-range oracle probe), per-flag clone and unshare outcomes, or what this kernel does not implement. \texttt{seccomp-diff} marks \texttt{socket} as conditional; decoding the condition shows it allows every family except 40 (\texttt{AF\_VSOCK}), including AF\_ALG (38), which CALIPER measures directly as permitted. In the other direction, \texttt{seccomp-diff} shows the filter that explains CALIPER's verdicts, which CALIPER cannot read without privilege, and \texttt{amicontained} summarises capability and namespace state in one screen. The outputs are complementary, not interchangeable. The comparison covers one target on one cell, and \texttt{seccomp-diff} captured the filter of a fresh container with identical settings after a restart rather than of the same container.
+
+\section{Summary of Results}
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.5cm}P{2.6cm}LP{0.8cm}@{}}
+\toprule
+\textbf{Metric} & \textbf{Threshold} & \textbf{Measured} & \textbf{Met} \\
+\midrule
+Policy divergence & $\ge$ 4 pairs & 12 of 15 pairs; 606 of 1,057 divergent probes explained by other classes & yes \\
+Expectation violations & $\ge$ 3 cells & 3 cells at \texttt{restricted}, one of them on a single doubtful finding; 6 cells at \texttt{untrusted-multi-tenant} & yes \\
+AF\_ALG unaided & binary & reproduced with the standard Job; present under containerd 2.2.1 and 1.7.12, absent under 2.2.7 & yes \\
+Attribution accuracy & $\ge$ 90\% & 220 of 220 & yes \\
+Undecidable fraction & $\le$ 10\% & 1.3\% on the ground truth; 21.6\% to 85.0\% on production cells & yes \\
+Seccomp closure & 100\% & 75 of 75; other mechanisms 0 of 63 & yes \\
+Residual state & zero & 0 unreclaimed, 0 leaks; up to 36 modules autoloaded by a full run, none by reduced runs & yes \\
+Runtime & 60 s / 5 s & 8.6 s and 2.9 s (gVisor) & yes \\
+Ancestor comparison & none & cell 2, Section~\ref{sec:res-ancestors} & \\
+\bottomrule
+\end{tabularx}
+\caption{Every success criterion of the proposal (\S11.2) with its measured value.}
+\label{tab:summary}
+\end{table}
+
+\subsection{Answers to the research questions}
+\begin{enumerate}[label=\textbf{RQ\arabic*},leftmargin=*]
+\item \textbf{Yes.} 185 argument-level probes run from an unprivileged container in 0.2 to 0.6 seconds on runc and 8.6 seconds on gVisor, survive 122 seccomp kills in one run, and leave nothing behind. The reduced corpus runs on every pull request.
+\item \textbf{Less than half is policy.} Of 1,057 divergent probe pairs, 451 are policy-explained; 556 are explained by RuntimeClass, 45 by kernel version and 5 by architecture. Swapping AppArmor for SELinux produced no policy difference that the kernel version did not explain; moving containerd from 2.2 to 1.7 produced 54.
+\item \textbf{Accurately, but not completely.} Every attribution made on the ground truth was correct. On production cells 21.6 to 85.0 per cent of denials remain undecidable without privilege, driven mainly by the io\_uring LSM hook on new kernels.
+\item \textbf{Yes.} The AF\_ALG exposure is invisible against the manifest and an expectation violation against the posture, as are io\_uring on containerd 1.7 and on Kata.
+\item \textbf{Where seccomp is enforced, yes; elsewhere, no.} All 75 seccomp-attributable findings closed on verification, but gVisor and Kata do not apply seccomp by default, so none of their 62 default-handler findings closed.
+\end{enumerate}

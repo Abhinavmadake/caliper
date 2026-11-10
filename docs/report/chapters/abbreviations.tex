@@ -1,0 +1,63 @@
+\chapter*{List of Abbreviations}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+
+\begingroup\renewcommand{\arraystretch}{1.0}
+\begin{longtable}{@{}p{3.3cm}p{11.9cm}@{}}
+AF\_ALG & Address family of the Linux kernel crypto user-space API (socket family 38)\\
+API & Application Programming Interface\\
+BPF / eBPF & Berkeley Packet Filter / extended BPF; seccomp filters are classic BPF programs\\
+CAP\_* & A Linux capability, for example CAP\_SYS\_ADMIN or CAP\_NET\_BIND\_SERVICE\\
+CI & Continuous Integration\\
+CISA & Cybersecurity and Infrastructure Security Agency (United States)\\
+COS & Container-Optimized OS, the node operating system of Google Kubernetes Engine\\
+CRI & Container Runtime Interface, the gRPC interface between the kubelet and a runtime\\
+CVE & Common Vulnerabilities and Exposures identifier\\
+DAC & Discretionary Access Control (file owner, group and mode bits)\\
+errno & The error number a failed system call returns to user space\\
+GCE & Google Compute Engine (virtual machines)\\
+GKE & Google Kubernetes Engine\\
+GHCR & GitHub Container Registry\\
+IPC & Inter-Process Communication (System V or POSIX)\\
+JSON & JavaScript Object Notation\\
+KEV & Known Exploited Vulnerabilities catalogue (CISA)\\
+LSM & Linux Security Module, for example AppArmor or SELinux\\
+LTO & Link-Time Optimisation\\
+MAC & Mandatory Access Control\\
+musl & A small C standard library used to build a static probe binary\\
+NIST & National Institute of Standards and Technology\\
+OCI & Open Container Initiative (image and runtime specifications)\\
+OIDC & OpenID Connect, used here for keyless image signing\\
+PID & Process Identifier\\
+PSA / PSS & Pod Security Admission / Pod Security Standards (Kubernetes)\\
+PR & Pull Request\\
+RBAC & Role-Based Access Control (Kubernetes)\\
+RuntimeClass & Kubernetes object selecting the runtime handler for a pod (runc, gVisor, Kata)\\
+RuntimeDefault & The seccomp (and AppArmor) profile the container runtime ships as its default\\
+SA & Service Account\\
+SARIF & Static Analysis Results Interchange Format\\
+seccomp & Secure computing mode; seccomp-BPF filters system calls by number and arguments\\
+SELinux & Security-Enhanced Linux\\
+SHA-256 & Secure Hash Algorithm, 256-bit digest\\
+SIGSYS & The signal delivered when a seccomp filter's action kills the caller\\
+SPO & Security Profiles Operator (Kubernetes SIGs project)\\
+UID / GID & User Identifier / Group Identifier\\
+userns & User namespace\\
+VM & Virtual Machine\\
+VMM & Virtual Machine Monitor\\
+YAML & YAML Ain't Markup Language\\
+\end{longtable}
+
+\section*{Verdicts and finding categories used throughout}
+
+\begin{longtable}{@{}p{3.3cm}p{11.9cm}@{}}
+permitted & The probed call reached the kernel and was not refused, or returned the error its oracle guarantees\\
+denied & The call was refused before reaching the oracle's point (an errno other than the guaranteed one)\\
+unimplemented & The kernel of this cell does not provide the entry point (declared absence errno)\\
+killed & The probe's child was terminated by SIGSYS, the outcome of a seccomp kill action\\
+timed-out & The probe exceeded its risk-class timeout and was killed by the engine\\
+not-applicable & The entry point does not exist on this architecture; decided before anything runs\\
+expectation violation & Reachable, and the reference posture asserts it should not be\\
+claim violation & The manifest asserts a protection that the measurement contradicts\\
+undeclared exposure & Reachable, and neither the manifest nor the posture addresses it\\
+\end{longtable}
+\endgroup

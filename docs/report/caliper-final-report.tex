@@ -1,0 +1,326 @@
+\documentclass[12pt,a4paper,openany,oneside]{report}
+
+%======================================================================
+% Details to confirm before submission
+%======================================================================
+\newcommand{\reportkind}{Final Report}
+\newcommand{\projecttitle}{CALIPER: Empirical Measurement of Container Confinement}
+\newcommand{\shorttitle}{CALIPER: Empirical Measurement of Container Confinement}
+\newcommand{\degreename}{Bachelor of Technology in Computer Engineering}
+\newcommand{\guidename}{Dr.~Shraddha S Suratkar}
+\newcommand{\hodname}{[Head of Department]}
+\newcommand{\acadyear}{2026--2027}
+\newcommand{\reportdate}{}
+% Front matter: the lists continue on the current page when at least 30% of
+% it is free. Main chapters always start on a new page (see \preto below
+% \pagenumbering{arabic}).
+\newif\ifchapterpage \chapterpagefalse
+
+%======================================================================
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,left=2.5cm,right=2.5cm,top=2.6cm,bottom=2.6cm,headheight=15pt]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage{enumitem}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{needspace}
+\usepackage{etoolbox}
+\usepackage{tocloft}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,calc,fit,backgrounds,shapes.geometric,shapes.multipart,decorations.pathreplacing}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage[hidelinks]{hyperref}
+
+%----------------------------------------------------------------------
+% Layout: compact headings and float placement, so pages stay full
+%----------------------------------------------------------------------
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{4em}
+\tolerance=1500
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.85}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{5}
+\setlength{\textfloatsep}{12pt plus 2pt minus 4pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+
+\ifchapterpage\else
+  \titleclass{\chapter}{straight}
+  \preto\chapter{\Needspace{0.3\textheight}}
+\fi
+\titleformat{\chapter}[display]{\normalfont\bfseries}{\titlerule[0.6pt]\vspace{4pt}\Large\chaptertitlename\ \thechapter}{3pt}{\huge}
+\titleformat{name=\chapter,numberless}[display]{\normalfont\bfseries}{\titlerule[0.6pt]\vspace{2pt}}{0pt}{\huge}
+\titlespacing*{\chapter}{0pt}{16pt}{14pt}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.8em}{}
+\titlespacing*{\section}{0pt}{12pt plus 3pt minus 2pt}{5pt plus 1pt}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.8em}{}
+\titlespacing*{\subsection}{0pt}{9pt plus 2pt minus 2pt}{3pt plus 1pt}
+\titleformat{\subsubsection}[runin]{\normalfont\normalsize\bfseries}{}{0pt}{}[.]
+\titlespacing*{\subsubsection}{0pt}{6pt plus 2pt minus 1pt}{0.6em}
+
+\setlist{itemsep=1pt,topsep=3pt,parsep=0pt,partopsep=0pt}
+\captionsetup{font=small,labelfont=bf,skip=5pt}
+\renewcommand{\arraystretch}{1.12}
+\setlength{\tabcolsep}{4.5pt}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+\renewcommand{\bibname}{References}
+
+% tables of contents
+\setlength{\cftbeforechapskip}{3pt}
+\setlength{\cftbeforesecskip}{0pt}
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforefigskip}{2pt}
+\setlength{\cftbeforetabskip}{2pt}
+\renewcommand{\cftafterloftitle}{\phantomsection\addcontentsline{toc}{chapter}{List of Figures}}
+\renewcommand{\cftafterlottitle}{\phantomsection\addcontentsline{toc}{chapter}{List of Tables}}
+
+% identifiers
+\urlstyle{tt}
+\expandafter\def\expandafter\UrlBreaks\expandafter{\UrlBreaks\do\-\do\.}
+\newcommand{\pid}[1]{\nolinkurl{#1}}
+\newcommand{\file}[1]{\nolinkurl{#1}}
+\newcommand{\iss}[1]{\#{}#1}
+\newcommand{\errno}[1]{\texttt{#1}}
+
+% chart colours (validated categorical slots, light surface)
+\definecolor{s1}{HTML}{2A78D6}
+\definecolor{s2}{HTML}{EB6834}
+\definecolor{s3}{HTML}{1BAF7A}
+\definecolor{s4}{HTML}{EDA100}
+\definecolor{gridc}{HTML}{E4E3DF}
+\definecolor{inkm}{HTML}{52514E}
+\definecolor{boxfill}{HTML}{F3F2EE}
+\definecolor{boxrust}{HTML}{FBE9DF}
+\definecolor{boxgo}{HTML}{E3EEFA}
+
+\pgfplotsset{
+  cal/.style={
+    axis line style={draw=inkm!60},
+    tick style={draw=none},
+    major grid style={draw=gridc},
+    tick label style={font=\footnotesize, text=inkm},
+    label style={font=\footnotesize, text=inkm},
+    legend style={font=\footnotesize, draw=none, fill=none, legend columns=-1, /tikz/every even column/.append style={column sep=8pt}},
+    legend cell align=left,
+  },
+  calbars/.style={legend image code/.code={\fill[##1] (0cm,-0.09cm) rectangle (0.28cm,0.11cm);}},
+}
+
+% page style
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\chaptermark}[1]{\markboth{\MakeUppercase{\chaptertitlename\ \thechapter.\ #1}}{}}
+\fancyhead[L]{\small\leftmark}
+\fancyfoot[L]{\small\shorttitle}
+\fancyfoot[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[L]{\small\shorttitle}\fancyfoot[R]{\small\thepage}\renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0.4pt}}
+\fancypagestyle{front}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0pt}}
+\fancypagestyle{main}{\fancyhf{}\fancyhead[L]{\small\leftmark}\fancyfoot[L]{\small\shorttitle}\fancyfoot[R]{\small\thepage}\renewcommand{\headrulewidth}{0.4pt}\renewcommand{\footrulewidth}{0.4pt}}
+
+\hypersetup{pdftitle={CALIPER: Empirical Measurement of Container Confinement},pdfauthor={Abhinav Ajit Madake, Yogesh Babaji Palve, Ritesh Aresh Saindane, Sahil Tatyabhau Waje}}
+
+\newcommand{\candidatetable}{%
+\begin{center}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{|p{6.2cm}|p{3.2cm}|p{4.2cm}|}
+\hline
+\textbf{Name of Candidate} & \textbf{Roll No.} & \textbf{Signature}\\ \hline
+Abhinav Ajit Madake & 231070028 & \\ \hline
+Yogesh Babaji Palve & 231070037 & \\ \hline
+Ritesh Aresh Saindane & 231070053 & \\ \hline
+Sahil Tatyabhau Waje & 231080079 & \\ \hline
+\end{tabular}
+\end{center}}
+
+%======================================================================
+\begin{document}
+\hypersetup{pageanchor=false}
+
+\begin{titlepage}
+\centering
+\vspace*{0cm}
+{\large\bfseries \reportkind\par}
+{\large\bfseries on\par}
+\vspace{0.7cm}
+{\LARGE\bfseries CALIPER: Empirical Measurement of\\[2pt] Container Confinement\par}
+\vspace{0.8cm}
+{\bfseries Submitted\\ in partial fulfillment of\\ the requirements for the degree of \degreename\par}
+\vspace{0.7cm}
+{\large\bfseries\itshape by\par}
+\vspace{0.35cm}
+{\large
+\textbf{Abhinav Ajit Madake}\ \ (231070028)\\[3pt]
+\textbf{Yogesh Babaji Palve}\ \ (231070037)\\[3pt]
+\textbf{Ritesh Aresh Saindane}\ \ (231070053)\\[3pt]
+\textbf{Sahil Tatyabhau Waje}\ \ (231080079)\par}
+\vspace{0.6cm}
+Under the Guidance of\par
+\vspace{0.2cm}
+{\large\bfseries \guidename\par}
+\vspace{0.7cm}
+\includegraphics[width=2.6cm,height=3.4cm]{figures/vjti-logo.png}\par
+\vspace{0.6cm}
+DEPARTMENT OF COMPUTER ENGINEERING AND INFORMATION TECHNOLOGY\\
+{\large\bfseries VEERMATA JIJABAI TECHNOLOGICAL INSTITUTE\par}
+(An Autonomous Institute Affiliated to Mumbai University)\\
+(Central Technological Institute, Maharashtra State)\\
+Matunga, MUMBAI - 400019\par
+\vspace{0.3cm}
+A.Y. \acadyear\par
+\end{titlepage}
+
+\pagestyle{front}
+\pagenumbering{roman}
+\hypersetup{pageanchor=true}
+
+%----------------------------------------------------------------------
+\section*{\centering STATEMENT OF CANDIDATE}
+\addcontentsline{toc}{chapter}{Statement of Candidate}
+
+We, the undersigned candidates, hereby declare that the project work entitled \textbf{``\projecttitle''} submitted in partial fulfillment of the requirements for the award of the degree of \degreename, is a record of our original work carried out during the academic year \acadyear.
+
+We further declare that the contents of this report are based on our own efforts and have not been submitted to any other institute or university for the award of any degree or diploma. All sources of information used in this project have been duly acknowledged, and no part of this work has been copied or plagiarised from existing literature without proper citation. Every measurement reported here was produced by the instrument described in this report, on environments we provisioned ourselves, and the fingerprints, metric files and commands needed to reproduce each number are published in the project repository.
+
+\vspace{1.2cm}
+\candidatetable
+\vspace{2.5cm}
+
+\noindent Date: \reportdate\\
+Place: VJTI, Mumbai
+
+\clearpage
+%----------------------------------------------------------------------
+\section*{\centering APPROVAL SHEET}
+\addcontentsline{toc}{chapter}{Approval Sheet}
+
+This is to certify that the project report entitled \textbf{``\projecttitle''} submitted by the following candidates in partial fulfillment of the requirements for the award of the degree of \textbf{\degreename} is approved.
+
+The project work has been carried out under the supervision of \textbf{\guidename}, Department of Computer Engineering and Information Technology, Veermata Jijabai Technological Institute (VJTI), Mumbai.
+
+The report has been examined and is hereby approved as meeting the requirements prescribed by the institute.
+
+\vspace{0.6cm}
+\candidatetable
+\vspace{2.6cm}
+
+\noindent
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}cc}
+\guidename & \\
+\textbf{\itshape B.Tech. Supervisor} & \textbf{\itshape Examiner}\\[3.2cm]
+\textbf{\itshape Examiner} & \textbf{\itshape Examiner}\\
+\end{tabular*}
+
+\vspace{2.6cm}
+\noindent Place: \textit{Veermata Jijabai Technological Institute, Mumbai.}\\
+Date: \reportdate
+
+\clearpage
+%----------------------------------------------------------------------
+\section*{\centering CERTIFICATE}
+\addcontentsline{toc}{chapter}{Certificate}
+
+This is to certify that the project entitled \textbf{``\projecttitle''} submitted by the following students has been carried out under the supervision of \textbf{\guidename}, Department of Computer Engineering and Information Technology, Veermata Jijabai Technological Institute (VJTI), Mumbai, in partial fulfillment of the requirements for the award of the degree of \textbf{\degreename} for the academic year \acadyear.
+
+The work embodied in this project report is original and has not been submitted to any other institute or university for the award of any degree or diploma.
+
+\vspace{0.6cm}
+\candidatetable
+\vspace{1.6cm}
+
+\noindent
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}cc}
+\guidename & \\
+\textbf{\itshape B.Tech. Supervisor} & \textbf{\itshape Examiner}\\[3.2cm]
+\textbf{\itshape Examiner} & \textbf{\itshape Examiner}\\
+\end{tabular*}
+
+\vspace{2.2cm}
+\noindent\textbf{College Seal/Stamp}
+
+\vspace{2.4cm}
+\noindent Place: \textit{Veermata Jijabai Technological Institute, Mumbai.}\\
+Date: \reportdate
+
+\clearpage
+%----------------------------------------------------------------------
+\section*{\centering ACKNOWLEDGEMENT}
+\addcontentsline{toc}{chapter}{Acknowledgement}
+
+We would like to express our sincere gratitude to our project guide, \textbf{\guidename}, Department of Computer Engineering and Information Technology, VJTI Mumbai, for continuous support, valuable guidance and encouragement throughout the course of this project. The feedback we received on the scope of the instrument, on what could honestly be claimed from its measurements and on how the results should be reported shaped both the direction and the outcome of our work.
+
+We are also grateful to \textbf{\hodname}, Head of the Department of Computer Engineering and Information Technology, for providing us with the necessary facilities, resources and an environment conducive to learning and research.
+
+We extend our thanks to all faculty members and staff of the Department of Computer Engineering and Information Technology for their help and cooperation during the development of the project.
+
+We acknowledge the open-source projects on which this work depends and against which it was evaluated: the Linux kernel, containerd, runc, gVisor, Kata Containers, Kubernetes and the Security Profiles Operator, the Rust and Go toolchains, and the maintainers of \texttt{amicontained} and \texttt{seccomp-diff}, whose tools established the idea this project builds on. The evaluation cells and the continuous-integration cluster ran on Google Cloud under a free-trial credit.
+
+We would also like to thank our peers and friends for their support, collaboration and motivation throughout this journey. Finally, we express our heartfelt gratitude to our families for their unwavering encouragement, patience and belief in us, which gave us the strength to complete this project successfully.
+
+\vspace{1.0cm}
+\candidatetable
+\vspace{0.6cm}
+\noindent Date: \textbf{\reportdate}\\
+Place: \textbf{VJTI, Mumbai}
+
+\clearpage
+%----------------------------------------------------------------------
+\pagestyle{front}
+{\hypersetup{linkcolor=black}
+\tableofcontents
+\clearpage
+\listoffigures
+\listoftables}
+
+\input{chapters/abbreviations}
+
+%======================================================================
+\clearpage
+\pagenumbering{arabic}
+\pagestyle{main}
+% From Chapter 1 on, every chapter (and the references and appendices) starts on a new page.
+\preto\chapter{\clearpage\thispagestyle{plain}}
+
+\input{chapters/ch01-synopsis}
+\input{chapters/ch02-background}
+\input{chapters/ch03-literature}
+\input{chapters/ch04-gaps}
+\input{chapters/ch05-proposed}
+\input{chapters/ch06-architecture}
+\input{chapters/ch07-engine}
+\input{chapters/ch08-analysis}
+\input{chapters/ch09-techstack}
+\input{chapters/ch10-setup}
+\input{chapters/ch11-results}
+\input{chapters/ch12-disclosure}
+\input{chapters/ch13-discussion}
+\input{chapters/ch14-conclusion}
+
+\input{chapters/references}
+
+\appendix
+\input{chapters/appendix}
+
+\end{document}

@@ -1,0 +1,244 @@
+\chapter{Methodology II: Analysis}
+\label{ch:analysis}
+
+This chapter describes the control plane: the fingerprint format, the divergence classifier, the attributor, the reference posture, the evaluator, the remediator and its closure verification, and the reports.
+
+\section{The Fingerprint Format}
+\label{sec:fingerprint}
+
+A fingerprint is one measurement run. Format version 1 (\file{spec/fingerprint.md}) was agreed in week 2 and frozen on 2026-10-19 by PR \iss{141}. Table~\ref{tab:fpfields} lists its top-level fields and Figure~\ref{fig:fpexample} shows an excerpt of the cell 2 fingerprint.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.0cm}L@{}}
+\toprule
+\textbf{Field} & \textbf{Content} \\
+\midrule
+\texttt{format\_version} & Integer, incremented only by a breaking change. A consumer refuses a version it does not know \\
+\texttt{corpus\_revision} & The corpus that produced the run, distinct from the format version \\
+\texttt{corpus\_set} & \texttt{"full"} or \texttt{"reduced"}; a probe the reduced set omits is absent from \texttt{results}, not a divergence \\
+\texttt{digest} & \texttt{sha256:} over the canonical document with this field omitted; identity and deduplication, not authenticity \\
+\texttt{cell} & The environment cell (Table~\ref{tab:cellfields}); control-plane fields carry \texttt{\{value, source\}} \\
+\texttt{results} & One entry per measured probe: \texttt{probe\_id}, \texttt{verdict}, raw \texttt{errno}, and, once attributed, an \texttt{attribution} object \\
+\texttt{unmeasured} & Probes not run, each with its reason: \texttt{deferred}, a harness fault, or a crash with its signal \\
+\texttt{module\_delta} & \texttt{before}, \texttt{after} and \texttt{loaded\_by\_run} module lists \\
+\texttt{residual} & Observability of each class, counts before and after, leaks, unverifiable classes, the run-level audit and the janitor's actions \\
+\texttt{elapsed\_ms} & Wall time of the run (optional, added within version 1) \\
+\bottomrule
+\end{tabularx}
+\caption{Top-level fields of a fingerprint, format version 1.}
+\label{tab:fpfields}
+\end{table}
+
+\begin{figure}[htbp]
+\begin{Verbatim}[fontsize=\scriptsize,frame=single,framesep=2mm]
+{ "format_version": 1, "corpus_revision": "0.3.0", "corpus_set": "full",
+  "digest": "sha256:977558ac4482df1fec0d87674f56cf44516fb5706938c7d0bdef7843a4604030",
+  "cell": { "architecture": "x86_64",
+            "kernel": { "release": "7.0.0-1014-gcp", "version": {"major": 7, "minor": 0},
+                        "sandbox_claimed": false, "modules": ["8021q", "aesni_intel", ...] },
+            "distribution":    {"value": "Ubuntu 24.04", "source": "operator"},
+            "runtime":         {"value": "containerd",   "source": "operator"},
+            "runtime_version": {"value": "2.2.1",        "source": "operator"},
+            "runtime_class":   {"value": "runc",         "source": "operator"},
+            "lsm": "apparmor", "lsm_label": "cri-containerd.apparmor.d (enforce)",
+            "lsm_enforcing": true,
+            "capabilities": {"effective": "0000000000000000", "bounding": "0000000000000000", ...},
+            "user_namespaces": {"max": 28082, "unprivileged_clone": 1, "apparmor_restricted": 1} },
+  "results": [ {"probe_id": "socket.family.af_alg",    "verdict": "permitted", "errno": 0},
+               {"probe_id": "io_uring.register.probe", "verdict": "denied",    "errno": 1},
+               {"probe_id": "path.masked.proc_kcore",  "verdict": "denied",    "errno": 61}, ... ],
+  "unmeasured": [ {"probe_id": "ioctl.request.fioclex", "why": "deferred"}, ... ],
+  "module_delta": { "before": [...], "after": [...], "loaded_by_run": ["af_alg", "af_key", ...] },
+  "residual": { "before": {"mounts": 25, "keyrings": null, "cgroups": 0, ...},
+                "after":  {"mounts": 25, "keyrings": null, "cgroups": 0, ...}, "leaks": [] } }
+\end{Verbatim}
+\caption{Excerpt of the cell 2 fingerprint (\file{fixtures/cells/cell2.json}).}
+\label{fig:fpexample}
+\end{figure}
+
+\subsection{Conventions}
+Object keys are \texttt{snake\_case}; enumerated values are \texttt{kebab-case} (\texttt{"timed-out"}, \texttt{"policy-explained"}); an enumerated value that carries data is a one-key object whose key is the value. The errno is always the raw integer, never a name. Booleans are stated, not implied by absence: a missing key means the producer did not know, \texttt{false} means it knew and the answer was no. Every control-plane field records its source.
+
+\subsection{Digest}
+The producer computes the digest once: it omits \texttt{digest} from the complete document, encodes it as UTF-8 JSON with object keys sorted, no insignificant whitespace and no HTML escaping, hashes the bytes with SHA-256, and prefixes the lowercase hexadecimal result with \texttt{sha256:}. A consumer preserves the supplied digest and never recomputes it, because a consumer that ignores optional fields added later could not reproduce the original bytes. Fingerprints are not signed: the proposal requires signing for the probe \emph{image}, so that operators can allowlist a known instrument, and nothing in the threat model makes a forged fingerprint the attack.
+
+\subsection{Compatibility}
+Within a format version, fields may be added and must be optional; no field is removed, renamed or retyped; no enumeration value is removed; and unknown fields are ignored. Anything else is a new format version. Two fingerprints from different corpus revisions are compared over the probe identifiers present in both, and a probe present in only one is reported in a separate \emph{corpus-skew} section and never classified: instrument drift must not be reported as a property of the node.
+
+\section{Diff and Divergence Classification}
+\label{sec:classifier}
+
+\texttt{Diff} decodes two fingerprints, refuses an unknown format version, and lists every probe in the shared set whose verdict differs. \texttt{Classify} then assigns each divergence exactly one class, testing the explanations in a fixed order so that a difference is never reported as policy when something else explains it (Figure~\ref{fig:classifier}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  q/.style={draw=inkm,fill=boxfill,rounded corners=2pt,text width=6.4cm,align=left,font=\footnotesize,minimum height=0.9cm},
+  c/.style={draw=inkm,rounded corners=8pt,fill=white,text width=3.4cm,align=center,font=\footnotesize\bfseries,minimum height=0.8cm},
+  ar/.style={-{Stealth[length=2mm]},thick,draw=inkm},
+  yn/.style={font=\scriptsize,text=inkm}]
+\node[q] (q1) {1. One side is \texttt{not-applicable} because the probe's applicability excludes that side's architecture and includes the other's?};
+\node[q,below=0.45cm of q1] (q2) {2. The cells differ in RuntimeClass, and the sandboxed side (gVisor or Kata) reports \texttt{unimplemented}, or a declared absence opposes a non-sandboxed side?};
+\node[q,below=0.45cm of q2] (q3) {3. One side is \texttt{unimplemented} with the dependency's absence errno, and the kernel explains it: the \texttt{present\_if} path, the \texttt{since} release, an encoded absence opposite a \texttt{permitted} peer, or the module present on one side and not the other?};
+\node[c,right=0.9cm of q1] (c1) {architecture-explained};
+\node[c,right=0.9cm of q2] (c2) {runtime-class-explained};
+\node[c,right=0.9cm of q3] (c3) {kernel-version-explained};
+\node[c,below=0.55cm of q3] (c4) {policy-explained};
+\draw[ar] (q1) -- node[above,yn]{yes} (c1);
+\draw[ar] (q2) -- node[above,yn]{yes} (c2);
+\draw[ar] (q3) -- node[above,yn]{yes} (c3);
+\draw[ar] (q1) -- node[right,yn]{no} (q2);
+\draw[ar] (q2) -- node[right,yn]{no} (q3);
+\draw[ar] (q3) -- node[right,yn]{no} (c4);
+\end{tikzpicture}
+\caption{The order in which the classifier tests explanations for a divergence (\file{control/classifier.go}).}
+\label{fig:classifier}
+\end{figure}
+
+The kernel-version test is the subtle one. A probe whose dependency names a \texttt{present\_if} path or a \texttt{since} release is kernel-explained only when the other side is \texttt{permitted}: a kernel lacking the entry point on one side and a filter denying it on the other is still a policy difference on the second side, which is how a corrected classifier stopped hiding policy behind kernel differences (issue \iss{88}). A probe whose dependency names a module is kernel-explained when the module is loaded after the run on one side and not the other; otherwise the kernel releases are compared. A difference in LSM or in runtime version reaches the fourth class: it is a difference in the policy the kernel actually enforces. The classifier's verdict per pair is therefore a statement about \emph{why} two nodes differ, which is the project's stated contribution.
+
+\section{Attribution}
+\label{sec:attribution}
+
+The attributor (\file{control/attribution.go}) gives every result an attribution: a mechanism (\texttt{seccomp}, \texttt{lsm}, \texttt{capability}, \texttt{mount} or \texttt{kernel-limit}) or none, a confidence, an \texttt{undecidable} flag with the candidate mechanisms, and a reason in words. It works in three stages: the errno oracle, correlation with the process's own recorded state, and elimination by the cell. It never reads host state.
+
+\subsection{Stage 1: the errno oracle}
+Table~\ref{tab:oracle-reading} gives the reading of each verdict and errno against the probe's oracle.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{4.2cm}LP{2.1cm}@{}}
+\toprule
+\textbf{Result} & \textbf{Reading} & \textbf{Confidence} \\
+\midrule
+\texttt{killed} & seccomp: only a \texttt{KILL} action produces SIGSYS & high \\
+\texttt{permitted}, \texttt{unimplemented}, \texttt{not-applicable} & not a denial & high \\
+\texttt{timed-out} & undecidable: hung and slow are not distinguished & low \\
+\texttt{denied} \errno{ENODATA} / \errno{EROFS} (path family) & mount: the probe's encoding of a mask or a read-only mount & high \\
+\texttt{denied} \errno{ENOSYS} & seccomp: the kernel implements the call, so \errno{ENOSYS} is a filter & high with a guaranteed errno, else medium \\
+\texttt{denied} \errno{EPERM}, oracle isolates \texttt{seccomp} & seccomp: nothing before the oracle's point answers \errno{EPERM} but a filter at entry & high with a guaranteed errno, else medium \\
+\texttt{denied} \errno{EPERM}, \texttt{seccomp-or-lsm} & undecidable between seccomp and an LSM & low \\
+\texttt{denied} \errno{EPERM}, \texttt{undecidable}, capability-gated & undecidable between seccomp and the missing capability & low \\
+\texttt{denied}, any other errno & undecidable unless correlation decides it & low \\
+\bottomrule
+\end{tabularx}
+\caption{Stage 1 of attribution: the oracle's reading.}
+\label{tab:oracle-reading}
+\end{table}
+
+Before the reading is taken, the probe's \texttt{lsm\_hook\_since} is applied to the cell's kernel release: on that release or later (or when the release cannot be parsed), an oracle that isolates seccomp is downgraded to \texttt{seccomp-or-lsm}. The same io\_uring denial is therefore decided on a 5.14 kernel and ambiguous on a 7.0 kernel, which is exactly what the kernel's code implies.
+
+\subsection{Stage 2: correlation}
+Correlation narrows a denial using facts the process recorded about itself:
+\begin{itemize}[leftmargin=*]
+\item \textbf{Capability.} For an \errno{EPERM} on a capability-gated probe, if the capability is absent from the effective set but present in the bounding set, the missing capability is the cause (low confidence). If it is present in the effective set, seccomp and an LSM hook remain, and the capability as well when the process is not in the initial user namespace (under \texttt{hostUsers: false} a held capability need not hold against the node's objects). If it is absent from both sets, seccomp and the capability remain. For CAP\_SYS\_PTRACE and CAP\_SYS\_RAWIO the LSM is always added, because Yama and lockdown can refuse them whatever the major LSM's label says.
+\item \textbf{\errno{EACCES}.} On a capability-gated call, \errno{EACCES} is decided only when CAP\_DAC\_OVERRIDE is held in the initial user namespace; otherwise a file-permission check, which is not one of the mechanisms the attributor names, could have produced it. On a \texttt{seccomp-or-lsm} probe under a confining, enforcing AppArmor or SELinux label, \errno{EACCES} after the LSM hook is attributed to the LSM.
+\item \textbf{User-namespace limits.} \errno{ENOSPC} from a user-namespace probe with \pid{user.max_user_namespaces} at zero is the kernel's own limit; an \errno{EPERM} while a restricting sysctl is set adds \texttt{kernel-limit} to the candidates.
+\end{itemize}
+
+\subsection{Stage 3: elimination by the cell}
+The cell can rule candidates out. seccomp mode 0 means no filter is installed. A non-enforcing (or absent) LSM refuses nothing, except through Yama and lockdown, which have no label, and except AppArmor's user-namespace restriction, which applies to unconfined tasks too. A capability in the effective set of the initial user namespace is not missing. When one candidate survives it is the attribution, at medium confidence; when none or several survive, the denial stays undecidable with the remaining candidates.
+
+\subsection{Confidence and the undecidable fraction}
+\emph{High} is a positive proof (a guaranteed errno replaced by \errno{EPERM}, a SIGSYS, an encoded mask). \emph{Medium} is a structural reading without a guaranteed errno, or a single survivor of elimination. \emph{Low} is correlation or an unresolved denial. The \emph{undecidable fraction} is the number of undecidable denials over all denials, killed results included. It is reported in every report as a measured quantity rather than assumed to be zero, and reachability, the primary measurement, does not depend on it.
+
+\subsection{What is not attempted}
+Reading the filter itself needs \texttt{PTRACE\_SECCOMP\_GET\_FILTER} and CAP\_SYS\_ADMIN. The privileged helper that would use it was outlined in the proposal and was neither specified nor built. Denials that the three stages cannot decide are reported as undecidable.
+
+\section{The Reference Posture}
+\label{sec:posture}
+
+The AF\_ALG case is not a claim violation: Pod Security Standards at Restricted assert nothing about AF\_ALG, and RuntimeDefault's contract is whatever the runtime ships. Measured against the manifest alone the case produces no finding, because the declaration and the measurement agree and both are weaker than practitioners believe. What failed was an \emph{expectation}. The reference posture is the model of that expectation: for each tier it asserts which kernel entry families a workload should not reach, and each assertion carries a rationale and a citation so that it can be audited rather than accepted on authority. Posture v1 (\file{posture/v1/posture.yaml}) is released with the instrument. Its tiers are in Table~\ref{tab:tiers} and its assertions in Table~\ref{tab:assertions}; assertions inherit downward, so every assertion at \texttt{restricted} also applies at \texttt{untrusted-multi-tenant}.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{3.3cm}P{4.6cm}L@{}}
+\toprule
+\textbf{Tier} & \textbf{Describes} & \textbf{Why it is stronger than the PSS level it is named after} \\
+\midrule
+\texttt{privileged} & Infrastructure needing node access: CNI plugins, storage drivers, node agents & It is the PSS Privileged floor and adds nothing, so a workload labelled privileged unnecessarily can be identified \\
+\texttt{baseline} & Ordinary services with no adversarial input: internal APIs, batch workers & Adds entry families a service should never reach, even when RuntimeDefault permits them \\
+\texttt{restricted} & Services handling untrusted requests: public APIs, ingress, image processing & Asserts a smaller kernel surface independently of RuntimeDefault, so the expectation is stable across runtime versions \\
+\pid{untrusted-multi-tenant} & Code the operator does not trust, sharing a node: CI jobs running pull requests, serverless functions, customer plugins & Kubernetes has no level above Restricted; this tier adds the full isolation model: no kernel crypto API, module loading, perf events, raw netlink, io\_uring, unmasked procfs \\
+\bottomrule
+\end{tabularx}
+\caption{Tiers of posture v1.}
+\label{tab:tiers}
+\end{table}
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{2.0cm}P{2.3cm}P{4.4cm}L@{}}
+\toprule
+\textbf{Tier} & \textbf{Family} & \textbf{Probes} & \textbf{Citation} \\
+\midrule
+baseline & mount & \pid{mount.reach}; \texttt{mount.fs.*}: proc, overlay, fuse & mount(2)~\cite{man-capabilities} \\
+baseline & device & \texttt{device.open.*}: fuse, kvm, mem & OCI runtime spec, devices~\cite{oci-runtime} \\
+baseline & path & \pid{path.masked.proc_kcore} & OCI runtime spec, maskedPaths~\cite{oci-runtime} \\
+restricted & io\_uring & whole family & io\_uring documentation~\cite{iouringdoc} \\
+restricted & capability & \texttt{sys\_module}, \texttt{sys\_boot}, \texttt{sys\_time}, \texttt{sys\_rawio}, \texttt{sys\_ptrace} & capabilities(7)~\cite{man-capabilities} \\
+untrusted & socket & \pid{socket.family.af_alg} & CVE-2026-31431~\cite{cve-2026-31431}, CVE-2017-2636~\cite{cve-2017-2636} \\
+untrusted & netlink & \texttt{netfilter}, \texttt{xfrm}, \texttt{crypto}, \texttt{rdma} & CVE-2024-1086~\cite{cve-2024-1086} \\
+untrusted & io\_uring & whole family & io\_uring documentation~\cite{iouringdoc} \\
+untrusted & path & \texttt{proc\_kcore}, \texttt{proc\_keys} & OCI runtime spec, maskedPaths~\cite{oci-runtime} \\
+untrusted & clone & \pid{unshare.flags.newuser}, \pid{clone.flags.newuser} & CVE-2022-0185~\cite{cve-2022-0185} \\
+untrusted & \pid{perf_event_open} & deferred family & CVE-2013-2094~\cite{cve-2013-2094} \\
+untrusted & bpf & deferred family & CVE-2017-16995~\cite{cve-2017-16995} \\
+untrusted & keyctl & deferred family & CVE-2016-0728~\cite{cve-2016-0728} \\
+untrusted & userfaultfd & deferred family & userfaultfd documentation~\cite{userfaultfddoc} \\
+untrusted & \pid{open_by_handle_at} & deferred family & the ``Shocker'' escape~\cite{shocker} \\
+\bottomrule
+\end{tabularx}
+\caption{The 15 assertions of posture v1 and their citations (16 in all). ``untrusted'' abbreviates \texttt{untrusted-multi-tenant}.}
+\label{tab:assertions}
+\end{table}
+
+io\_uring is asserted at both \texttt{restricted} and \texttt{untrusted-multi-tenant}; with inheritance the second is redundant, so the 15 assertions state 14 distinct expectations. Five assertions concern deferred families. They are kept deliberately: the evaluator reports them as asserted but not measured, so that the posture states what a tier requires independently of what the corpus currently measures. The posture is deliberately stronger than the tiers it is named after, and that gap is the point of it.
+
+\section{The Evaluator}
+\label{sec:evaluator}
+
+\texttt{EvaluateFindings} joins a fingerprint with one workload's manifest and a posture tier, and places every \texttt{permitted} result in one or more categories:
+\begin{description}[font=\normalfont\itshape,leftmargin=1em]
+\item[Expectation violation] An assertion at the evaluated tier or below names the probe's family and either lists the probe or covers the whole family. The finding carries the assertion's rationale and citations, and, for probes with a module dependency, whether the module was loaded before the run and whether the run loaded it.
+\item[Claim violation] The manifest declares the probe's capability unavailable, either by dropping it (or \texttt{ALL}) explicitly or through PSS Restricted's requirement to drop all capabilities, and the probe was permitted. Two guards keep this honest: only probes whose oracle is \texttt{undecidable} (whose answer is the capability check itself, with nothing earlier that could pass for it) are eligible, and CAP\_NET\_BIND\_SERVICE is excluded because PSS Restricted allows adding it. RuntimeDefault and Localhost seccomp profiles are deliberately not treated as claims: their contents cannot be inferred from the manifest.
+\item[Undeclared exposure] Reachable, and neither the posture tier nor the manifest addresses it. An input to corpus and posture development.
+\end{description}
+CI evaluates at \texttt{restricted} with \file{deploy/k8s/job.yaml} as the manifest; the closure experiment evaluates at \texttt{untrusted-multi-tenant}.
+
+\section{The Remediator}
+\label{sec:remediator}
+
+\texttt{GenerateRemediation} takes the evaluated expectation violations, the runtime's \emph{actual} RuntimeDefault profile (captured from containerd on the node, not assumed), and a target (runtime architecture, libseccomp architecture, capabilities and kernel release, used to resolve the profile's architecture-, capability- and kernel-gated rules for that node). It keeps the profile's default action and allowlist and narrows only what the findings require. Table~\ref{tab:rules} lists the closure for each probe.
+
+\begin{table}[htbp]
+\centering\small
+\begin{tabularx}{\textwidth}{@{}P{4.4cm}L@{}}
+\toprule
+\textbf{Finding} & \textbf{Closure} \\
+\midrule
+\pid{socket.family.af_alg} & \texttt{socket}: family 38 no longer allowed \\
+\texttt{netlink.protocol.*}: netfilter, xfrm, crypto, rdma & \texttt{socket(AF\_NETLINK, *, p)} no longer allowed for $p \in \{12, 6, 21, 20\}$ \\
+\pid{clone.flags.newuser}, \pid{unshare.flags.newuser} & \texttt{clone} / \texttt{unshare} allowed only when the \texttt{CLONE\_NEWUSER} bit is clear; \texttt{clone3} answers \errno{ENOSYS} so the flag cannot be passed through a pointer \\
+\texttt{io\_uring.*} & remove \texttt{io\_uring\_setup}, \texttt{io\_uring\_enter} and \texttt{io\_uring\_register} from the allowlist (opcodes are behind a pointer) \\
+\texttt{capability.sys\_*}: time, boot, module, rawio, ptrace & remove the gated calls (for example \texttt{reboot}, \texttt{kexec\_load}, \texttt{kexec\_file\_load}) \\
+\texttt{path.*}, \texttt{device.*}, \texttt{mount.*} & not closable: the deciding argument is a pathname or a filesystem type behind a pointer \\
+\bottomrule
+\end{tabularx}
+\caption{Closure rules of the remediator.}
+\label{tab:rules}
+\end{table}
+
+\subsection{Narrowing rather than excepting}
+libseccomp combines comparisons on the same argument within one rule with a logical OR, so an \texttt{ERRNO} exception placed beside a broad \texttt{ALLOW} rule for \texttt{socket} cannot close a family. The remediator therefore replaces a broad \texttt{socket} allow with one masked-equality allow per family that remains permitted, using a 32-bit mask so that high register bits cannot bypass the family test, and does the same for netlink protocols. For \texttt{clone} and \texttt{unshare} it adds a masked-equality condition to the existing allow so that it matches only when the user-namespace bit is clear. It never adds an allow rule the runtime's default did not have. Probes of one family that share a rule (every io\_uring probe) are closed by the first rule; the rest are recorded as closed by it.
+
+\subsection{Outputs}
+The primary output is a Security Profiles Operator~\cite{spo} \texttt{SeccompProfile} custom resource, which the operator distributes to every node and which solves the delivery problem on managed clusters, where a Localhost profile file cannot be placed in the kubelet's seccomp root without a custom node image. The secondary output is the equivalent OCI Localhost profile. The profile's name includes a hash of its rules, so different remediations never overwrite one another.
+
+\subsection{Closure verification}
+\texttt{caliper-pipeline} (driven by \file{deploy/gce/run-pipeline.sh}) measures the cell under RuntimeDefault from a fresh boot, captures the RuntimeDefault containerd applied, evaluates, generates the remediation, has SPO install the resource where a cluster with the operator is available, and measures again from a fresh boot under the generated Localhost profile. Each finding is then closed (the re-probe shows it denied or killed), \texttt{not-closable} (the generator could not express it), or \texttt{unenforced} (the re-probe ran with seccomp mode 0, so no profile could reach it). The generator's own claim is never counted.
+
+\section{Reporting}
+
+\texttt{BuildReport} combines findings, classified divergences and attribution. Each fingerprint is labelled by its position and the first 12 hexadecimal digits of its digest. \texttt{WriteJSONReport} and \texttt{WriteTextReport} render the same report for machines and people; both include the authorisation notice, the attribution confidence counts and the undecidable fraction. For expectation violations with a module dependency, the text report prints the module's state, for example \texttt{af\_alg: not loaded before run, loaded by run}. In CI, \texttt{caliper-ci-report} posts the report as a pull-request comment and updates it in place on later pushes. SARIF output was deferred.
